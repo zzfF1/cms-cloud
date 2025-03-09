@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.notice.mapper.SysNotificationUserMapper">
+    <update id="markAllAsRead">
+        UPDATE sys_notification_user
+        SET is_read = '1',
+            read_time = #{readTime},
+            update_time = #{readTime}
+        WHERE user_id = #{userId}
+          AND is_read = '0'
+    </update>
+    <update id="markAllUnread">
+        UPDATE sys_notification_user
+        SET is_read = '0',
+            read_time = NULL,
+            update_time = NOW()
+        WHERE notification_id = #{notificationId}
+    </update>
+
+    <select id="selectByNotificationIdAndUserId" resultType="com.sinosoft.notice.domain.SysNotificationUser">
+        SELECT *
+        FROM sys_notification_user
+        WHERE notification_id = #{notificationId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+    <select id="selectUserNotifications" resultType="com.sinosoft.notice.domain.SysNotificationUser">
+        SELECT
+        nu.*,
+        n.notification_id as n_notification_id,
+        n.template_id as n_template_id,
+        n.type as n_type,
+        n.title as n_title,
+        n.content as n_content,
+        n.source_type as n_source_type,
+        n.source_id as n_source_id,
+        n.priority as n_priority,
+        n.expiration_date as n_expiration_date,
+        n.actions as n_actions,
+        n.attachments as n_attachments,
+        n.business_data as n_business_data,
+        n.is_merged as n_is_merged,
+        n.merged_count as n_merged_count,
+        n.status as n_status,
+        n.create_time as n_create_time
+        FROM sys_notification_user nu
+        JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{query.userId}
+        <if test="query.isRead != null">
+            AND nu.is_read = #{query.isRead}
+        </if>
+        <if test="query.isProcessed != null">
+            AND nu.is_processed = #{query.isProcessed}
+        </if>
+        ORDER BY n.priority DESC, nu.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    <select id="selectUserNotificationsByType" resultType="com.sinosoft.notice.domain.SysNotificationUser">
+        SELECT
+        nu.*,
+        n.notification_id as n_notification_id,
+        n.template_id as n_template_id,
+        n.type as n_type,
+        n.title as n_title,
+        n.content as n_content,
+        n.source_type as n_source_type,
+        n.source_id as n_source_id,
+        n.priority as n_priority,
+        n.expiration_date as n_expiration_date,
+        n.actions as n_actions,
+        n.attachments as n_attachments,
+        n.business_data as n_business_data,
+        n.is_merged as n_is_merged,
+        n.merged_count as n_merged_count,
+        n.status as n_status,
+        n.create_time as n_create_time
+        FROM sys_notification_user nu
+        JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{query.userId}
+        AND n.type = #{type}
+        <if test="query.isRead != null">
+            AND nu.is_read = #{query.isRead}
+        </if>
+        <if test="query.isProcessed != null">
+            AND nu.is_processed = #{query.isProcessed}
+        </if>
+        ORDER BY n.priority DESC, nu.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    <select id="selectTodoNotifications" resultType="com.sinosoft.notice.domain.SysNotificationUser">
+        SELECT
+        nu.*,
+        n.notification_id as n_notification_id,
+        n.template_id as n_template_id,
+        n.type as n_type,
+        n.title as n_title,
+        n.content as n_content,
+        n.source_type as n_source_type,
+        n.source_id as n_source_id,
+        n.priority as n_priority,
+        n.expiration_date as n_expiration_date,
+        n.actions as n_actions,
+        n.attachments as n_attachments,
+        n.business_data as n_business_data,
+        n.is_merged as n_is_merged,
+        n.merged_count as n_merged_count,
+        n.status as n_status,
+        n.create_time as n_create_time
+        FROM sys_notification_user nu
+        JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{query.userId}
+        AND n.type = 'todo'
+        AND n.status = '0'
+        <if test="query.isProcessed != null">
+            AND nu.is_processed = #{query.isProcessed}
+        </if>
+        ORDER BY n.priority DESC,
+        CASE
+        WHEN n.expiration_date IS NOT NULL THEN n.expiration_date
+        ELSE '9999-12-31 23:59:59'
+        END ASC,
+        nu.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    <select id="countUserUnread" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_notification_user nu
+                 JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{userId}
+          AND nu.is_read = '0'
+          AND n.status = '0'
+    </select>
+    <select id="countUnreadByType" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_notification_user nu
+                 JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{userId}
+          AND nu.is_read = '0'
+          AND n.type = #{type}
+          AND n.status = '0'
+    </select>
+    <select id="countUserTodoByStatus" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_notification_user nu
+                 JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{userId}
+          AND nu.is_processed = #{isProcessed}
+          AND n.type = 'todo'
+          AND n.status = '0'
+    </select>
+    <select id="countUserHighPriorityTodo" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_notification_user nu
+                 JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{userId}
+          AND nu.is_processed = '0'
+          AND n.type = 'todo'
+          AND n.priority = 'high'
+          AND n.status = '0'
+    </select>
+    <select id="countUserExpiringTodo" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_notification_user nu
+                 JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{userId}
+          AND nu.is_processed = '0'
+          AND n.type = 'todo'
+          AND n.expiration_date IS NOT NULL
+          AND n.expiration_date &lt;= #{expirationDate}
+          AND n.status = '0'
+    </select>
+    <select id="countByNotificationId" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_notification_user
+        WHERE notification_id = #{notificationId}
+    </select>
+    <select id="countByNotificationIdAndIsRead" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_notification_user
+        WHERE notification_id = #{notificationId}
+          AND is_read = #{isRead}
+    </select>
+    <select id="countByNotificationIdAndIsProcessed" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_notification_user
+        WHERE notification_id = #{notificationId}
+          AND is_processed = #{isProcessed}
+    </select>
+    <select id="selectUserIdsByNotificationId" resultType="java.lang.Long">
+        SELECT user_id
+        FROM sys_notification_user
+        WHERE notification_id = #{notificationId}
+    </select>
+</mapper>

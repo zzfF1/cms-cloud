@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.sinosoft</groupId>
+        <artifactId>cms-cloud</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <modules>
+        <module>cms-common-bom</module>
+        <module>cms-common-alibaba-bom</module>
+        <module>cms-common-log</module>
+        <module>cms-common-dict</module>
+        <module>cms-common-excel</module>
+        <module>cms-common-core</module>
+        <module>cms-common-redis</module>
+        <module>cms-common-doc</module>
+        <module>cms-common-security</module>
+        <module>cms-common-satoken</module>
+        <module>cms-common-web</module>
+        <module>cms-common-mybatis</module>
+        <module>cms-common-job</module>
+        <module>cms-common-dubbo</module>
+        <module>cms-common-seata</module>
+        <module>cms-common-loadbalancer</module>
+        <module>cms-common-oss</module>
+        <module>cms-common-ratelimiter</module>
+        <module>cms-common-idempotent</module>
+        <module>cms-common-mail</module>
+        <module>cms-common-sms</module>
+        <module>cms-common-logstash</module>
+        <module>cms-common-elasticsearch</module>
+        <module>cms-common-sentinel</module>
+        <module>cms-common-skylog</module>
+        <module>cms-common-prometheus</module>
+        <module>cms-common-translation</module>
+        <module>cms-common-sensitive</module>
+        <module>cms-common-json</module>
+        <module>cms-common-encrypt</module>
+        <module>cms-common-tenant</module>
+        <module>cms-common-websocket</module>
+        <module>cms-common-social</module>
+        <module>cms-common-nacos</module>
+        <module>cms-common-bus</module>
+        <module>cms-common-sse</module>
+        <module>cms-common-schema</module>
+        <module>cms-common-base-core</module>
+        <module>cms-common-forest</module>
+        <module>cms-common-notice</module>
+    </modules>
+
+    <artifactId>cms-common</artifactId>
+    <packaging>pom</packaging>
+
+    <description>
+        cms-common通用模块
+    </description>
+
+</project>

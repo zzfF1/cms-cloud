@@ -1,0 +1,2 @@
+com.sinosoft.common.log.event.LogEventListener
+com.sinosoft.common.log.aspect.LogAspect

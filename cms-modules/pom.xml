@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.sinosoft</groupId>
+        <artifactId>cms-cloud</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <modules>
+        <module>cms-system</module>
+        <module>cms-gen</module>
+        <module>cms-job</module>
+        <module>cms-resource</module>
+        <module>cms-workflow</module>
+        <module>cms-bank</module>
+        <module>cms-grp</module>
+        <module>cms-migration</module>
+        <module>cms-cal</module>
+        <module>cms-interface</module>
+    </modules>
+
+    <artifactId>cms-modules</artifactId>
+    <packaging>pom</packaging>
+
+    <description>
+        cms-modules业务模块
+    </description>
+
+    <dependencies>
+        <!-- 自定义负载均衡(多团队开发使用) -->
+<!--        <dependency>-->
+<!--            <groupId>com.sinosoft</groupId>-->
+<!--            <artifactId>cms-common-loadbalancer</artifactId>-->
+<!--        </dependency>-->
+
+        <!-- ELK 日志收集 -->
+<!--        <dependency>-->
+<!--            <groupId>com.sinosoft</groupId>-->
+<!--            <artifactId>cms-common-logstash</artifactId>-->
+<!--        </dependency>-->
+
+        <!-- skywalking 日志收集 -->
+<!--        <dependency>-->
+<!--            <groupId>com.sinosoft</groupId>-->
+<!--            <artifactId>cms-common-skylog</artifactId>-->
+<!--        </dependency>-->
+
+        <!-- prometheus 监控 -->
+<!--        <dependency>-->
+<!--            <groupId>com.sinosoft</groupId>-->
+<!--            <artifactId>cms-common-prometheus</artifactId>-->
+<!--        </dependency>-->
+
+    </dependencies>
+
+</project>

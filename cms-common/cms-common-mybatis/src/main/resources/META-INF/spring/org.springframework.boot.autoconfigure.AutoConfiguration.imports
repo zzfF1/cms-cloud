@@ -1,0 +1,2 @@
+com.sinosoft.common.mybatis.config.MybatisPlusConfiguration
+com.sinosoft.common.mybatis.service.LDMaxNoHelper

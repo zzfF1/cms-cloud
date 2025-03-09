@@ -1,0 +1,3 @@
+com.sinosoft.common.encrypt.config.EncryptorAutoConfiguration
+com.sinosoft.common.encrypt.config.ApiDecryptAutoConfiguration
+com.sinosoft.common.encrypt.config.GlobalApiFilterFilterConfig

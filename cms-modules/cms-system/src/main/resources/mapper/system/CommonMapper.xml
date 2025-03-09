@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.system.mapper.CommonMapper">
+
+    <select id="queryProcess" resultType="com.sinosoft.common.domain.vo.LcProcessShowVo">
+        select last_flag,
+               cz_type,
+               (select name from lc_define b where b.id = a.lc_id)             lc_name,
+               operator,
+               (select nick_name from sys_user b where b.user_name = a.operator) operator_name,
+               make_date,
+               yj
+        from lc_processtrack a
+        where a.lc_serial_no = #{lcSerialNo}
+          and a.data_id = #{dataId}
+        order by a.serial_no
+    </select>
+
+</mapper>

@@ -1,0 +1,4 @@
+com.sinosoft.common.web.config.FilterConfig
+com.sinosoft.common.web.config.I18nConfig
+com.sinosoft.common.web.config.UndertowConfig
+com.sinosoft.common.web.config.ResourcesConfig

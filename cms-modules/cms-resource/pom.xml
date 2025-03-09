@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.sinosoft</groupId>
+        <artifactId>cms-modules</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>cms-resource</artifactId>
+
+    <description>
+        cms-resource资源服务
+    </description>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-nacos</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-sentinel</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-doc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-dubbo</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-seata</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-log</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-oss</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-ratelimiter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-mail</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-sms</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-mybatis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-tenant</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-translation</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-websocket</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-sse</artifactId>
+        </dependency>
+
+        <!-- Cms Api System -->
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-api-system</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-api-resource</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
