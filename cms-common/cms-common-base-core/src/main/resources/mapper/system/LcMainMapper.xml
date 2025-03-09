@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.common.mapper.LcMainMapper">
+<!--    <update id="execUpdate" >-->
+<!--        ${sql} and ${tableName}.${idField} in-->
+<!--        <foreach collection="idsList" item="item" index="index" open="(" close=")" separator=",">-->
+<!--            #{item}-->
+<!--        </foreach>-->
+<!--    </update>-->
+
+<!--    <select id="getDataCurLcId" resultType="java.lang.Integer">-->
+<!--        <if test="@helper.mybatis.common.com.sinosoft.DataBaseHelper@isMySql()">-->
+<!--            select ${lcField} from ${tableName} where 1=1-->
+<!--            <if test="idsList != null and idsList.size()>0">-->
+<!--                and ${idField} in-->
+<!--                <foreach collection="idsList" item="item" index="index" open="(" close=")" separator=",">-->
+<!--                    #{item}-->
+<!--                </foreach>-->
+<!--            </if>-->
+<!--            <if test="queryWhere != null and queryWhere !='' ">-->
+<!--                ${queryWhere}-->
+<!--            </if>-->
+<!--            group by ${lcField}-->
+<!--        </if>-->
+<!--    </select>-->
+</mapper>

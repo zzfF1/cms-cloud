@@ -1,0 +1,16 @@
+com.sinosoft.common.factory.agentcode.SimpleAgentCodeStrategyImpl
+com.sinosoft.common.mq.WageRabbitMQUtil
+com.sinosoft.common.mq.ChargeRabbitMQUtil
+com.sinosoft.common.utils.Condition2Util
+com.sinosoft.common.core.WebInterfaceBase
+com.sinosoft.common.core.WageCalculationBase
+com.sinosoft.common.flow.LcSubmit
+com.sinosoft.common.flow.FlowHandlerFactory
+com.sinosoft.common.flow.LcProcessTrackAsyncHandler
+com.sinosoft.common.excel.SysExcelHandler
+com.sinosoft.common.wordTopdf.WordToPdf
+com.sinosoft.common.assess.AgentAdjustmentDeal
+com.sinosoft.common.service.impl.CmsCommonServiceImpl
+com.sinosoft.common.service.impl.CommissionServiceImpl
+com.sinosoft.common.service.impl.LcMainServiceImpl
+com.sinosoft.common.service.impl.WageCalculationServiceImpl

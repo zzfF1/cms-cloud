@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.common.mapper.LcTzMapper">
+    <select id="selectLcTzByLcId" resultType="com.sinosoft.common.domain.LcTz">
+        SELECT *
+        FROM lc_tz A
+        <if test="bTh == true">
+            WHERE LC_NEXT_ID = #{lcId}
+            ORDER BY (SELECT B.RECNO FROM lc_define B WHERE B.ID = A.LC_ID), RECNO
+        </if>
+        <if test="bTh == false">
+            WHERE lc_id = #{lcId}
+            order by RECNO
+        </if>
+    </select>
+</mapper>
