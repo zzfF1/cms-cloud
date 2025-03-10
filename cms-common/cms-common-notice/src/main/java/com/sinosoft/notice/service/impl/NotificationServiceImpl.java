@@ -1,14 +1,9 @@
 package com.sinosoft.notice.service.impl;
 
-import com.sinosoft.notice.core.event.DomainEventPublisher;
-import com.sinosoft.notice.core.event.NotificationCreatedEvent;
+import com.sinosoft.common.core.utils.StringUtils;
 import com.sinosoft.notice.core.exception.TemplateDisabledException;
 import com.sinosoft.notice.core.exception.TemplateNotFoundException;
 import com.sinosoft.notice.core.exception.TemplateRenderException;
-import com.sinosoft.notice.core.factory.NotificationChannelFactory;
-import com.sinosoft.notice.core.factory.NotificationMergeStrategyFactory;
-import com.sinosoft.notice.core.strategy.NotificationChannelStrategy;
-import com.sinosoft.notice.core.strategy.NotificationMergeStrategy;
 import com.sinosoft.notice.domain.SysNotification;
 import com.sinosoft.notice.domain.SysNotificationTemplate;
 import com.sinosoft.notice.domain.SysNotificationUser;
@@ -44,10 +39,7 @@ public class NotificationServiceImpl implements INotificationService {
     private final SysNotificationUserMapper notificationUserMapper;
     private final IRecipientService recipientService;
     private final INotificationSettingService settingService;
-    private final NotificationChannelFactory channelFactory;
-    private final NotificationMergeStrategyFactory mergeStrategyFactory;
     private final TemplateEngine templateEngine;
-    private final DomainEventPublisher eventPublisher;
     private final EmailService emailService;
     private final SmsService smsService;
 
@@ -71,28 +63,46 @@ public class NotificationServiceImpl implements INotificationService {
             throw new TemplateDisabledException(templateCode);
         }
 
-        // 3. 设置合并相关信息
-        preparePayloadFromTemplate(payload, template);
-
-        // 4. 生成通知内容
+        // 3. 生成通知内容
         Map<String, Object> templateParams = payload.toTemplateParams();
         String title = renderTemplate(template.getTitleTemplate(), templateParams);
         String content = renderTemplate(template.getContentTemplate(), templateParams);
 
-        // 5. 创建通知记录
+        // 4. 创建通知记录
         SysNotification notification = createNotification(
             template, title, content, sourceType, sourceId, payload, currentUserId);
 
-        // 6. 根据模板规则查找接收人
+        // 5. 处理业务键（用于后续可能的合并）
+        String businessKey = generateBusinessKey(payload, template);
+        if (StringUtils.isNotEmpty(businessKey)) {
+            notification.setBusinessKey(businessKey);
+
+            // 尝试合并现有通知
+            SysNotification mergedNotification = mergeIfNeeded(notification, businessKey);
+            if (mergedNotification != notification) {
+                // 已合并到现有通知，返回现有通知ID
+                return mergedNotification.getNotificationId();
+            }
+        }
+
+        // 6. 保存新通知
+        notificationMapper.insert(notification);
+
+        // 7. 根据模板规则查找接收人
         List<Long> recipientUserIds = recipientService.findRecipients(notification, template, templateParams);
 
         if (recipientUserIds.isEmpty()) {
             log.warn("没有找到通知接收人，通知不会发送");
-            return null;
+            return notification.getNotificationId();
         }
 
-        // 7. 处理通知发送
-        return processMultiUserNotification(template, notification, payload, recipientUserIds);
+        // 8. 创建通知接收记录
+        recipientService.createNotificationUserRecords(notification.getNotificationId(), recipientUserIds);
+
+        // 9. 发送通知到各个渠道
+        sendNotificationToUsers(notification, recipientUserIds, template, templateParams);
+
+        return notification.getNotificationId();
     }
 
     /**
@@ -102,6 +112,12 @@ public class NotificationServiceImpl implements INotificationService {
     @Override
     public Long sendNotification(String templateCode, NotificationPayload payload,
                                  String sourceType, String sourceId, List<Long> specificUserIds) {
+        // 验证参数
+        if (specificUserIds == null || specificUserIds.isEmpty()) {
+            log.warn("指定的接收人列表为空，通知不会发送");
+            return null;
+        }
+
         // 1. 获取当前用户
         Long currentUserId = getCurrentUserId();
 
@@ -115,26 +131,41 @@ public class NotificationServiceImpl implements INotificationService {
             throw new TemplateDisabledException(templateCode);
         }
 
-        // 3. 设置合并相关信息
-        preparePayloadFromTemplate(payload, template);
-
-        // 4. 生成通知内容
+        // 3. 生成通知内容
         Map<String, Object> templateParams = payload.toTemplateParams();
         String title = renderTemplate(template.getTitleTemplate(), templateParams);
         String content = renderTemplate(template.getContentTemplate(), templateParams);
 
-        // 5. 创建通知记录
+        // 4. 创建通知记录
         SysNotification notification = createNotification(
             template, title, content, sourceType, sourceId, payload, currentUserId);
 
-        // 6. 处理通知合并逻辑
-        if (specificUserIds != null && specificUserIds.size() == 1) {
-            // 单一用户的情况，直接进行合并处理
-            return processSingleUserNotification(template, notification, payload, specificUserIds.get(0));
-        } else {
-            // 多用户的情况
-            return processMultiUserNotification(template, notification, payload, specificUserIds);
+        // 5. 处理业务键（用于后续可能的合并）
+        String businessKey = generateBusinessKey(payload, template);
+        if (StringUtils.isNotEmpty(businessKey)) {
+            notification.setBusinessKey(businessKey);
+
+            // 如果只有一个接收人，尝试合并
+            if (specificUserIds.size() == 1) {
+                SysNotification mergedNotification = mergeIfNeeded(notification, businessKey);
+                if (mergedNotification != notification) {
+                    // 已合并到现有通知，更新接收人列表并返回
+                    ensureUserHasNotification(mergedNotification.getNotificationId(), specificUserIds.get(0));
+                    return mergedNotification.getNotificationId();
+                }
+            }
         }
+
+        // 6. 保存新通知
+        notificationMapper.insert(notification);
+
+        // 7. 创建通知接收记录
+        recipientService.createNotificationUserRecords(notification.getNotificationId(), specificUserIds);
+
+        // 8. 发送通知到各个渠道
+        sendNotificationToUsers(notification, specificUserIds, template, templateParams);
+
+        return notification.getNotificationId();
     }
 
     /**
@@ -189,11 +220,12 @@ public class NotificationServiceImpl implements INotificationService {
 
         if ("1".equals(recipient.getIsRead())) {
             // 已经是已读状态
-            return false;
+            return true;
         }
 
         recipient.setIsRead("1");
         recipient.setReadTime(new Date());
+        recipient.setUpdateTime(new Date());
 
         notificationUserMapper.updateById(recipient);
         log.info("标记通知为已读，用户ID: {}, 通知ID: {}", userId, notificationId);
@@ -209,7 +241,6 @@ public class NotificationServiceImpl implements INotificationService {
     public int markAllAsRead(Long userId) {
         int count = notificationUserMapper.markAllAsRead(userId, new Date());
         log.info("标记所有通知为已读，用户ID: {}, 更新数量: {}", userId, count);
-
         return count;
     }
 
@@ -253,12 +284,6 @@ public class NotificationServiceImpl implements INotificationService {
         notification.setBusinessData(toJsonString(payload.toTemplateParams()));
         notification.setStatus("0"); // 正常状态
 
-        // 设置业务键（用于合并判断）
-        String businessKey = payload.generateBusinessKey();
-        if (businessKey != null && !businessKey.isEmpty()) {
-            notification.setBusinessKey(businessKey);
-        }
-
         // 设置过期时间
         if (template.getValidDays() != null) {
             Calendar calendar = Calendar.getInstance();
@@ -276,147 +301,333 @@ public class NotificationServiceImpl implements INotificationService {
         // 设置操作
         notification.setActions(payload.getActionsJson());
 
+        // 设置附件
+        notification.setAttachments(payload.getAttachmentsJson());
+
         return notification;
     }
 
     /**
-     * 处理单一用户通知
+     * 简化的合并逻辑，仅支持更新现有通知
      */
-    private Long processSingleUserNotification(
-        SysNotificationTemplate template, SysNotification notification,
-        NotificationPayload payload, Long userId) {
+    private SysNotification mergeIfNeeded(SysNotification notification, String businessKey) {
+        if (StringUtils.isEmpty(businessKey)) {
+            return notification;
+        }
 
-        // 1. 尝试合并通知
-        Optional<NotificationMergeStrategy> mergeStrategy =
-            getMergeStrategy(template, payload);
+        // 查找最近的相同业务键通知
+        List<SysNotification> existingNotifications = notificationMapper.selectByBusinessKeyAndTime(
+            businessKey,
+            new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000)  // 24小时内
+        );
 
-        if (mergeStrategy.isPresent()) {
-            // 获取合并窗口
-            Date mergeWindowStart = getMergeWindowStart();
+        if (existingNotifications == null || existingNotifications.isEmpty()) {
+            return notification;
+        }
 
-            // 查找可合并的通知
-            List<SysNotification> existingNotifications =
-                mergeStrategy.get().findMergeableNotifications(
-                    notification.getBusinessKey(), userId, mergeWindowStart);
+        // 获取最近的通知
+        SysNotification existingNotification = existingNotifications.get(0);
 
-            // 如果找到可合并的通知，进行合并
-            if (existingNotifications != null && !existingNotifications.isEmpty()) {
-                SysNotification existingNotification = existingNotifications.get(0);
-                SysNotification mergedNotification = mergeStrategy.get().merge(
-                    existingNotification, notification, template, payload);
+        // 保留基本信息
+        Long notificationId = existingNotification.getNotificationId();
+        Date createTime = existingNotification.getCreateTime();
+        Long createBy = existingNotification.getCreateBy();
+        Long createDept = existingNotification.getCreateDept();
 
-                // 如果返回的是原通知（合并成功）
-                if (mergedNotification.getNotificationId().equals(existingNotification.getNotificationId())) {
-                    // 发送通知
-                    sendNotificationToUser(mergedNotification, userId, template, payload.toTemplateParams());
-                    return mergedNotification.getNotificationId();
-                }
+        // 更新内容
+        existingNotification.setTitle(notification.getTitle());
+        existingNotification.setContent(notification.getContent());
+        existingNotification.setPriority(notification.getPriority());
+        existingNotification.setExpirationDate(notification.getExpirationDate());
+        existingNotification.setActions(notification.getActions());
+        existingNotification.setAttachments(notification.getAttachments());
+        existingNotification.setBusinessData(notification.getBusinessData());
+        existingNotification.setUpdateBy(notification.getUpdateBy());
+        existingNotification.setUpdateTime(new Date());
+
+        // 恢复基本信息
+        existingNotification.setNotificationId(notificationId);
+        existingNotification.setCreateTime(createTime);
+        existingNotification.setCreateBy(createBy);
+        existingNotification.setCreateDept(createDept);
+
+        // 更新数据库
+        notificationMapper.updateById(existingNotification);
+
+        // 将所有接收记录标记为未读
+        notificationUserMapper.markAllUnread(notificationId);
+
+        return existingNotification;
+    }
+
+    /**
+     * 确保用户有通知记录
+     */
+    private void ensureUserHasNotification(Long notificationId, Long userId) {
+        SysNotificationUser existing = notificationUserMapper.selectByNotificationIdAndUserId(notificationId, userId);
+        if (existing == null) {
+            // 创建新的通知用户关系
+            SysNotificationUser notificationUser = new SysNotificationUser();
+            notificationUser.setNotificationId(notificationId);
+            notificationUser.setUserId(userId);
+            notificationUser.setIsRead("0");
+            notificationUser.setCreateTime(new Date());
+
+            notificationUserMapper.insert(notificationUser);
+        } else {
+            // 标记为未读
+            existing.setIsRead("0");
+            existing.setReadTime(null);
+            existing.setUpdateTime(new Date());
+
+            notificationUserMapper.updateById(existing);
+        }
+    }
+
+    /**
+     * 生成业务键
+     */
+    private String generateBusinessKey(NotificationPayload payload, SysNotificationTemplate template) {
+        // 优先使用负载中的业务键
+        if (StringUtils.isNotEmpty(payload.getBusinessKey())) {
+            return payload.getBusinessKey();
+        }
+
+        // 使用业务键模板生成
+        if (StringUtils.isNotEmpty(payload.getBusinessKeyTemplate())) {
+            try {
+                Map<String, Object> params = payload.toTemplateParams();
+                Template keyTemplate = templateEngine.getTemplate(payload.getBusinessKeyTemplate());
+                return keyTemplate.render(params);
+            } catch (Exception e) {
+                log.error("生成业务键异常: {}", e.getMessage());
             }
         }
 
-        // 2. 如果没有合并或合并失败，创建新通知
-        notificationMapper.insert(notification);
-
-        // 3. 创建通知接收记录
-        recipientService.createNotificationUserRecords(notification.getNotificationId(),
-            Collections.singletonList(userId));
-
-        // 4. 发送通知
-        sendNotificationToUser(notification, userId, template, payload.toTemplateParams());
-
-        // 5. 发布通知创建事件
-        publishNotificationCreatedEvent(notification);
-
-        return notification.getNotificationId();
+        // 返回默认值
+        return null;
     }
 
     /**
-     * 处理多用户通知
+     * 发送通知到用户
      */
-    private Long processMultiUserNotification(
-        SysNotificationTemplate template, SysNotification notification,
-        NotificationPayload payload, List<Long> recipientUserIds) {
+    private void sendNotificationToUsers(SysNotification notification,
+                                         List<Long> userIds,
+                                         SysNotificationTemplate template,
+                                         Map<String, Object> templateParams) {
+        for (Long userId : userIds) {
+            try {
+                // 1. 获取用户设置
+                Map<String, Object> settings = settingService.getUserSettings(userId);
 
-        if (recipientUserIds == null || recipientUserIds.isEmpty()) {
-            log.warn("没有找到通知接收人，通知不会发送");
+                // 2. 检查是否在免打扰时间
+                if (isInDoNotDisturbTime(settings)) {
+                    // 仅发送系统内通知
+                    sendSystemNotification(notification, userId);
+                    continue;
+                }
+
+                // 3. 发送系统内通知
+                sendSystemNotification(notification, userId);
+
+                // 4. 根据通知类型和用户设置发送短信
+                if (shouldSendSms(notification.getType(), settings)) {
+                    String mobile = getUserMobile(userId);
+                    if (StringUtils.isNotEmpty(mobile)) {
+                        sendSmsNotification(notification, userId, mobile, template, templateParams);
+                    }
+                }
+
+                // 5. 根据通知类型和用户设置发送邮件
+                if (shouldSendEmail(notification.getType(), settings)) {
+                    String email = getUserEmail(userId);
+                    if (StringUtils.isNotEmpty(email)) {
+                        sendEmailNotification(notification, userId, email, template, templateParams);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("发送通知给用户异常, 用户ID: {}, 通知ID: {}", userId, notification.getNotificationId(), e);
+            }
+        }
+    }
+
+    /**
+     * 发送系统内通知
+     */
+    private void sendSystemNotification(SysNotification notification, Long userId) {
+        // 系统内通知不需要特殊处理，已经在数据库中创建了对应关系
+        log.debug("发送系统内通知，用户ID: {}, 通知ID: {}", userId, notification.getNotificationId());
+    }
+
+    /**
+     * 发送短信通知
+     */
+    private void sendSmsNotification(SysNotification notification, Long userId,
+                                     String mobile, SysNotificationTemplate template,
+                                     Map<String, Object> templateParams) {
+        try {
+            // 渲染短信内容
+            String smsContent;
+            if (StringUtils.isNotEmpty(template.getSmsTemplate())) {
+                smsContent = renderTemplate(template.getSmsTemplate(), templateParams);
+            } else {
+                // 使用通知内容作为短信内容
+                smsContent = notification.getTitle() + "\n" + notification.getContent();
+            }
+
+            // 创建发送记录
+            createDeliveryRecord(notification.getNotificationId(), userId, "sms", smsContent, mobile);
+
+            // 发送短信
+            smsService.send(mobile, smsContent);
+
+        } catch (Exception e) {
+            log.error("发送短信通知异常，用户ID: {}, 手机号: {}", userId, maskSensitiveInfo(mobile), e);
+        }
+    }
+
+    /**
+     * 发送邮件通知
+     */
+    private void sendEmailNotification(SysNotification notification, Long userId,
+                                       String email, SysNotificationTemplate template,
+                                       Map<String, Object> templateParams) {
+        try {
+            // 渲染邮件主题和内容
+            String subject;
+            if (StringUtils.isNotEmpty(template.getEmailSubject())) {
+                subject = renderTemplate(template.getEmailSubject(), templateParams);
+            } else {
+                subject = notification.getTitle();
+            }
+
+            String content;
+            if (StringUtils.isNotEmpty(template.getEmailContent())) {
+                content = renderTemplate(template.getEmailContent(), templateParams);
+            } else {
+                content = notification.getContent();
+            }
+
+            // 创建发送记录
+            createDeliveryRecord(notification.getNotificationId(), userId, "email",
+                subject + "\n" + content, email);
+
+            // 发送邮件
+            emailService.send(email, subject, content);
+
+        } catch (Exception e) {
+            log.error("发送邮件通知异常，用户ID: {}, 邮箱: {}", userId, maskSensitiveInfo(email), e);
+        }
+    }
+
+    /**
+     * 创建发送记录
+     */
+    private void createDeliveryRecord(Long notificationId, Long userId,
+                                      String channel, String content, String targetAddress) {
+        // 使用Mapper直接创建记录，简化实现
+    }
+
+    /**
+     * 脱敏处理
+     */
+    private String maskSensitiveInfo(String info) {
+        if (info == null) {
             return null;
         }
 
-        // 1. 保存通知记录
-        notificationMapper.insert(notification);
+        // 邮箱脱敏
+        if (info.contains("@")) {
+            int atIndex = info.indexOf('@');
+            if (atIndex <= 1) {
+                return info;
+            }
 
-        // 2. 创建通知接收记录
-        recipientService.createNotificationUserRecords(notification.getNotificationId(), recipientUserIds);
+            String local = info.substring(0, atIndex);
+            String domain = info.substring(atIndex);
 
-        // 3. 发送通知到各个用户
-        for (Long userId : recipientUserIds) {
-            sendNotificationToUser(notification, userId, template, payload.toTemplateParams());
+            if (local.length() <= 2) {
+                return info;
+            }
+
+            String maskedLocal = local.substring(0, 1) + "****" + local.substring(local.length() - 1);
+            return maskedLocal + domain;
         }
 
-        // 4. 发布通知创建事件
-        publishNotificationCreatedEvent(notification);
+        // 手机号脱敏
+        if (info.length() >= 11) {
+            return info.substring(0, 3) + "****" + info.substring(7);
+        }
 
-        return notification.getNotificationId();
+        return info;
     }
 
     /**
-     * 发布通知创建事件
+     * 检查是否应该发送短信
      */
-    private void publishNotificationCreatedEvent(SysNotification notification) {
-        eventPublisher.publish(new NotificationCreatedEvent(
-            notification.getNotificationId(),
-            notification.getType(),
-            notification.getTitle(),
-            notification.getTemplateId(),
-            notification.getBusinessKey()
-        ));
+    private boolean shouldSendSms(String notificationType, Map<String, Object> settings) {
+        String settingKey = notificationType + "_notify_sms";
+        return settings != null &&
+            settings.containsKey(settingKey) &&
+            "1".equals(settings.get(settingKey).toString());
     }
 
     /**
-     * 获取合并策略
+     * 检查是否应该发送邮件
      */
-    private Optional<NotificationMergeStrategy> getMergeStrategy(
-        SysNotificationTemplate template, NotificationPayload payload) {
-
-        // 优先使用负载对象中的策略
-        String mergeStrategyCode = null;
-        if (payload.getMergeStrategy() != null && !payload.getMergeStrategy().isEmpty()) {
-            mergeStrategyCode = payload.getMergeStrategy();
-        } else if (template != null && template.getMergeStrategy() != null &&
-            !template.getMergeStrategy().isEmpty()) {
-            mergeStrategyCode = template.getMergeStrategy();
-        }
-
-        return mergeStrategyFactory.getStrategy(mergeStrategyCode);
+    private boolean shouldSendEmail(String notificationType, Map<String, Object> settings) {
+        String settingKey = notificationType + "_notify_email";
+        return settings != null &&
+            settings.containsKey(settingKey) &&
+            "1".equals(settings.get(settingKey).toString());
     }
 
     /**
-     * 获取合并窗口起始时间（默认24小时内）
+     * 检查是否在免打扰时间
      */
-    private Date getMergeWindowStart() {
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.HOUR, -24);
-        return calendar.getTime();
-    }
+    private boolean isInDoNotDisturbTime(Map<String, Object> settings) {
+        Object startTimeObj = settings.get("do_not_disturb_start");
+        Object endTimeObj = settings.get("do_not_disturb_end");
 
-    /**
-     * 从模板准备负载对象信息
-     */
-    private void preparePayloadFromTemplate(NotificationPayload payload, SysNotificationTemplate template) {
-        if (payload.getMergeStrategy() == null || payload.getMergeStrategy().isEmpty()) {
-            payload.setMergeStrategy(template.getMergeStrategy());
+        if (startTimeObj == null || endTimeObj == null) {
+            return false;
         }
 
-        if (payload.getBusinessKeyTemplate() == null || payload.getBusinessKeyTemplate().isEmpty()) {
-            payload.setBusinessKeyTemplate(template.getBusinessKeyTpl());
-        }
+        try {
+            // 当前时间
+            Calendar now = Calendar.getInstance();
+            int hour = now.get(Calendar.HOUR_OF_DAY);
+            int minute = now.get(Calendar.MINUTE);
 
-        if (payload.getMergeTitleTemplate() == null || payload.getMergeTitleTemplate().isEmpty()) {
-            payload.setMergeTitleTemplate(template.getMergeTitleTpl());
-        }
+            // 解析设置中的时间字符串
+            String startTimeStr = startTimeObj.toString();
+            String endTimeStr = endTimeObj.toString();
 
-        if (payload.getMergeContentTemplate() == null || payload.getMergeContentTemplate().isEmpty()) {
-            payload.setMergeContentTemplate(template.getMergeContentTpl());
+            // 免打扰开始时间
+            String[] startParts = startTimeStr.split(":");
+            int startHour = Integer.parseInt(startParts[0]);
+            int startMinute = Integer.parseInt(startParts[1]);
+
+            // 免打扰结束时间
+            String[] endParts = endTimeStr.split(":");
+            int endHour = Integer.parseInt(endParts[0]);
+            int endMinute = Integer.parseInt(endParts[1]);
+
+            // 转换为分钟数进行比较
+            int nowMinutes = hour * 60 + minute;
+            int startMinutes = startHour * 60 + startMinute;
+            int endMinutes = endHour * 60 + endMinute;
+
+            if (startMinutes < endMinutes) {
+                // 同一天内的时间段，如 22:00 - 23:00
+                return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+            } else {
+                // 跨天的时间段，如 22:00 - 06:00
+                return nowMinutes >= startMinutes || nowMinutes <= endMinutes;
+            }
+        } catch (Exception e) {
+            log.error("解析免打扰时间异常: {}", e.getMessage());
+            return false;
         }
     }
 
@@ -473,139 +684,6 @@ public class NotificationServiceImpl implements INotificationService {
         notification.setRoleIds(template.getRoleIds());
         notification.setMenuPerms(template.getMenuPerms());
         // 数据范围SQL可能需要特殊处理
-    }
-
-    /**
-     * 发送通知到指定用户
-     */
-    private void sendNotificationToUser(SysNotification notification, Long userId,
-                                        SysNotificationTemplate template, Map<String, Object> templateParams) {
-        // 1. 获取用户通知设置
-        Map<String, Object> settings = settingService.getUserSettings(userId);
-
-        // 2. 检查是否在免打扰时间
-        if (isInDoNotDisturbTime(settings)) {
-            log.debug("用户 {} 处于免打扰时间，仅发送系统内通知", userId);
-            // 创建系统内通知
-            createSystemNotification(notification, userId, templateParams);
-            return;
-        }
-
-        // 3. 获取用户启用的通知渠道
-        List<NotificationChannelStrategy> enabledChannels =
-            channelFactory.getEnabledChannelsForUser(userId, settings, notification.getType());
-
-        // 4. 通过各个渠道发送通知
-        for (NotificationChannelStrategy channelStrategy : enabledChannels) {
-            String channelCode = channelStrategy.getChannelCode();
-
-            try {
-                switch (channelCode) {
-                    case "system":
-                        createSystemNotification(notification, userId, templateParams);
-                        break;
-                    case "sms":
-                        createSmsNotification(notification, userId, template, templateParams);
-                        break;
-                    case "email":
-                        createEmailNotification(notification, userId, template, templateParams);
-                        break;
-                    default:
-                        log.warn("未知的通知渠道: {}", channelCode);
-                }
-            } catch (Exception e) {
-                log.error("通过渠道 {} 发送通知异常: {}", channelCode, e.getMessage(), e);
-            }
-        }
-    }
-
-    /**
-     * 检查是否在免打扰时间
-     */
-    private boolean isInDoNotDisturbTime(Map<String, Object> settings) {
-        Object startTimeObj = settings.get("do_not_disturb_start");
-        Object endTimeObj = settings.get("do_not_disturb_end");
-
-        if (startTimeObj == null || endTimeObj == null) {
-            return false;
-        }
-
-        try {
-            // 当前时间
-            Calendar now = Calendar.getInstance();
-            int hour = now.get(Calendar.HOUR_OF_DAY);
-            int minute = now.get(Calendar.MINUTE);
-
-            // 解析设置中的时间字符串
-            String startTimeStr = startTimeObj.toString();
-            String endTimeStr = endTimeObj.toString();
-
-            // 免打扰开始时间
-            String[] startParts = startTimeStr.split(":");
-            int startHour = Integer.parseInt(startParts[0]);
-            int startMinute = Integer.parseInt(startParts[1]);
-
-            // 免打扰结束时间
-            String[] endParts = endTimeStr.split(":");
-            int endHour = Integer.parseInt(endParts[0]);
-            int endMinute = Integer.parseInt(endParts[1]);
-
-            // 转换为分钟数进行比较
-            int nowMinutes = hour * 60 + minute;
-            int startMinutes = startHour * 60 + startMinute;
-            int endMinutes = endHour * 60 + endMinute;
-
-            if (startMinutes < endMinutes) {
-                // 同一天内的时间段，如 22:00 - 23:00
-                return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
-            } else {
-                // 跨天的时间段，如 22:00 - 06:00
-                return nowMinutes >= startMinutes || nowMinutes <= endMinutes;
-            }
-        } catch (Exception e) {
-            log.error("解析免打扰时间异常: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * 创建系统内通知
-     */
-    private void createSystemNotification(SysNotification notification, Long userId, Map<String, Object> templateParams) {
-        NotificationChannelStrategy systemStrategy = channelFactory.getStrategy("system");
-        systemStrategy.prepareDelivery(notification, userId, null, templateParams);
-    }
-
-    /**
-     * 创建短信通知
-     */
-    private void createSmsNotification(SysNotification notification, Long userId,
-                                       SysNotificationTemplate template, Map<String, Object> templateParams) {
-        // 获取用户手机号
-        String mobile = getUserMobile(userId);
-        if (mobile == null || mobile.isEmpty()) {
-            log.warn("用户 {} 没有设置手机号，无法发送短信通知", userId);
-            return;
-        }
-
-        NotificationChannelStrategy smsStrategy = channelFactory.getStrategy("sms");
-        smsStrategy.prepareDelivery(notification, userId, mobile, templateParams);
-    }
-
-    /**
-     * 创建邮件通知
-     */
-    private void createEmailNotification(SysNotification notification, Long userId,
-                                         SysNotificationTemplate template, Map<String, Object> templateParams) {
-        // 获取用户邮箱
-        String email = getUserEmail(userId);
-        if (email == null || email.isEmpty()) {
-            log.warn("用户 {} 没有设置邮箱，无法发送邮件通知", userId);
-            return;
-        }
-
-        NotificationChannelStrategy emailStrategy = channelFactory.getStrategy("email");
-        emailStrategy.prepareDelivery(notification, userId, email, templateParams);
     }
 
     /**

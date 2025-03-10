@@ -7,10 +7,7 @@ import lombok.Data;
 import java.io.Serial;
 
 /**
- * 通知模板对象 sys_notification_template
- *
- * @author zzf
- * @date 2025-03-07
+ * 通知模板对象 sys_notification_template (简化版)
  */
 @Data
 @TableName("sys_notification_template")
@@ -94,34 +91,16 @@ public class SysNotificationTemplate extends BaseEntity {
      * 可执行操作，JSON格式
      */
     private String actions;
+
     /**
      * 权限处理器类型
      */
     private String permissionHandler;
+
     /**
      * 权限处理器配置
      */
     private String permissionConfig;
-
-    /**
-     * 合并策略: none-不合并, update-更新已有, count-计数合并, list-列表合并
-     */
-    private String mergeStrategy;
-
-    /**
-     * 业务键模板，用于识别重复通知
-     */
-    private String businessKeyTpl;
-
-    /**
-     * 合并后的标题模板
-     */
-    private String mergeTitleTpl;
-
-    /**
-     * 合并后的内容模板
-     */
-    private String mergeContentTpl;
 
     /**
      * 状态（0正常 1停用）
@@ -132,6 +111,4 @@ public class SysNotificationTemplate extends BaseEntity {
      * 备注
      */
     private String remark;
-
-
 }

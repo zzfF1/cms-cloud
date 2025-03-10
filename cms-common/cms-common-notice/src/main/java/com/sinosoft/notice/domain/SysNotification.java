@@ -9,10 +9,7 @@ import java.util.Date;
 import java.io.Serial;
 
 /**
- * 通知主对象 sys_notification
- *
- * @author zzf
- * @date 2025-03-07
+ * 通知主对象 sys_notification (简化版)
  */
 @Data
 @TableName("sys_notification")
@@ -83,21 +80,6 @@ public class SysNotification extends BaseEntity {
     private String businessKey;
 
     /**
-     * 是否为合并通知（0否 1是）
-     */
-    private String isMerged;
-
-    /**
-     * 合并数量，默认为1
-     */
-    private Integer mergedCount;
-
-    /**
-     * 父通知ID，用于合并场景
-     */
-    private Long parentId;
-
-    /**
      * 过期时间
      */
     private Date expirationDate;
@@ -126,6 +108,4 @@ public class SysNotification extends BaseEntity {
      * 备注
      */
     private String remark;
-
-
 }
