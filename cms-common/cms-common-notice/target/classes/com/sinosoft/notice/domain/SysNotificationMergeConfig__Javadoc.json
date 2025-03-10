@@ -1,1 +1,0 @@
-{"doc":" 通知合并配置对象 sys_notification_merge_config\n\n @author zzf\n @date 2025-03-07\n","fields":[{"name":"id","doc":" 主键ID\n"},{"name":"templateCode","doc":" 模板代码\n"},{"name":"mergeWithinHours","doc":" 合并时间窗口（小时）\n"},{"name":"maxMergeCount","doc":" 最大合并数量\n"},{"name":"mergeByUser","doc":" 是否按用户合并（0否 1是）\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" 通知渠道枚举\n","fields":[],"enumConstants":[{"name":"SYSTEM","doc":" 系统内通知\n"},{"name":"SMS","doc":" 短信通知\n"},{"name":"EMAIL","doc":" 邮件通知\n"}],"methods":[],"constructors":[]}

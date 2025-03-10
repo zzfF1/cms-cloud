@@ -1,1 +1,0 @@
-{"doc":" 通知合并策略枚举\n","fields":[],"enumConstants":[{"name":"NONE","doc":" 不合并\n"},{"name":"UPDATE","doc":" 更新已有通知\n"},{"name":"COUNT","doc":" 计数合并\n"},{"name":"LIST","doc":" 列表合并\n"}],"methods":[],"constructors":[]}

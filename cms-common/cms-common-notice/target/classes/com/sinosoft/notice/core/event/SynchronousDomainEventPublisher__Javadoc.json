@@ -1,1 +1,0 @@
-{"doc":" 同步领域事件发布器实现\n","fields":[],"enumConstants":[],"methods":[{"name":"register","paramTypes":["com.sinosoft.notice.core.event.DomainEventSubscriber"],"doc":" 注册事件订阅者\n"}],"constructors":[]}

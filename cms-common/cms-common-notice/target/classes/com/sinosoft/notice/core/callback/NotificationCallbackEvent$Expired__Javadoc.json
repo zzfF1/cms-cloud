@@ -1,1 +1,0 @@
-{"doc":" 通知过期事件\n","fields":[{"name":"notificationId","doc":" 通知ID\n"},{"name":"type","doc":" 通知类型\n"},{"name":"businessKey","doc":" 业务键\n"},{"name":"expireTime","doc":" 过期时间\n"},{"name":"unreadCount","doc":" 未读用户数\n"},{"name":"unprocessedCount","doc":" 未处理用户数\n"}],"enumConstants":[],"methods":[],"constructors":[]}

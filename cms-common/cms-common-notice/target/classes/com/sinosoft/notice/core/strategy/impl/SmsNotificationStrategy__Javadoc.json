@@ -1,1 +1,0 @@
-{"doc":" 短信通知渠道策略\n","fields":[],"enumConstants":[],"methods":[{"name":"renderSmsContent","paramTypes":["com.sinosoft.notice.domain.SysNotification","java.util.Map"],"doc":" 渲染短信内容\n"},{"name":"maskMobile","paramTypes":["java.lang.String"],"doc":" 手机号脱敏\n"}],"constructors":[]}

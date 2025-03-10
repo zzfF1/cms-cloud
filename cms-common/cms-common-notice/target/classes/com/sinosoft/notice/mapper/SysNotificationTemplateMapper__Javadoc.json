@@ -1,1 +1,0 @@
-{"doc":" 通知模板Mapper接口\n","fields":[],"enumConstants":[],"methods":[{"name":"selectByCode","paramTypes":["java.lang.String"],"doc":" 根据代码查询模板\n"},{"name":"selectTemplatePermissionHandlers","paramTypes":[],"doc":" 查询所有模板的权限处理器信息\n"},{"name":"selectByBusinessType","paramTypes":["java.lang.String"],"doc":" 根据业务类型查询模板\n"}],"constructors":[]}

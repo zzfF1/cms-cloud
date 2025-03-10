@@ -1,1 +1,0 @@
-{"doc":" SMS服务接口\n","fields":[],"enumConstants":[],"methods":[{"name":"send","paramTypes":["java.lang.String","java.lang.String"],"doc":" 发送短信\n\n @param mobile  手机号\n @param content 内容\n @return 是否发送成功\n"}],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" 邮件服务\n","fields":[],"enumConstants":[],"methods":[{"name":"send","paramTypes":["java.lang.String","java.lang.String","java.lang.String"],"doc":" 发送邮件\n\n @param email   邮箱地址\n @param subject 主题\n @param content 内容\n @return 是否发送成功\n"}],"constructors":[]}

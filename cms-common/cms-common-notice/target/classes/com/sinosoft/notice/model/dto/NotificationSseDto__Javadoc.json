@@ -1,1 +1,0 @@
-{"doc":" 通知SSE消息DTO\n","fields":[{"name":"type","doc":" 消息类型\n"},{"name":"title","doc":" 消息标题\n"},{"name":"content","doc":" 消息内容\n"},{"name":"notificationId","doc":" 通知ID\n"},{"name":"notificationType","doc":" 通知类型\n"},{"name":"priority","doc":" 优先级\n"},{"name":"timestamp","doc":" 时间戳\n"},{"name":"data","doc":" 额外数据\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" 通知类型枚举\n","fields":[],"enumConstants":[{"name":"TODO","doc":" 待办通知\n"},{"name":"ALERT","doc":" 预警通知\n"},{"name":"ANNOUNCEMENT","doc":" 公告通知\n"}],"methods":[{"name":"fromCode","paramTypes":["java.lang.String"],"doc":" 根据代码获取通知类型枚举\n"}],"constructors":[]}

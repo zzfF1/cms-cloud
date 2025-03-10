@@ -1,1 +1,0 @@
-{"doc":" 领域事件发布器接口\n","fields":[],"enumConstants":[],"methods":[{"name":"publish","paramTypes":["com.sinosoft.notice.core.event.NotificationDomainEvent"],"doc":" 发布领域事件\n\n @param event 领域事件\n"}],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" 通知附件\n\n @author zzf\n","fields":[{"name":"id","doc":"附件ID "},{"name":"name","doc":"附件名称 "},{"name":"type","doc":"附件类型 "},{"name":"url","doc":"附件URL "},{"name":"size","doc":"附件大小 "},{"name":"extension","doc":"附件扩展信息 "}],"enumConstants":[],"methods":[],"constructors":[]}

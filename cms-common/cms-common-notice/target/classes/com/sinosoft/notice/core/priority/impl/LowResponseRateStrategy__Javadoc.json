@@ -1,1 +1,0 @@
-{"doc":" 响应率低优先级调整策略\n 当通知发送后一段时间，响应率低于预期时升级优先级\n","fields":[{"name":"RESPONSE_CHECK_HOURS","doc":" 响应率检查时间阈值（小时）\n"},{"name":"RESPONSE_RATE_THRESHOLD","doc":" 响应率阈值（小于该比例需要升级）\n"}],"enumConstants":[],"methods":[],"constructors":[]}

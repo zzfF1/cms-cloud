@@ -1,1 +1,0 @@
-{"doc":" 通知处理事件\n","fields":[{"name":"notificationId","doc":" 通知ID\n"},{"name":"userId","doc":" 用户ID\n"},{"name":"type","doc":" 通知类型\n"},{"name":"businessKey","doc":" 业务键\n"},{"name":"processTime","doc":" 处理时间\n"},{"name":"processNote","doc":" 处理备注\n"},{"name":"processResult","doc":" 处理结果\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" 默认通知发送回调实现\n","fields":[{"name":"SMS_MAX_RETRY","doc":" 最大重试次数\n"}],"enumConstants":[],"methods":[{"name":"getMaxRetryForChannel","paramTypes":["java.lang.String"],"doc":" 获取渠道最大重试次数\n"},{"name":"maskSensitiveInfo","paramTypes":["java.lang.String"],"doc":" 脱敏处理\n"}],"constructors":[]}

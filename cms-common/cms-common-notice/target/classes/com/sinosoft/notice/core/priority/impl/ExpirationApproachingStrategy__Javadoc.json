@@ -1,1 +1,0 @@
-{"doc":" 过期接近优先级调整策略\n 当通知即将过期但尚未被多数人读取时，升级优先级\n","fields":[{"name":"EXPIRATION_THRESHOLD_HOURS","doc":" 即将过期阈值（小时）\n"},{"name":"READ_RATE_THRESHOLD","doc":" 读取率阈值（小于该比例需要升级）\n"}],"enumConstants":[],"methods":[],"constructors":[]}
