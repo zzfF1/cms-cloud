@@ -77,6 +77,10 @@ public class NotificationPayload implements Serializable {
      * 是否紧急
      */
     private Boolean urgent;
+    /**
+     * 发起人
+     */
+    private Long userId;
 
     /**
      * 附件信息

@@ -12,13 +12,25 @@ import java.util.Map;
 public interface INotificationService {
 
     /**
-     * 发送通知
+     * 发送通知（根据模板规则自动确定接收人）
+     *
+     * @param templateCode 模板代码
+     * @param payload      通知业务负载
+     * @param sourceType   来源类型
+     * @param sourceId     来源ID
+     * @return 通知ID
+     */
+    Long sendNotification(String templateCode, NotificationPayload payload,
+                          String sourceType, String sourceId);
+
+    /**
+     * 发送通知（指定接收人）
      *
      * @param templateCode    模板代码
      * @param payload         通知业务负载
      * @param sourceType      来源类型
      * @param sourceId        来源ID
-     * @param specificUserIds 指定用户IDs（可选）
+     * @param specificUserIds 指定用户IDs
      * @return 通知ID
      */
     Long sendNotification(String templateCode, NotificationPayload payload,

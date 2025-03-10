@@ -86,4 +86,14 @@
           AND attr_name = 'notify_handlers'
         LIMIT 1
     </select>
+    <select id="selectUserIdsByDeptIds" resultType="java.lang.Long">
+        SELECT DISTINCT user_id
+        FROM sys_user
+        WHERE dept_id IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+            #{deptId}
+        </foreach>
+        AND status = '0'
+        AND del_flag = '0'
+    </select>
 </mapper>

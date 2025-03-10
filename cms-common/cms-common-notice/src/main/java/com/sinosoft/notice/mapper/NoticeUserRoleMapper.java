@@ -11,8 +11,9 @@ import java.util.List;
  */
 public interface NoticeUserRoleMapper extends BaseMapperPlus<Object, Object> {
 
+
     /**
-     * 根据角色ID列表查询用户ID列表
+     * 根据角色ID列表查询用户ID
      *
      * @param roleIds 角色ID列表
      * @return 用户ID列表
@@ -32,9 +33,9 @@ public interface NoticeUserRoleMapper extends BaseMapperPlus<Object, Object> {
      *
      * @param userId 用户ID
      * @param roleId 角色ID
-     * @return 是否拥有
+     * @return 是否拥有角色
      */
-    boolean hasRole(@Param("userId") Long userId, @Param("roleId") Long roleId);
+    Boolean hasRole(@Param("userId") Long userId, @Param("roleId") Long roleId);
 
     /**
      * 根据权限标识列表查询用户ID
@@ -56,7 +57,7 @@ public interface NoticeUserRoleMapper extends BaseMapperPlus<Object, Object> {
      * 查询节点角色配置
      *
      * @param lcId 流程节点ID
-     * @return 角色配置值
+     * @return 角色配置
      */
     String selectNodeRoles(@Param("lcId") Integer lcId);
 
@@ -64,7 +65,7 @@ public interface NoticeUserRoleMapper extends BaseMapperPlus<Object, Object> {
      * 查询节点权限配置
      *
      * @param lcId 流程节点ID
-     * @return 权限配置值
+     * @return 权限配置
      */
     String selectNodePerms(@Param("lcId") Integer lcId);
 
@@ -72,7 +73,15 @@ public interface NoticeUserRoleMapper extends BaseMapperPlus<Object, Object> {
      * 查询节点处理人配置
      *
      * @param lcId 流程节点ID
-     * @return 处理人配置值
+     * @return 处理人配置
      */
     String selectNodeHandlers(@Param("lcId") Integer lcId);
+
+    /**
+     * 根据部门ID列表查询用户ID
+     *
+     * @param deptIds 部门ID列表
+     * @return 用户ID列表
+     */
+    List<Long> selectUserIdsByDeptIds(@Param("deptIds") List<Long> deptIds);
 }

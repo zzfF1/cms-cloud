@@ -2,13 +2,11 @@ package com.sinosoft.notice.service.impl;
 
 import com.sinosoft.notice.core.event.DomainEventPublisher;
 import com.sinosoft.notice.core.event.NotificationCreatedEvent;
-import com.sinosoft.notice.core.exception.NotificationErrorCode;
 import com.sinosoft.notice.core.exception.TemplateDisabledException;
 import com.sinosoft.notice.core.exception.TemplateNotFoundException;
 import com.sinosoft.notice.core.exception.TemplateRenderException;
 import com.sinosoft.notice.core.factory.NotificationChannelFactory;
 import com.sinosoft.notice.core.factory.NotificationMergeStrategyFactory;
-import com.sinosoft.notice.core.permission.DataPermissionManager;
 import com.sinosoft.notice.core.strategy.NotificationChannelStrategy;
 import com.sinosoft.notice.core.strategy.NotificationMergeStrategy;
 import com.sinosoft.notice.domain.SysNotification;
@@ -50,12 +48,55 @@ public class NotificationServiceImpl implements INotificationService {
     private final NotificationMergeStrategyFactory mergeStrategyFactory;
     private final TemplateEngine templateEngine;
     private final DomainEventPublisher eventPublisher;
-    private final DataPermissionManager permissionManager;
     private final EmailService emailService;
     private final SmsService smsService;
 
     /**
-     * 发送通知
+     * 发送通知（根据模板规则自动确定接收人）
+     */
+    @Transactional
+    @Override
+    public Long sendNotification(String templateCode, NotificationPayload payload,
+                                 String sourceType, String sourceId) {
+        // 1. 获取当前用户
+        Long currentUserId = payload.getUserId();
+
+        // 2. 获取通知模板
+        SysNotificationTemplate template = templateMapper.selectByCode(templateCode);
+        if (template == null) {
+            throw new TemplateNotFoundException(templateCode);
+        }
+
+        if (!"0".equals(template.getStatus())) {
+            throw new TemplateDisabledException(templateCode);
+        }
+
+        // 3. 设置合并相关信息
+        preparePayloadFromTemplate(payload, template);
+
+        // 4. 生成通知内容
+        Map<String, Object> templateParams = payload.toTemplateParams();
+        String title = renderTemplate(template.getTitleTemplate(), templateParams);
+        String content = renderTemplate(template.getContentTemplate(), templateParams);
+
+        // 5. 创建通知记录
+        SysNotification notification = createNotification(
+            template, title, content, sourceType, sourceId, payload, currentUserId);
+
+        // 6. 根据模板规则查找接收人
+        List<Long> recipientUserIds = recipientService.findRecipients(notification, template, templateParams);
+
+        if (recipientUserIds.isEmpty()) {
+            log.warn("没有找到通知接收人，通知不会发送");
+            return null;
+        }
+
+        // 7. 处理通知发送
+        return processMultiUserNotification(template, notification, payload, recipientUserIds);
+    }
+
+    /**
+     * 发送通知（指定接收人）
      */
     @Transactional
     @Override
@@ -91,7 +132,7 @@ public class NotificationServiceImpl implements INotificationService {
             // 单一用户的情况，直接进行合并处理
             return processSingleUserNotification(template, notification, payload, specificUserIds.get(0));
         } else {
-            // 多用户或按权限规则筛选的情况
+            // 多用户的情况
             return processMultiUserNotification(template, notification, payload, specificUserIds);
         }
     }
@@ -130,49 +171,7 @@ public class NotificationServiceImpl implements INotificationService {
             .collect(Collectors.toList());
 
         // 查询通知详情
-        List<SysNotification> notifications = notificationMapper.selectBatchIds(notificationIds);
-
-        // 应用权限过滤
-        return filterNotificationsByPermission(notifications, userId);
-    }
-
-    /**
-     * 根据权限过滤通知列表
-     */
-    private List<SysNotification> filterNotificationsByPermission(List<SysNotification> notifications, Long userId) {
-        if (notifications == null || notifications.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<SysNotification> filteredNotifications = new ArrayList<>();
-
-        for (SysNotification notification : notifications) {
-            // 查询通知关联的模板
-            SysNotificationTemplate template = null;
-            if (notification.getTemplateId() != null) {
-                template = templateMapper.selectById(notification.getTemplateId());
-            }
-
-            // 检查用户对该通知的权限
-            if (checkNotificationPermission(notification, userId, template)) {
-                filteredNotifications.add(notification);
-            }
-        }
-
-        return filteredNotifications;
-    }
-
-    /**
-     * 检查用户对通知的权限
-     */
-    private boolean checkNotificationPermission(SysNotification notification, Long userId, SysNotificationTemplate template) {
-        // 公告类通知默认所有人都可以看
-        if ("announcement".equals(notification.getType())) {
-            return true;
-        }
-
-        // 使用权限管理器检查
-        return permissionManager.checkPermission(notification, userId, template);
+        return notificationMapper.selectBatchIds(notificationIds);
     }
 
     /**
@@ -181,26 +180,8 @@ public class NotificationServiceImpl implements INotificationService {
     @Transactional
     @Override
     public boolean markAsRead(Long userId, Long notificationId) {
-        // 查询通知详情
-        SysNotification notification = notificationMapper.selectById(notificationId);
-        if (notification == null) {
-            log.warn("通知不存在, ID: {}", notificationId);
-            return false;
-        }
-
-        // 查询模板
-        SysNotificationTemplate template = null;
-        if (notification.getTemplateId() != null) {
-            template = templateMapper.selectById(notification.getTemplateId());
-        }
-
-        // 检查权限
-        if (!checkNotificationPermission(notification, userId, template)) {
-            log.warn("用户 {} 没有通知 {} 的权限", userId, notificationId);
-            return false;
-        }
-
         SysNotificationUser recipient = notificationUserMapper.selectByNotificationIdAndUserId(notificationId, userId);
+
         if (recipient == null) {
             log.warn("通知接收记录不存在, 用户ID: {}, 通知ID: {}", userId, notificationId);
             return false;
@@ -226,45 +207,9 @@ public class NotificationServiceImpl implements INotificationService {
     @Transactional
     @Override
     public int markAllAsRead(Long userId) {
-        // 获取用户所有通知ID
-        List<Long> notificationIds = notificationUserMapper.selectNotificationIdsByUserId(userId, null, "0", 0, Integer.MAX_VALUE);
-
-        if (notificationIds.isEmpty()) {
-            return 0;
-        }
-
-        // 过滤出有权限的通知
-        List<Long> permittedIds = new ArrayList<>();
-        for (Long notificationId : notificationIds) {
-            SysNotification notification = notificationMapper.selectById(notificationId);
-            if (notification != null) {
-                SysNotificationTemplate template = null;
-                if (notification.getTemplateId() != null) {
-                    template = templateMapper.selectById(notification.getTemplateId());
-                }
-
-                if (checkNotificationPermission(notification, userId, template)) {
-                    permittedIds.add(notificationId);
-                }
-            }
-        }
-
-        if (permittedIds.isEmpty()) {
-            return 0;
-        }
-
-        int count = 0;
-        for (Long notificationId : permittedIds) {
-            SysNotificationUser recipient = notificationUserMapper.selectByNotificationIdAndUserId(notificationId, userId);
-            if (recipient != null && "0".equals(recipient.getIsRead())) {
-                recipient.setIsRead("1");
-                recipient.setReadTime(new Date());
-                notificationUserMapper.updateById(recipient);
-                count++;
-            }
-        }
-
+        int count = notificationUserMapper.markAllAsRead(userId, new Date());
         log.info("标记所有通知为已读，用户ID: {}, 更新数量: {}", userId, count);
+
         return count;
     }
 
@@ -273,53 +218,10 @@ public class NotificationServiceImpl implements INotificationService {
      */
     @Override
     public Map<String, Integer> getUnreadCount(Long userId) {
-        // 先获取所有通知ID
-        List<Long> notificationIds = notificationUserMapper.selectNotificationIdsByUserId(userId, null, "0", 0, Integer.MAX_VALUE);
-
-        if (notificationIds.isEmpty()) {
-            Map<String, Integer> emptyResult = new HashMap<>();
-            emptyResult.put("total", 0);
-            emptyResult.put("todo", 0);
-            emptyResult.put("alert", 0);
-            emptyResult.put("announcement", 0);
-            return emptyResult;
-        }
-
-        // 过滤出有权限的通知
-        List<SysNotification> permittedNotifications = new ArrayList<>();
-        for (Long notificationId : notificationIds) {
-            SysNotification notification = notificationMapper.selectById(notificationId);
-            if (notification != null) {
-                SysNotificationTemplate template = null;
-                if (notification.getTemplateId() != null) {
-                    template = templateMapper.selectById(notification.getTemplateId());
-                }
-
-                if (checkNotificationPermission(notification, userId, template)) {
-                    permittedNotifications.add(notification);
-                }
-            }
-        }
-
-        // 统计各类型数量
-        int todoCount = 0;
-        int alertCount = 0;
-        int announcementCount = 0;
-
-        for (SysNotification notification : permittedNotifications) {
-            switch (notification.getType()) {
-                case "todo":
-                    todoCount++;
-                    break;
-                case "alert":
-                    alertCount++;
-                    break;
-                case "announcement":
-                    announcementCount++;
-                    break;
-            }
-        }
-
+        // 查询各类型未读数量
+        int todoCount = notificationUserMapper.countUnreadByType(userId, "todo");
+        int alertCount = notificationUserMapper.countUnreadByType(userId, "alert");
+        int announcementCount = notificationUserMapper.countUnreadByType(userId, "announcement");
         int totalCount = todoCount + alertCount + announcementCount;
 
         Map<String, Integer> result = new HashMap<>();
@@ -384,12 +286,6 @@ public class NotificationServiceImpl implements INotificationService {
         SysNotificationTemplate template, SysNotification notification,
         NotificationPayload payload, Long userId) {
 
-        // 检查用户对模板的权限
-        if (!checkTemplatePermission(template, userId)) {
-            log.warn("用户 {} 没有模板 {} 的权限，跳过通知发送", userId, template.getTemplateCode());
-            return null;
-        }
-
         // 1. 尝试合并通知
         Optional<NotificationMergeStrategy> mergeStrategy =
             getMergeStrategy(template, payload);
@@ -406,18 +302,14 @@ public class NotificationServiceImpl implements INotificationService {
             // 如果找到可合并的通知，进行合并
             if (existingNotifications != null && !existingNotifications.isEmpty()) {
                 SysNotification existingNotification = existingNotifications.get(0);
+                SysNotification mergedNotification = mergeStrategy.get().merge(
+                    existingNotification, notification, template, payload);
 
-                // 检查用户对现有通知的权限
-                if (checkNotificationPermission(existingNotification, userId, template)) {
-                    SysNotification mergedNotification = mergeStrategy.get().merge(
-                        existingNotification, notification, template, payload);
-
-                    // 如果返回的是原通知（合并成功）
-                    if (mergedNotification.getNotificationId().equals(existingNotification.getNotificationId())) {
-                        // 发送通知
-                        sendNotificationToUser(mergedNotification, userId, template, payload.toTemplateParams());
-                        return mergedNotification.getNotificationId();
-                    }
+                // 如果返回的是原通知（合并成功）
+                if (mergedNotification.getNotificationId().equals(existingNotification.getNotificationId())) {
+                    // 发送通知
+                    sendNotificationToUser(mergedNotification, userId, template, payload.toTemplateParams());
+                    return mergedNotification.getNotificationId();
                 }
             }
         }
@@ -443,79 +335,28 @@ public class NotificationServiceImpl implements INotificationService {
      */
     private Long processMultiUserNotification(
         SysNotificationTemplate template, SysNotification notification,
-        NotificationPayload payload, List<Long> specificUserIds) {
+        NotificationPayload payload, List<Long> recipientUserIds) {
 
-        // 1. 确定通知接收人
-        List<Long> recipientUserIds;
-        if (specificUserIds != null && !specificUserIds.isEmpty()) {
-            // 使用指定的用户列表，并进行权限过滤
-            recipientUserIds = filterUsersByPermission(specificUserIds, template);
-        } else {
-            // 根据权限规则匹配用户
-            recipientUserIds = recipientService.findRecipients(notification, template, null);
-        }
-
-        if (recipientUserIds.isEmpty()) {
-            log.warn("没有找到有权限的通知接收人，通知不会发送");
+        if (recipientUserIds == null || recipientUserIds.isEmpty()) {
+            log.warn("没有找到通知接收人，通知不会发送");
             return null;
         }
 
-        // 2. 保存通知记录
+        // 1. 保存通知记录
         notificationMapper.insert(notification);
 
-        // 3. 创建通知接收记录
+        // 2. 创建通知接收记录
         recipientService.createNotificationUserRecords(notification.getNotificationId(), recipientUserIds);
 
-        // 4. 发送通知到各个用户
+        // 3. 发送通知到各个用户
         for (Long userId : recipientUserIds) {
             sendNotificationToUser(notification, userId, template, payload.toTemplateParams());
         }
 
-        // 5. 发布通知创建事件
+        // 4. 发布通知创建事件
         publishNotificationCreatedEvent(notification);
 
         return notification.getNotificationId();
-    }
-
-    /**
-     * 根据权限过滤用户列表
-     */
-    private List<Long> filterUsersByPermission(List<Long> userIds, SysNotificationTemplate template) {
-        if (userIds == null || userIds.isEmpty() || template == null) {
-            return Collections.emptyList();
-        }
-
-        List<Long> filteredUsers = new ArrayList<>();
-
-        for (Long userId : userIds) {
-            if (checkTemplatePermission(template, userId)) {
-                filteredUsers.add(userId);
-            }
-        }
-
-        return filteredUsers;
-    }
-
-    /**
-     * 检查用户对模板的权限
-     */
-    private boolean checkTemplatePermission(SysNotificationTemplate template, Long userId) {
-        if (template == null || userId == null) {
-            return false;
-        }
-
-        // 公告类通知默认所有人都可以看
-        if ("announcement".equals(template.getType())) {
-            return true;
-        }
-
-        // 创建一个临时通知对象用于权限检查
-        SysNotification tempNotification = new SysNotification();
-        tempNotification.setType(template.getType());
-        tempNotification.setRoleIds(template.getRoleIds());
-        tempNotification.setMenuPerms(template.getMenuPerms());
-
-        return permissionManager.checkPermission(tempNotification, userId, template);
     }
 
     /**
