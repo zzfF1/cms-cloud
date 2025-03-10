@@ -20,22 +20,7 @@ public interface NoticeUserRoleMapper extends BaseMapperPlus<Object, Object> {
      */
     List<Long> selectUserIdsByRoleIds(@Param("roleIds") List<Long> roleIds);
 
-    /**
-     * 根据用户ID查询角色ID列表
-     *
-     * @param userId 用户ID
-     * @return 角色ID列表
-     */
-    List<Long> selectRoleIdsByUserId(@Param("userId") Long userId);
 
-    /**
-     * 判断用户是否拥有指定角色
-     *
-     * @param userId 用户ID
-     * @param roleId 角色ID
-     * @return 是否拥有角色
-     */
-    Boolean hasRole(@Param("userId") Long userId, @Param("roleId") Long roleId);
 
     /**
      * 根据权限标识列表查询用户ID
@@ -53,29 +38,6 @@ public interface NoticeUserRoleMapper extends BaseMapperPlus<Object, Object> {
      */
     Long selectUserIdByUsername(@Param("username") String username);
 
-    /**
-     * 查询节点角色配置
-     *
-     * @param lcId 流程节点ID
-     * @return 角色配置
-     */
-    String selectNodeRoles(@Param("lcId") Integer lcId);
-
-    /**
-     * 查询节点权限配置
-     *
-     * @param lcId 流程节点ID
-     * @return 权限配置
-     */
-    String selectNodePerms(@Param("lcId") Integer lcId);
-
-    /**
-     * 查询节点处理人配置
-     *
-     * @param lcId 流程节点ID
-     * @return 处理人配置
-     */
-    String selectNodeHandlers(@Param("lcId") Integer lcId);
 
     /**
      * 根据部门ID列表查询用户ID

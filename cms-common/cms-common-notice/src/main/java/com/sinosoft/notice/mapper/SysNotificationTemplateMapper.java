@@ -17,14 +17,4 @@ public interface SysNotificationTemplateMapper extends BaseMapperPlus<SysNotific
      * 根据代码查询模板
      */
     SysNotificationTemplate selectByCode(@Param("templateCode") String templateCode);
-
-    /**
-     * 查询所有模板的权限处理器信息
-     */
-    List<Map<String, Object>> selectTemplatePermissionHandlers();
-
-    /**
-     * 根据业务类型查询模板
-     */
-    List<SysNotificationTemplate> selectByBusinessType(@Param("businessType") String businessType);
 }

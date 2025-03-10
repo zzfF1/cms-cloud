@@ -12,22 +12,4 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         LIMIT 1
     </select>
 
-    <select id="selectTemplatePermissionHandlers" resultType="java.util.Map">
-        SELECT
-            template_id as templateId,
-            permission_handler as permissionHandler,
-            permission_config as permissionConfig
-        FROM
-            sys_notification_template
-        WHERE
-            status = '0'
-    </select>
-
-    <select id="selectByBusinessType" resultType="com.sinosoft.notice.domain.SysNotificationTemplate">
-        SELECT *
-        FROM sys_notification_template
-        WHERE LOCATE(#{businessType}, JSON_EXTRACT(permission_config, '$.businessType')) > 0
-           OR template_code LIKE CONCAT('%', #{businessType}, '%')
-            AND status = '0'
-    </select>
 </mapper>

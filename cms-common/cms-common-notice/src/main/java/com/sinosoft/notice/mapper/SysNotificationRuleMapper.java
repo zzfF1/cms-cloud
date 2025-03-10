@@ -18,21 +18,6 @@ import java.util.Map;
 public interface SysNotificationRuleMapper extends BaseMapperPlus<SysNotificationRule, SysNotificationRule> {
 
     /**
-     * 查询所有启用的规则
-     *
-     * @return 规则列表
-     */
-    List<SysNotificationRule> selectActiveRules();
-
-    /**
-     * 根据事件类型查询规则
-     *
-     * @param eventType 事件类型
-     * @return 规则列表
-     */
-    List<SysNotificationRule> selectByEventType(@Param("eventType") String eventType);
-
-    /**
      * 执行动态SQL查询
      * @param sql 动态SQL语句
      * @return 查询结果
