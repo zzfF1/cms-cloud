@@ -1,9 +1,7 @@
 package com.sinosoft.notice.service.impl;
 
 import com.sinosoft.common.core.utils.StringUtils;
-import com.sinosoft.notice.core.exception.TemplateDisabledException;
-import com.sinosoft.notice.core.exception.TemplateNotFoundException;
-import com.sinosoft.notice.core.exception.TemplateRenderException;
+import com.sinosoft.notice.core.exception.NotificationException;
 import com.sinosoft.notice.domain.SysNotification;
 import com.sinosoft.notice.domain.SysNotificationTemplate;
 import com.sinosoft.notice.domain.SysNotificationUser;
@@ -56,11 +54,11 @@ public class NotificationServiceImpl implements INotificationService {
         // 2. 获取通知模板
         SysNotificationTemplate template = templateMapper.selectByCode(templateCode);
         if (template == null) {
-            throw new TemplateNotFoundException(templateCode);
+            throw new NotificationException("400", "[" + templateCode + "]通知模板不存在!");
         }
 
         if (!"0".equals(template.getStatus())) {
-            throw new TemplateDisabledException(templateCode);
+            throw new NotificationException("400", "[" + templateCode + "]通知模板未启用!");
         }
 
         // 3. 生成通知内容
@@ -124,11 +122,11 @@ public class NotificationServiceImpl implements INotificationService {
         // 2. 获取通知模板
         SysNotificationTemplate template = templateMapper.selectByCode(templateCode);
         if (template == null) {
-            throw new TemplateNotFoundException(templateCode);
+            throw new NotificationException("400", "[" + templateCode + "]通知模板不存在!");
         }
 
         if (!"0".equals(template.getStatus())) {
-            throw new TemplateDisabledException(templateCode);
+            throw new NotificationException("400", "[" + templateCode + "]通知模板未启用!");
         }
 
         // 3. 生成通知内容
@@ -645,7 +643,7 @@ public class NotificationServiceImpl implements INotificationService {
             return template.render(data);
         } catch (Exception e) {
             log.error("渲染模板异常: {}", e.getMessage());
-            throw new TemplateRenderException(e.getMessage(), e);
+            throw new NotificationException("400", e.getMessage(), e);
         }
     }
 
