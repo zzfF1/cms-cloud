@@ -1,5 +1,6 @@
 package com.sinosoft.notice.service;
 
+import com.sinosoft.notice.domain.SysNotification;
 import com.sinosoft.notice.model.NotificationPayload;
 
 import java.util.List;
@@ -33,7 +34,7 @@ public interface INotificationService {
      * @param pageSize 每页条数
      * @return 通知列表
      */
-    List<com.sinosoft.notice.domain.SysNotification> getUserNotifications(Long userId, String type, Boolean isRead, int pageNum, int pageSize);
+    List<SysNotification> getUserNotifications(Long userId, String type, Boolean isRead, int pageNum, int pageSize);
 
     /**
      * 标记通知为已读

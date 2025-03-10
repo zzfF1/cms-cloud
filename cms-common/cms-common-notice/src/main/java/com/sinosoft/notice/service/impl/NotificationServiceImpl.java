@@ -8,6 +8,7 @@ import com.sinosoft.notice.core.exception.TemplateNotFoundException;
 import com.sinosoft.notice.core.exception.TemplateRenderException;
 import com.sinosoft.notice.core.factory.NotificationChannelFactory;
 import com.sinosoft.notice.core.factory.NotificationMergeStrategyFactory;
+import com.sinosoft.notice.core.permission.DataPermissionManager;
 import com.sinosoft.notice.core.strategy.NotificationChannelStrategy;
 import com.sinosoft.notice.core.strategy.NotificationMergeStrategy;
 import com.sinosoft.notice.domain.SysNotification;
@@ -49,6 +50,7 @@ public class NotificationServiceImpl implements INotificationService {
     private final NotificationMergeStrategyFactory mergeStrategyFactory;
     private final TemplateEngine templateEngine;
     private final DomainEventPublisher eventPublisher;
+    private final DataPermissionManager permissionManager;
     private final EmailService emailService;
     private final SmsService smsService;
 

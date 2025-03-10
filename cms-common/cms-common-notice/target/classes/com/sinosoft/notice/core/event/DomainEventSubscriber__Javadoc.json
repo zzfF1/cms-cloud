@@ -1,0 +1,1 @@
+{"doc":" 领域事件订阅者接口\n","fields":[],"enumConstants":[],"methods":[{"name":"canHandle","paramTypes":["com.sinosoft.notice.core.event.NotificationDomainEvent"],"doc":" 判断是否能处理事件\n"},{"name":"handle","paramTypes":["com.sinosoft.notice.core.event.NotificationDomainEvent"],"doc":" 处理事件\n"}],"constructors":[]}

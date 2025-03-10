@@ -94,6 +94,14 @@ public class SysNotificationTemplate extends BaseEntity {
      * 可执行操作，JSON格式
      */
     private String actions;
+    /**
+     * 权限处理器类型
+     */
+    private String permissionHandler;
+    /**
+     * 权限处理器配置
+     */
+    private String permissionConfig;
 
     /**
      * 合并策略: none-不合并, update-更新已有, count-计数合并, list-列表合并

@@ -177,4 +177,13 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 用户ID列表
      */
     List<Long> selectUserIdsByNotificationId(@Param("notificationId") Long notificationId);
+
+    /**
+     * 查询用户关联的通知ID列表
+     */
+    List<Long> selectNotificationIdsByUserId(@Param("userId") Long userId,
+                                             @Param("type") String type,
+                                             @Param("isRead") String isRead,
+                                             @Param("offset") int offset,
+                                             @Param("limit") int limit);
 }

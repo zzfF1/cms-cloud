@@ -12,8 +12,8 @@ import org.springframework.context.annotation.Configuration;
  * @create: 2025-03-09 01:27
  */
 @Slf4j
-//@Configuration
-//@AutoConfiguration
-//@ComponentScan(basePackages = "com.sinosoft.notice")
+@Configuration
+@AutoConfiguration
+@ComponentScan(basePackages = "com.sinosoft.notice")
 public class NoticeAutoConfiguration {
 }

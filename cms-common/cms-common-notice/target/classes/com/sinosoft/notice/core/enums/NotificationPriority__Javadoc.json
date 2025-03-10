@@ -1,0 +1,1 @@
+{"doc":" 通知优先级枚举\n","fields":[],"enumConstants":[{"name":"HIGH","doc":" 高优先级\n"},{"name":"MEDIUM","doc":" 中优先级\n"},{"name":"LOW","doc":" 低优先级\n"}],"methods":[],"constructors":[]}

@@ -1,0 +1,1 @@
+{"doc":" 通知发送状态枚举\n","fields":[],"enumConstants":[{"name":"PENDING","doc":" 待发送\n"},{"name":"SENT","doc":" 已发送\n"},{"name":"FAILED","doc":" 发送失败\n"}],"methods":[],"constructors":[]}

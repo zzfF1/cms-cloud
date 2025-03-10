@@ -1,0 +1,1 @@
+{"doc":" 通知设置Mapper接口\n\n @author zzf\n @date 2025-03-07\n","fields":[],"enumConstants":[],"methods":[{"name":"selectByUserId","paramTypes":["java.lang.Long"],"doc":" 根据用户ID查询设置\n\n @param userId 用户ID\n @return 设置对象\n"}],"constructors":[]}

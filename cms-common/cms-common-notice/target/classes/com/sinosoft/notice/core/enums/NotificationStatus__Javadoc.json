@@ -1,0 +1,1 @@
+{"doc":" 通知状态枚举\n","fields":[],"enumConstants":[{"name":"NORMAL","doc":" 正常\n"},{"name":"EXPIRED","doc":" 过期\n"},{"name":"CANCELLED","doc":" 取消\n"}],"methods":[],"constructors":[]}

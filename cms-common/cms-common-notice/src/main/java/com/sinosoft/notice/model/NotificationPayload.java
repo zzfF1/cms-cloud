@@ -321,6 +321,39 @@ public class NotificationPayload implements Serializable {
     }
 
     /**
+     * 设置通知优先级
+     *
+     * @param priority 优先级（high, medium, low）
+     * @return 当前对象
+     */
+    public NotificationPayload setPriority(String priority) {
+        this.addCustomParam("priority", priority);
+        return this;
+    }
+
+    /**
+     * 设置通知渠道
+     *
+     * @param channels 渠道JSON字符串（如：["system","sms","email"]）
+     * @return 当前对象
+     */
+    public NotificationPayload setChannels(String channels) {
+        this.addCustomParam("channels", channels);
+        return this;
+    }
+
+    /**
+     * 设置通知有效天数
+     *
+     * @param validDays 有效天数
+     * @return 当前对象
+     */
+    public NotificationPayload setValidDays(Integer validDays) {
+        this.addCustomParam("validDays", validDays);
+        return this;
+    }
+
+    /**
      * 生成业务键
      *
      * @return 业务键

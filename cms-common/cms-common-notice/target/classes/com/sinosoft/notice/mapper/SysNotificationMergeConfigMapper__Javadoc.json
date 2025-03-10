@@ -1,0 +1,1 @@
+{"doc":" 通知合并配置Mapper接口\n\n @author zzf\n @date 2025-03-07\n","fields":[],"enumConstants":[],"methods":[{"name":"selectByTemplateCode","paramTypes":["java.lang.String"],"doc":" 根据模板代码查询合并配置\n\n @param templateCode 模板代码\n @return 合并配置对象\n"}],"constructors":[]}

@@ -1,0 +1,1 @@
+{"doc":" 邮件通知渠道策略\n","fields":[],"enumConstants":[],"methods":[{"name":"renderEmailContent","paramTypes":["com.sinosoft.notice.domain.SysNotification","java.util.Map"],"doc":" 渲染邮件内容\n"},{"name":"parseEmailContent","paramTypes":["java.lang.String"],"doc":" 解析邮件内容（主题和正文）\n"},{"name":"maskEmail","paramTypes":["java.lang.String"],"doc":" 邮箱脱敏\n"}],"constructors":[]}

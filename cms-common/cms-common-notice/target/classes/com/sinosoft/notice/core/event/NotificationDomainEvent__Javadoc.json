@@ -1,0 +1,1 @@
+{"doc":" 通知领域事件基类\n","fields":[{"name":"eventId","doc":" 事件ID\n"},{"name":"occurredOn","doc":" 事件发生时间\n"}],"enumConstants":[],"methods":[],"constructors":[{"name":"<init>","paramTypes":[],"doc":" 构造方法\n"}]}

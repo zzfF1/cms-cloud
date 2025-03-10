@@ -1,0 +1,1 @@
+{"doc":" 通知发送事件\n","fields":[{"name":"notificationId","doc":" 通知ID\n"},{"name":"userId","doc":" 用户ID\n"},{"name":"channel","doc":" 发送渠道\n"},{"name":"targetAddress","doc":" 目标地址\n"},{"name":"sendTime","doc":" 发送时间\n"},{"name":"deliveryId","doc":" 发送记录ID\n"}],"enumConstants":[],"methods":[],"constructors":[]}

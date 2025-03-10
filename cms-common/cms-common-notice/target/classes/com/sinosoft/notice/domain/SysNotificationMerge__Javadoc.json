@@ -1,0 +1,1 @@
+{"doc":" 通知合并详情对象 sys_notification_merge\n\n @author zzf\n @date 2025-03-07\n","fields":[{"name":"id","doc":" 主键ID\n"},{"name":"parentId","doc":" 父通知ID\n"},{"name":"childId","doc":" 子通知ID\n"},{"name":"mergedAt","doc":" 合并时间\n"},{"name":"displayOrder","doc":" 显示顺序\n"}],"enumConstants":[],"methods":[],"constructors":[]}

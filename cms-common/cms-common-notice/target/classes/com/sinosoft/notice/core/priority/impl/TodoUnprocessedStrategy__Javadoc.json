@@ -1,0 +1,1 @@
+{"doc":" 待办未处理优先级调整策略\n 当待办通知长时间未处理时升级优先级\n","fields":[{"name":"UNPROCESSED_CHECK_HOURS","doc":" 未处理检查时间阈值（小时）\n"},{"name":"PROCESS_RATE_THRESHOLD","doc":" 处理率阈值（小于该比例需要升级）\n"}],"enumConstants":[],"methods":[],"constructors":[]}

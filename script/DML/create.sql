@@ -471,6 +471,8 @@ CREATE TABLE sys_notification_template
     data_scope        varchar(500) COMMENT '数据权限条件，JSON格式',
     valid_days        int(4)                                    COMMENT '通知有效天数',
     actions           text COMMENT '可执行操作，JSON格式',
+    permission_handler varchar(50) DEFAULT NULL COMMENT '权限处理器类型',
+    permission_config text COMMENT '权限处理器配置',
     merge_strategy    varchar(20)  DEFAULT 'none' COMMENT '合并策略: none-不合并, update-更新已有, count-计数合并, list-列表合并',
     business_key_tpl  varchar(255) COMMENT '业务键模板，用于识别重复通知',
     merge_title_tpl   text COMMENT '合并后的标题模板',
