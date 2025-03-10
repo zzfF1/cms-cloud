@@ -1,7 +1,10 @@
 package com.sinosoft.notice.service;
 
-import com.sinosoft.notice.domain.SysNotification;
+import com.sinosoft.common.mybatis.core.page.TableDataInfo;
+import com.sinosoft.notice.core.todo.TodoResult;
 import com.sinosoft.notice.model.NotificationPayload;
+import com.sinosoft.notice.model.dto.NotificationDTO;
+import com.sinosoft.notice.model.dto.NotificationQueryDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -37,39 +40,54 @@ public interface INotificationService {
                           String sourceType, String sourceId, List<Long> specificUserIds);
 
     /**
-     * 获取用户通知列表
+     * 查询用户通知列表（分页）
+     * 支持预警通知、消息通知、公告通知
      *
-     * @param userId   用户ID
-     * @param type     通知类型（可选）
-     * @param isRead   是否已读（可选）
-     * @param pageNum  页码
-     * @param pageSize 每页条数
-     * @return 通知列表
+     * @param queryDTO 查询条件
+     * @return 分页通知列表
      */
-    List<SysNotification> getUserNotifications(Long userId, String type, Boolean isRead, int pageNum, int pageSize);
+    TableDataInfo<NotificationDTO> getNotifications(NotificationQueryDTO queryDTO);
+
+    /**
+     * 获取用户待办列表（不分页）
+     *
+     * @param userId 用户ID
+     * @return 待办列表
+     */
+    List<TodoResult> getUserTodoList(Long userId);
+
+    /**
+     * 获取用户未读通知统计
+     *
+     * @param userId 用户ID
+     * @return 未读通知统计（按类型）
+     */
+    Map<String, Integer> getUnreadCount(Long userId);
 
     /**
      * 标记通知为已读
      *
-     * @param userId         用户ID
+     * @param userId 用户ID
      * @param notificationId 通知ID
      * @return 是否成功
      */
     boolean markAsRead(Long userId, Long notificationId);
 
     /**
+     * 批量标记通知为已读
+     *
+     * @param userId 用户ID
+     * @param notificationIds 通知ID列表
+     * @return 成功标记的数量
+     */
+    int batchMarkAsRead(Long userId, List<Long> notificationIds);
+
+    /**
      * 标记所有通知为已读
      *
      * @param userId 用户ID
+     * @param type 通知类型（可选）
      * @return 更新的通知数量
      */
-    int markAllAsRead(Long userId);
-
-    /**
-     * 获取未读通知数量
-     *
-     * @param userId 用户ID
-     * @return 各类型未读通知数量
-     */
-    Map<String, Integer> getUnreadCount(Long userId);
+    int markAllAsRead(Long userId, String type);
 }

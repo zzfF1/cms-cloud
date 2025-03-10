@@ -86,6 +86,7 @@
           AND attr_name = 'notify_handlers'
         LIMIT 1
     </select>
+
     <select id="selectUserIdsByDeptIds" resultType="java.lang.Long">
         SELECT DISTINCT user_id
         FROM sys_user

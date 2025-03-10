@@ -18,6 +18,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             update_time = NOW()
         WHERE notification_id = #{notificationId}
     </update>
+    <update id="markAllAsReadByType">
+        UPDATE sys_notification_user nu
+        SET nu.is_read = '1',
+        nu.read_time = #{readTime},
+        nu.update_time = #{readTime}
+        WHERE nu.user_id = #{userId}
+        AND nu.is_read = '0'
+        AND EXISTS (
+        SELECT 1 FROM sys_notification n
+        WHERE n.notification_id = nu.notification_id
+        <if test="type != null and type != ''">
+            AND n.type = #{type}
+        </if>
+        AND n.status = '0'
+        )
+    </update>
 
     <select id="selectByNotificationIdAndUserId" resultType="com.sinosoft.notice.domain.SysNotificationUser">
         SELECT *
@@ -207,5 +223,39 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         AND n.status = '0'
         ORDER BY n.priority DESC, n.create_time DESC
         LIMIT #{offset}, #{limit}
+    </select>
+    <select id="selectNotificationIdsByUserIdAndType" resultType="java.lang.Long">
+        SELECT nu.notification_id
+        FROM sys_notification_user nu
+        JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{userId}
+        <if test="type != null and type != ''">
+            AND n.type = #{type}
+        </if>
+        <if test="isRead != null and isRead != ''">
+            AND nu.is_read = #{isRead}
+        </if>
+        AND n.status = '0'
+        ORDER BY n.priority,
+        CASE
+        WHEN n.priority = 'high' THEN 1
+        WHEN n.priority = 'medium' THEN 2
+        ELSE 3
+        END,
+        n.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    <select id="countUserNotificationsByType" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM sys_notification_user nu
+        JOIN sys_notification n ON nu.notification_id = n.notification_id
+        WHERE nu.user_id = #{userId}
+        <if test="type != null and type != ''">
+            AND n.type = #{type}
+        </if>
+        <if test="isRead != null and isRead != ''">
+            AND nu.is_read = #{isRead}
+        </if>
+        AND n.status = '0'
     </select>
 </mapper>

@@ -25,8 +25,8 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 通知用户关联对象
      */
     SysNotificationUser selectByNotificationIdAndUserId(
-            @Param("notificationId") Long notificationId,
-            @Param("userId") Long userId);
+        @Param("notificationId") Long notificationId,
+        @Param("userId") Long userId);
 
     /**
      * 查询用户通知列表
@@ -37,9 +37,9 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 通知用户关联列表
      */
     List<SysNotificationUser> selectUserNotifications(
-            @Param("query") SysNotificationUser query,
-            @Param("offset") int offset,
-            @Param("limit") int limit);
+        @Param("query") SysNotificationUser query,
+        @Param("offset") int offset,
+        @Param("limit") int limit);
 
     /**
      * 按类型查询用户通知列表
@@ -51,10 +51,10 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 通知用户关联列表
      */
     List<SysNotificationUser> selectUserNotificationsByType(
-            @Param("query") SysNotificationUser query,
-            @Param("type") String type,
-            @Param("offset") int offset,
-            @Param("limit") int limit);
+        @Param("query") SysNotificationUser query,
+        @Param("type") String type,
+        @Param("offset") int offset,
+        @Param("limit") int limit);
 
     /**
      * 查询用户待办通知列表
@@ -65,9 +65,9 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 通知用户关联列表
      */
     List<SysNotificationUser> selectTodoNotifications(
-            @Param("query") SysNotificationUser query,
-            @Param("offset") int offset,
-            @Param("limit") int limit);
+        @Param("query") SysNotificationUser query,
+        @Param("offset") int offset,
+        @Param("limit") int limit);
 
     /**
      * 标记所有通知为已读
@@ -77,8 +77,8 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 影响行数
      */
     int markAllAsRead(
-            @Param("userId") Long userId,
-            @Param("readTime") Date readTime);
+        @Param("userId") Long userId,
+        @Param("readTime") Date readTime);
 
     /**
      * 标记通知为未读
@@ -87,7 +87,7 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 影响行数
      */
     int markAllUnread(
-            @Param("notificationId") Long notificationId);
+        @Param("notificationId") Long notificationId);
 
     /**
      * 统计用户未读通知数量
@@ -96,7 +96,7 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 未读数量
      */
     int countUserUnread(
-            @Param("userId") Long userId);
+        @Param("userId") Long userId);
 
     /**
      * 按类型统计用户未读通知数量
@@ -106,8 +106,8 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 未读数量
      */
     int countUnreadByType(
-            @Param("userId") Long userId,
-            @Param("type") String type);
+        @Param("userId") Long userId,
+        @Param("type") String type);
 
     /**
      * 统计用户待办通知数量
@@ -117,8 +117,8 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 待办数量
      */
     int countUserTodoByStatus(
-            @Param("userId") Long userId,
-            @Param("isProcessed") String isProcessed);
+        @Param("userId") Long userId,
+        @Param("isProcessed") String isProcessed);
 
     /**
      * 统计用户高优先级待办数量
@@ -127,7 +127,7 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 高优先级待办数量
      */
     int countUserHighPriorityTodo(
-            @Param("userId") Long userId);
+        @Param("userId") Long userId);
 
     /**
      * 统计用户即将过期的待办数量
@@ -137,8 +137,8 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * @return 即将过期待办数量
      */
     int countUserExpiringTodo(
-            @Param("userId") Long userId,
-            @Param("expirationDate") Date expirationDate);
+        @Param("userId") Long userId,
+        @Param("expirationDate") Date expirationDate);
 
     /**
      * 根据通知ID统计接收人数量
@@ -152,7 +152,7 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * 根据通知ID和读取状态统计接收人数量
      *
      * @param notificationId 通知ID
-     * @param isRead 是否已读
+     * @param isRead         是否已读
      * @return 接收人数量
      */
     int countByNotificationIdAndIsRead(
@@ -163,7 +163,7 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
      * 根据通知ID和处理状态统计接收人数量
      *
      * @param notificationId 通知ID
-     * @param isProcessed 是否已处理
+     * @param isProcessed    是否已处理
      * @return 接收人数量
      */
     int countByNotificationIdAndIsProcessed(
@@ -186,4 +186,30 @@ public interface SysNotificationUserMapper extends BaseMapperPlus<SysNotificatio
                                              @Param("isRead") String isRead,
                                              @Param("offset") int offset,
                                              @Param("limit") int limit);
+
+    /**
+     * 根据用户ID、通知类型和是否已读查询通知ID列表
+     */
+    List<Long> selectNotificationIdsByUserIdAndType(
+        @Param("userId") Long userId,
+        @Param("type") String type,
+        @Param("isRead") String isRead,
+        @Param("offset") int offset,
+        @Param("limit") int limit);
+
+    /**
+     * 根据类型统计用户通知数量
+     */
+    int countUserNotificationsByType(
+        @Param("userId") Long userId,
+        @Param("type") String type,
+        @Param("isRead") String isRead);
+
+    /**
+     * 标记指定类型的所有通知为已读
+     */
+    int markAllAsReadByType(
+        @Param("userId") Long userId,
+        @Param("type") String type,
+        @Param("readTime") Date readTime);
 }

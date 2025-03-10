@@ -3,6 +3,7 @@ package com.sinosoft.notice.domain;
 import com.baomidou.mybatisplus.annotation.*;
 import com.sinosoft.common.mybatis.core.domain.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.Date;
 
@@ -12,9 +13,10 @@ import java.io.Serial;
  * 通知规则对象 sys_notification_rule
  *
  * @author zzf
- * @date 2025-03-07
+ * @date 2025-03-11
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("sys_notification_rule")
 public class SysNotificationRule extends BaseEntity {
 
@@ -33,29 +35,34 @@ public class SysNotificationRule extends BaseEntity {
     private String ruleName;
 
     /**
-     * 规则类型：schedule-定时, event-事件, condition-条件
-     */
-    private String ruleType;
-
-    /**
      * 关联的模板ID
      */
     private Long templateId;
 
     /**
-     * 触发条件，JSON格式或表达式
+     * 关联菜单ID
      */
-    private String triggerCondition;
+    private Long menuId;
 
     /**
-     * CRON表达式，用于定时规则
+     * 菜单URL
      */
-    private String triggerSchedule;
+    private String menuUrl;
 
     /**
-     * 数据源配置，JSON格式
+     * 是否为业务待办（0否1是）
      */
-    private String dataSource;
+    private String todoType;
+
+    /**
+     * 规则类型：sql-自定义SQL, bean-自定义Bean
+     */
+    private String ruleType;
+
+    /**
+     * 规则结果文本
+     */
+    private String ruleText;
 
     /**
      * 通知渠道，JSON数组["system","sms","email"]
@@ -76,6 +83,4 @@ public class SysNotificationRule extends BaseEntity {
      * 备注
      */
     private String remark;
-
-
 }
