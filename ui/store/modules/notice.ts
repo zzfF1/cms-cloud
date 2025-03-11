@@ -67,18 +67,18 @@ const useNoticeStore = defineStore('notice', {
     // 获取未读通知数量
     async getUnreadCount() {
       try {
-        const { data } = await getUnreadCount();
-        if (data && data.code === 200) {
-          this.unreadCount = data.data || {
+        const response = await getUnreadCount();
+        if (response && response.code === 200) {
+          this.unreadCount = response.data || {
             total: 0,
             todo: 0,
             alert: 0,
             message: 0,
             announcement: 0
           };
-          return data.data;
+          return response.data;
         } else {
-          console.error('获取未读通知数量失败:', data?.msg || '未知错误');
+          console.error('获取未读通知数量失败:', response?.msg || '未知错误');
           return null;
         }
       } catch (error) {

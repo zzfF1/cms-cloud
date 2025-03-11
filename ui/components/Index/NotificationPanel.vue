@@ -5,26 +5,42 @@
         <span>通知中心</span>
         <div class="header-content">
           <div class="tab-container">
-            <div
-              v-for="tab in tabs"
-              :key="tab.value"
-              class="tab-item"
-              :class="{ 'active-tab': activeTab === tab.value }"
-              @click="changeTab(tab.value)"
-            >
-              {{ tab.label }}
-              <span v-if="getTabCount(tab.value) > 0" class="count">{{ getTabCount(tab.value) }}</span>
+            <!-- 待办标签 -->
+            <div class="tab-item" :class="{ 'active-tab': activeTab === 'todo' }" @click="changeTab('todo')">
+              待办
+              <span v-if="getTabCount('todo') > 0" class="count">{{ getTabCount('todo') }}</span>
+            </div>
+
+            <!-- 消息标签 -->
+            <div class="tab-item" :class="{ 'active-tab': activeTab === 'message' }" @click="changeTab('message')">
+              消息
+              <span v-if="getTabCount('message') > 0" class="count">{{ getTabCount('message') }}</span>
+            </div>
+
+            <!-- 公告标签 -->
+            <div class="tab-item" :class="{ 'active-tab': activeTab === 'announcement' }" @click="changeTab('announcement')">
+              公告
+              <span v-if="getTabCount('announcement') > 0" class="count">{{ getTabCount('announcement') }}</span>
             </div>
           </div>
+          <!-- 强制显示所有按钮，移除任何条件 -->
           <div class="header-actions">
-            <el-tooltip content="标记全部已读" effect="dark" placement="top">
-              <i class="el-icon-check" @click="markAllAsRead" v-if="getUnreadCount() > 0"></i>
+            <!-- 标记全部已读 -->
+            <el-tooltip :content="markAllReadTooltip" effect="dark" placement="top">
+              <div class="action-wrapper" @click="canMarkAllRead && markAllAsRead" :class="{ 'disabled': !canMarkAllRead }">
+                <el-icon>
+                  <Check />
+                </el-icon>
+              </div>
             </el-tooltip>
+
+            <!-- 刷新通知 -->
             <el-tooltip content="刷新通知" effect="dark" placement="top">
-              <i class="el-icon-refresh" @click="refreshNotifications" :class="{ 'loading': loading }"></i>
-            </el-tooltip>
-            <el-tooltip content="通知设置" effect="dark" placement="top">
-              <i class="el-icon-setting" @click="openNotificationSettings"></i>
+              <div class="action-wrapper" @click="refreshNotifications">
+                <el-icon :class="{ 'is-loading': loading }">
+                  <Refresh />
+                </el-icon>
+              </div>
             </el-tooltip>
           </div>
         </div>
@@ -118,67 +134,31 @@
         <div v-if="filteredNotifications.length === 0" class="empty-state">暂无通知内容</div>
 
         <!-- 分页 -->
-        <div class="pagination-container" v-if="filteredNotifications.length > 0">
-          <el-pagination
-            v-model:current-page="pagination.current"
-            v-model:page-size="pagination.size"
-            :page-sizes="[10, 20, 30, 50]"
-            layout="total, sizes, prev, pager, next, jumper"
-            :total="pagination.total"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
+        <div class="pagination-outer-wrapper" v-if="filteredNotifications.length > 0 && activeTab !== 'todo'" style="margin-bottom: -30px !important">
+          <div class="pagination-inner-container">
+            <el-pagination
+              v-model:current-page="pagination.current"
+              v-model:page-size="pagination.size"
+              :page-sizes="[10, 20, 30, 50]"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="pagination.total"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+              background
+            />
+          </div>
         </div>
       </template>
     </div>
-
-    <!-- 通知设置对话框 -->
-    <el-dialog title="通知设置" v-model="settingsDialogVisible" width="500px" destroy-on-close>
-      <el-form :model="notificationSettings" label-width="120px">
-        <el-form-item label="待办通知">
-          <el-checkbox v-model="notificationSettings.todoNotifySystem">系统通知</el-checkbox>
-          <el-checkbox v-model="notificationSettings.todoNotifySms">短信通知</el-checkbox>
-          <el-checkbox v-model="notificationSettings.todoNotifyEmail">邮件通知</el-checkbox>
-        </el-form-item>
-
-        <el-form-item label="预警通知">
-          <el-checkbox v-model="notificationSettings.alertNotifySystem">系统通知</el-checkbox>
-          <el-checkbox v-model="notificationSettings.alertNotifySms">短信通知</el-checkbox>
-          <el-checkbox v-model="notificationSettings.alertNotifyEmail">邮件通知</el-checkbox>
-        </el-form-item>
-
-        <el-form-item label="公告通知">
-          <el-checkbox v-model="notificationSettings.announceNotifySystem">系统通知</el-checkbox>
-          <el-checkbox v-model="notificationSettings.announceNotifyEmail">邮件通知</el-checkbox>
-        </el-form-item>
-
-        <el-form-item label="免打扰时间">
-          <el-time-picker
-            v-model="notificationSettings.doNotDisturbStart"
-            format="HH:mm"
-            placeholder="开始时间"
-            style="width: 120px; margin-right: 10px"
-          />
-          <span>至</span>
-          <el-time-picker
-            v-model="notificationSettings.doNotDisturbEnd"
-            format="HH:mm"
-            placeholder="结束时间"
-            style="width: 120px; margin-left: 10px"
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="settingsDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveNotificationSettings">保存</el-button>
-        </span>
-      </template>
-    </el-dialog>
-
     <!-- 通知详情对话框 -->
-    <el-dialog title="通知详情" v-model="detailDialogVisible" width="600px" destroy-on-close>
+    <el-dialog
+      title="通知详情"
+      v-model="detailDialogVisible"
+      width="600px"
+      :append-to-body="true"
+      :modal-append-to-body="false"
+      :close-on-click-modal="false"
+    >
       <div v-if="selectedNotification" class="notification-detail">
         <div class="detail-header">
           <el-tag :type="getTagType(selectedNotification.type)" effect="plain" size="small">
@@ -254,18 +234,15 @@ interface TabItem {
 }
 
 const tabs: TabItem[] = [
-  { label: '全部', value: 'all' },
   { label: '待办', value: 'todo' },
-  { label: '预警', value: 'alert' },
   { label: '消息', value: 'message' },
   { label: '公告', value: 'announcement' }
 ];
 
-const activeTab = ref<string>('all');
+const activeTab = ref<string>('todo');
 const loading = ref<boolean>(false);
 const error = ref<string>('');
 const notificationList = ref<any[]>([]);
-const settingsDialogVisible = ref<boolean>(false);
 const detailDialogVisible = ref<boolean>(false);
 const selectedNotification = ref<any>(null);
 
@@ -288,6 +265,28 @@ const notificationSettings = ref({
   announceNotifyEmail: false,
   doNotDisturbStart: null,
   doNotDisturbEnd: null
+});
+
+const canMarkAllRead = computed(() => {
+  // 只有在"消息"或"公告"标签，并且有未读消息时才可用
+  if (activeTab.value === 'message' || activeTab.value === 'announcement') {
+    // 获取当前选中标签的未读数
+    const count = getTabCount(activeTab.value);
+    return count > 0;
+  }
+  return false;
+});
+
+// 标记全部已读按钮的提示文本
+const markAllReadTooltip = computed(() => {
+  if (!canMarkAllRead.value) {
+    if (activeTab.value === 'todo') {
+      return '待办不支持标记全部已读';
+    } else {
+      return '没有未读' + getTypeName(activeTab.value);
+    }
+  }
+  return '标记全部已读';
 });
 
 // 加载通知设置
@@ -316,56 +315,27 @@ const loadNotificationSettings = async () => {
   }
 };
 
-// 保存通知设置
-const saveNotificationSettings = async () => {
-  try {
-    // 转换为后端需要的格式
-    const settings = {
-      todoNotifySystem: notificationSettings.value.todoNotifySystem ? '1' : '0',
-      todoNotifySms: notificationSettings.value.todoNotifySms ? '1' : '0',
-      todoNotifyEmail: notificationSettings.value.todoNotifyEmail ? '1' : '0',
-      alertNotifySystem: notificationSettings.value.alertNotifySystem ? '1' : '0',
-      alertNotifySms: notificationSettings.value.alertNotifySms ? '1' : '0',
-      alertNotifyEmail: notificationSettings.value.alertNotifyEmail ? '1' : '0',
-      announceNotifySystem: notificationSettings.value.announceNotifySystem ? '1' : '0',
-      announceNotifyEmail: notificationSettings.value.announceNotifyEmail ? '1' : '0',
-      doNotDisturbStart: notificationSettings.value.doNotDisturbStart ? dayjs(notificationSettings.value.doNotDisturbStart).format('HH:mm') : null,
-      doNotDisturbEnd: notificationSettings.value.doNotDisturbEnd ? dayjs(notificationSettings.value.doNotDisturbEnd).format('HH:mm') : null
-    };
-
-    const { data } = await updateNotificationSettings(settings);
-    if (data && data.code === 200) {
-      ElMessage.success('通知设置保存成功');
-      settingsDialogVisible.value = false;
-    } else {
-      ElMessage.error(data?.msg || '保存失败');
-    }
-  } catch (error) {
-    console.error('保存通知设置失败:', error);
-    ElMessage.error('保存通知设置失败');
-  }
-};
-
-// 打开通知设置对话框
-const openNotificationSettings = () => {
-  loadNotificationSettings();
-  settingsDialogVisible.value = true;
-};
-
 // 根据当前标签筛选通知
 const filteredNotifications = computed(() => {
-  if (activeTab.value === 'all') {
-    return notificationList.value;
+  if (activeTab.value === 'todo') {
+    // 待办标签不分页，显示所有待办
+    return notificationList.value.filter((notice) => notice.type === 'todo');
+  } else {
+    // 消息和公告标签保持分页功能
+    return notificationList.value.filter((notice) => notice.type === activeTab.value);
   }
-  return notificationList.value.filter((notice) => notice.type === activeTab.value);
 });
 
 // 获取每个标签对应的通知数量
 const getTabCount = (tabValue: string): number => {
-  if (tabValue === 'all') {
-    return notificationList.value.filter((notice) => !notice.read).length;
+  if (tabValue === 'todo') {
+    return noticeStore.unreadCount.todo || 0;
+  } else if (tabValue === 'message') {
+    return noticeStore.unreadCount.message || 0;
+  } else if (tabValue === 'announcement') {
+    return noticeStore.unreadCount.announcement || 0;
   }
-  return notificationList.value.filter((notice) => notice.type === tabValue && !notice.read).length;
+  return 0;
 };
 
 // 获取未读通知总数
@@ -557,6 +527,14 @@ const markAllAsRead = async () => {
 // 切换标签页
 const changeTab = (tab: string) => {
   activeTab.value = tab;
+  // 切换到待办标签时，取消分页限制，显示全部待办
+  if (tab === 'todo') {
+    // 可以在这里设置特殊处理，比如设置较大的页面大小
+    pagination.value.size = 100;
+  } else {
+    // 其他标签恢复正常分页大小
+    pagination.value.size = 10;
+  }
   pagination.value.current = 1;
   fetchNotifications();
 };
@@ -582,17 +560,20 @@ const refreshNotifications = () => {
 const fetchNotifications = async () => {
   loading.value = true;
   error.value = '';
-
   try {
     const params: any = {
       pageNum: pagination.value.current,
       pageSize: pagination.value.size
     };
+    // 设置筛选类型
     if (activeTab.value !== 'all') {
       params.type = activeTab.value;
     }
+    // 为待办类型设置特殊处理 - 可以设置一个较大的pageSize
+    if (activeTab.value === 'todo') {
+      params.pageSize = 100; // 设置一个较大的值以显示所有待办
+    }
     const response = await getNotifications(params);
-    // 直接使用返回值
     if (response && response.code === 200) {
       notificationList.value = response.rows || [];
       pagination.value.total = response.total || 0;
@@ -618,13 +599,14 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .notification-card {
-  margin-bottom: 12px;
+  margin-bottom: 0;
   min-height: 500px;
 }
 
 .notification-content {
   min-height: 440px;
   position: relative;
+  padding-bottom: 50px; /* 为分页组件留出空间 */
 }
 
 .loading-state,
@@ -651,15 +633,6 @@ onMounted(() => {
   padding: 20px;
 }
 
-.pagination-container {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
-  padding-right: 20px;
-  border-top: 1px solid #ebeef5;
-  padding-top: 12px;
-}
-
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -681,18 +654,66 @@ onMounted(() => {
   margin-left: 16px;
 }
 
-.header-actions i {
+.action-icon {
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   color: #909399;
-  transition: color 0.2s;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
 }
 
-.header-actions i:hover {
+.action-icon:hover {
+  color: #409eff;
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+.action-icon.loading {
+  animation: rotate 1s linear infinite;
+}
+
+.action-wrapper {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.action-wrapper:hover {
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+.action-wrapper .el-icon {
+  font-size: 18px;
+  color: #909399;
+}
+
+.action-wrapper:hover .el-icon {
   color: #409eff;
 }
 
-.header-actions i.loading {
+.action-wrapper.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.action-wrapper.disabled:hover {
+  background-color: transparent;
+}
+
+.action-wrapper.disabled .el-icon {
+  color: #909399;
+}
+
+.el-icon.is-loading {
   animation: rotate 1s linear infinite;
 }
 
@@ -748,13 +769,29 @@ onMounted(() => {
   display: inline-block;
 }
 
-:deep(.unread-row) {
-  background-color: #f0f7ff;
-}
-
 .el-dropdown-link {
   cursor: pointer;
   color: #409eff;
+}
+
+/* 分页容器样式 */
+.pagination-outer-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  padding: 8px 0;
+  border-top: 1px solid #ebeef5;
+  background-color: #f8f8f8;
+  z-index: 10;
+}
+
+.pagination-inner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 /* 通知详情样式 */
@@ -818,6 +855,33 @@ onMounted(() => {
       }
     }
   }
+}
+
+/* 深度选择器样式 */
+:deep(.unread-row) {
+  background-color: #f0f7ff;
+}
+
+:deep(.el-pagination) {
+  padding: 0;
+  font-weight: normal;
+  justify-content: center !important;
+}
+
+:deep(.el-pagination .el-pagination__total) {
+  font-size: 13px;
+}
+
+:deep(.el-pagination .el-pagination__jump) {
+  margin-left: 10px;
+}
+
+:deep(.el-pagination .btn-prev, .el-pagination .btn-next) {
+  padding: 0 10px;
+}
+
+:deep(.el-pagination .el-pagination__sizes) {
+  margin-right: 15px;
 }
 
 /* 响应式调整 */

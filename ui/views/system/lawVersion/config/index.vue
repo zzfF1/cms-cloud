@@ -175,7 +175,6 @@ const getConfig = async () => {
   const res = await getBaseLawConfig(lawId);
   if (res) {
     Object.assign(baseLawConfig, res.data);
-    console.log(baseLawConfig);
   }
 };
 
