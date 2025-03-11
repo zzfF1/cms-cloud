@@ -10,9 +10,9 @@ public enum NotificationType {
     TODO("todo", "待办"),
 
     /**
-     * 预警通知
+     * 消息通知
      */
-    ALERT("alert", "预警"),
+    MESSAGE("message", "消息"),
 
     /**
      * 公告通知

@@ -17,13 +17,13 @@ import java.util.Map;
 /**
  * 通知设置服务实现类
  *
- * @author: zzf
- * @create: 2025-03-07 23:48
+ * @author zzf
  */
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class NotificationSettingServiceImpl implements INotificationSettingService {
+
     private final SysNotificationSettingMapper settingMapper;
 
     // 定义时间格式化器
@@ -92,22 +92,22 @@ public class NotificationSettingServiceImpl implements INotificationSettingServi
         Map<String, Object> defaultSettings = new HashMap<>();
 
         // 待办通知设置
-        defaultSettings.put("todo_notify_system", "1"); // 系统内通知开启
-        defaultSettings.put("todo_notify_sms", "0");    // 短信通知关闭
-        defaultSettings.put("todo_notify_email", "0");  // 邮件通知关闭
+        defaultSettings.put("todoNotifySystem", "1"); // 系统内通知开启
+        defaultSettings.put("todoNotifySms", "0");    // 短信通知关闭
+        defaultSettings.put("todoNotifyEmail", "0");  // 邮件通知关闭
 
         // 预警通知设置
-        defaultSettings.put("alert_notify_system", "1"); // 系统内通知开启
-        defaultSettings.put("alert_notify_sms", "0");    // 短信通知关闭
-        defaultSettings.put("alert_notify_email", "0");  // 邮件通知关闭
+        defaultSettings.put("alertNotifySystem", "1"); // 系统内通知开启
+        defaultSettings.put("alertNotifySms", "0");    // 短信通知关闭
+        defaultSettings.put("alertNotifyEmail", "0");  // 邮件通知关闭
 
         // 公告通知设置
-        defaultSettings.put("announce_notify_system", "1"); // 系统内通知开启
-        defaultSettings.put("announce_notify_email", "0");  // 邮件通知关闭
+        defaultSettings.put("announceNotifySystem", "1"); // 系统内通知开启
+        defaultSettings.put("announceNotifyEmail", "0");  // 邮件通知关闭
 
         // 免打扰设置
-        defaultSettings.put("do_not_disturb_start", "22:00"); // 默认晚上10点开始
-        defaultSettings.put("do_not_disturb_end", "08:00");   // 默认早上8点结束
+        defaultSettings.put("doNotDisturbStart", "22:00"); // 默认晚上10点开始
+        defaultSettings.put("doNotDisturbEnd", "08:00");   // 默认早上8点结束
 
         return defaultSettings;
     }
@@ -173,23 +173,23 @@ public class NotificationSettingServiceImpl implements INotificationSettingServi
     private Map<String, Object> convertSettingToMap(SysNotificationSetting setting) {
         Map<String, Object> result = new HashMap<>();
 
-        result.put("todo_notify_system", setting.getTodoNotifySystem());
-        result.put("todo_notify_sms", setting.getTodoNotifySms());
-        result.put("todo_notify_email", setting.getTodoNotifyEmail());
+        result.put("todoNotifySystem", setting.getTodoNotifySystem());
+        result.put("todoNotifySms", setting.getTodoNotifySms());
+        result.put("todoNotifyEmail", setting.getTodoNotifyEmail());
 
-        result.put("alert_notify_system", setting.getAlertNotifySystem());
-        result.put("alert_notify_sms", setting.getAlertNotifySms());
-        result.put("alert_notify_email", setting.getAlertNotifyEmail());
+        result.put("alertNotifySystem", setting.getAlertNotifySystem());
+        result.put("alertNotifySms", setting.getAlertNotifySms());
+        result.put("alertNotifyEmail", setting.getAlertNotifyEmail());
 
-        result.put("announce_notify_system", setting.getAnnounceNotifySystem());
-        result.put("announce_notify_email", setting.getAnnounceNotifyEmail());
+        result.put("announceNotifySystem", setting.getAnnounceNotifySystem());
+        result.put("announceNotifyEmail", setting.getAnnounceNotifyEmail());
 
         // 将Date类型转换为字符串
         if (setting.getDoNotDisturbStart() != null) {
-            result.put("do_not_disturb_start", TIME_FORMAT.format(setting.getDoNotDisturbStart()));
+            result.put("doNotDisturbStart", TIME_FORMAT.format(setting.getDoNotDisturbStart()));
         }
         if (setting.getDoNotDisturbEnd() != null) {
-            result.put("do_not_disturb_end", TIME_FORMAT.format(setting.getDoNotDisturbEnd()));
+            result.put("doNotDisturbEnd", TIME_FORMAT.format(setting.getDoNotDisturbEnd()));
         }
 
         return result;
@@ -203,47 +203,47 @@ public class NotificationSettingServiceImpl implements INotificationSettingServi
      */
     private void updateSettingFromMap(SysNotificationSetting setting, Map<String, Object> map) {
         // 待办通知设置
-        if (map.containsKey("todo_notify_system")) {
-            setting.setTodoNotifySystem(getBooleanValue(map.get("todo_notify_system")));
+        if (map.containsKey("todoNotifySystem")) {
+            setting.setTodoNotifySystem(getBooleanValue(map.get("todoNotifySystem")));
         }
-        if (map.containsKey("todo_notify_sms")) {
-            setting.setTodoNotifySms(getBooleanValue(map.get("todo_notify_sms")));
+        if (map.containsKey("todoNotifySms")) {
+            setting.setTodoNotifySms(getBooleanValue(map.get("todoNotifySms")));
         }
-        if (map.containsKey("todo_notify_email")) {
-            setting.setTodoNotifyEmail(getBooleanValue(map.get("todo_notify_email")));
+        if (map.containsKey("todoNotifyEmail")) {
+            setting.setTodoNotifyEmail(getBooleanValue(map.get("todoNotifyEmail")));
         }
 
         // 预警通知设置
-        if (map.containsKey("alert_notify_system")) {
-            setting.setAlertNotifySystem(getBooleanValue(map.get("alert_notify_system")));
+        if (map.containsKey("alertNotifySystem")) {
+            setting.setAlertNotifySystem(getBooleanValue(map.get("alertNotifySystem")));
         }
-        if (map.containsKey("alert_notify_sms")) {
-            setting.setAlertNotifySms(getBooleanValue(map.get("alert_notify_sms")));
+        if (map.containsKey("alertNotifySms")) {
+            setting.setAlertNotifySms(getBooleanValue(map.get("alertNotifySms")));
         }
-        if (map.containsKey("alert_notify_email")) {
-            setting.setAlertNotifyEmail(getBooleanValue(map.get("alert_notify_email")));
+        if (map.containsKey("alertNotifyEmail")) {
+            setting.setAlertNotifyEmail(getBooleanValue(map.get("alertNotifyEmail")));
         }
 
         // 公告通知设置
-        if (map.containsKey("announce_notify_system")) {
-            setting.setAnnounceNotifySystem(getBooleanValue(map.get("announce_notify_system")));
+        if (map.containsKey("announceNotifySystem")) {
+            setting.setAnnounceNotifySystem(getBooleanValue(map.get("announceNotifySystem")));
         }
-        if (map.containsKey("announce_notify_email")) {
-            setting.setAnnounceNotifyEmail(getBooleanValue(map.get("announce_notify_email")));
+        if (map.containsKey("announceNotifyEmail")) {
+            setting.setAnnounceNotifyEmail(getBooleanValue(map.get("announceNotifyEmail")));
         }
 
         // 免打扰设置 - 将字符串转换为Date类型
-        if (map.containsKey("do_not_disturb_start")) {
+        if (map.containsKey("doNotDisturbStart")) {
             try {
-                String startTimeStr = map.get("do_not_disturb_start").toString();
+                String startTimeStr = map.get("doNotDisturbStart").toString();
                 setting.setDoNotDisturbStart(TIME_FORMAT.parse(startTimeStr));
             } catch (ParseException e) {
                 log.error("解析免打扰开始时间异常: {}", e.getMessage());
             }
         }
-        if (map.containsKey("do_not_disturb_end")) {
+        if (map.containsKey("doNotDisturbEnd")) {
             try {
-                String endTimeStr = map.get("do_not_disturb_end").toString();
+                String endTimeStr = map.get("doNotDisturbEnd").toString();
                 setting.setDoNotDisturbEnd(TIME_FORMAT.parse(endTimeStr));
             } catch (ParseException e) {
                 log.error("解析免打扰结束时间异常: {}", e.getMessage());

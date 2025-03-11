@@ -1,26 +1,31 @@
 package com.sinosoft.notice.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.template.Template;
 import cn.hutool.extra.template.TemplateEngine;
 import com.alibaba.fastjson2.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sinosoft.common.core.utils.DateUtils;
 import com.sinosoft.common.core.utils.StringUtils;
+import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.notice.constant.NotificationTypeConstants;
+import com.sinosoft.notice.core.enums.NotificationStatus;
 import com.sinosoft.notice.core.exception.NotificationException;
-import com.sinosoft.notice.core.todo.TodoResult;
 import com.sinosoft.notice.domain.SysNotification;
 import com.sinosoft.notice.domain.SysNotificationTemplate;
 import com.sinosoft.notice.domain.SysNotificationUser;
+import com.sinosoft.notice.domain.dto.NotificationDTO;
+import com.sinosoft.notice.domain.vo.NotificationVO;
 import com.sinosoft.notice.mapper.SysNotificationMapper;
 import com.sinosoft.notice.mapper.SysNotificationTemplateMapper;
 import com.sinosoft.notice.mapper.SysNotificationUserMapper;
 import com.sinosoft.notice.model.NotificationPayload;
-import com.sinosoft.notice.model.dto.NotificationDTO;
-import com.sinosoft.notice.model.dto.NotificationQueryDTO;
 import com.sinosoft.notice.service.INotificationService;
-import com.sinosoft.notice.service.INotificationSettingService;
 import com.sinosoft.notice.service.IRecipientService;
-import com.sinosoft.notice.service.ITodoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +36,8 @@ import java.util.stream.Collectors;
 
 /**
  * 通知服务实现类
+ *
+ * @author zzf
  */
 @Slf4j
 @Service
@@ -41,7 +48,6 @@ public class NotificationServiceImpl implements INotificationService {
     private final SysNotificationUserMapper notificationUserMapper;
     private final SysNotificationTemplateMapper templateMapper;
     private final IRecipientService recipientService;
-    private final ITodoService todoService;
     private final TemplateEngine templateEngine;
     private final EmailService emailService;
     private final SmsService smsService;
@@ -96,7 +102,7 @@ public class NotificationServiceImpl implements INotificationService {
         recipientService.createNotificationUserRecords(notification.getNotificationId(), recipientUserIds);
 
         // 9. 发送通知到各个渠道
-        sendNotificationToUsers(notification, recipientUserIds, template, templateParams);
+        sendNotificationToChannels(notification, recipientUserIds, template, templateParams);
 
         return notification.getNotificationId();
     }
@@ -149,111 +155,110 @@ public class NotificationServiceImpl implements INotificationService {
         recipientService.createNotificationUserRecords(notification.getNotificationId(), specificUserIds);
 
         // 8. 发送通知到各个渠道
-        sendNotificationToUsers(notification, specificUserIds, template, templateParams);
+        sendNotificationToChannels(notification, specificUserIds, template, templateParams);
 
         return notification.getNotificationId();
     }
 
     /**
      * 查询用户通知列表（分页）
-     * 支持预警通知、消息通知、公告通知
      */
     @Override
-    public TableDataInfo<NotificationDTO> getNotifications(NotificationQueryDTO queryDTO) {
-        if (queryDTO.getUserId() == null) {
+    public TableDataInfo<NotificationVO> getNotifications(NotificationDTO dto, PageQuery pageQuery) {
+        if (dto.getUserId() == null) {
             throw new NotificationException("400", "用户ID不能为空");
         }
 
-        Long userId = queryDTO.getUserId();
-        String type = queryDTO.getType();
-        Boolean isRead = queryDTO.getIsRead();
+        Long userId = dto.getUserId();
+        String type = dto.getType();
+        Boolean isRead = dto.getIsRead();
+        String keyword = dto.getKeyword();
+        String startTime = dto.getStartTime();
+        String endTime = dto.getEndTime();
 
         try {
-            // 查询参数处理
-            int offset = (queryDTO.getPageNum() - 1) * queryDTO.getPageSize();
-            int limit = queryDTO.getPageSize();
-            String isReadStr = isRead != null ? (isRead ? "1" : "0") : null;
+            // 1. 查询用户通知ID列表
+            LambdaQueryWrapper<SysNotificationUser> userQuery = new LambdaQueryWrapper<>();
+            userQuery.eq(SysNotificationUser::getUserId, userId);
 
-            // 查询通知ID列表
-            List<Long> notificationIds = notificationUserMapper.selectNotificationIdsByUserIdAndType(
-                userId, type, isReadStr, offset, limit);
+            Page<SysNotificationUser> userPage = new Page<>(pageQuery.getPageNum(), pageQuery.getPageSize());
+            Page<SysNotificationUser> userResult = notificationUserMapper.selectPage(userPage, userQuery);
+
+            List<Long> notificationIds = userResult.getRecords().stream()
+                .map(SysNotificationUser::getNotificationId)
+                .collect(Collectors.toList());
 
             if (notificationIds.isEmpty()) {
-                return new TableDataInfo<>(new ArrayList<>(), 0);
+                return new TableDataInfo<>(new ArrayList<NotificationVO>(), 0);
             }
 
-            // 查询通知详情
-            List<SysNotification> notifications = notificationMapper.selectBatchIds(notificationIds);
+            // 2. 构建通知查询条件
+            LambdaQueryWrapper<SysNotification> notificationQuery = new LambdaQueryWrapper<>();
+            notificationQuery.in(SysNotification::getNotificationId, notificationIds);
 
-            // 查询用户通知关联状态
-            Map<Long, SysNotificationUser> userNotificationMap = new HashMap<>();
-            for (Long notificationId : notificationIds) {
-                SysNotificationUser userNotification = notificationUserMapper
-                    .selectByNotificationIdAndUserId(notificationId, userId);
-                if (userNotification != null) {
-                    userNotificationMap.put(notificationId, userNotification);
-                }
+            // 按类型筛选
+            if (StrUtil.isNotBlank(type)) {
+                notificationQuery.eq(SysNotification::getType, type);
             }
 
-            // 排序：先按优先级，再按创建时间倒序
-            notifications.sort(Comparator
-                .comparing(SysNotification::getPriority,
-                    Comparator.nullsLast((o1, o2) -> {
-                        if ("high".equals(o1) && !"high".equals(o2)) return -1;
-                        if (!"high".equals(o1) && "high".equals(o2)) return 1;
-                        if ("medium".equals(o1) && "low".equals(o2)) return -1;
-                        if ("low".equals(o1) && "medium".equals(o2)) return 1;
-                        return 0;
-                    }))
-                .thenComparing(SysNotification::getCreateTime, Comparator.nullsLast(Comparator.reverseOrder())));
+            // 按关键词筛选
+            if (StrUtil.isNotBlank(keyword)) {
+                notificationQuery.and(wrapper -> wrapper
+                    .like(SysNotification::getTitle, keyword)
+                    .or()
+                    .like(SysNotification::getContent, keyword));
+            }
 
-            // 转换为DTO
-            List<NotificationDTO> dtoList = notifications.stream().map(notification -> {
-                NotificationDTO dto = new NotificationDTO();
-                dto.setNotificationId(notification.getNotificationId());
-                dto.setType(notification.getType());
-                dto.setTitle(notification.getTitle());
-                dto.setContent(notification.getContent());
-                dto.setPriority(notification.getPriority());
-                dto.setSourceType(notification.getSourceType());
-                dto.setSourceId(notification.getSourceId());
-                dto.setAttachments(notification.getAttachments());
-                dto.setBusinessData(notification.getBusinessData());
-                dto.setCreateTime(notification.getCreateTime());
+            // 按日期筛选
+            if (StrUtil.isNotBlank(startTime) && StrUtil.isNotBlank(endTime)) {
+                Date startDate = DateUtils.parseDate(startTime);
+                Date endDate = DateUtils.parseDate(endTime);
+                notificationQuery.between(SysNotification::getCreateTime, startDate, endDate);
+            }
 
-                // 设置用户相关状态
-                SysNotificationUser userNotification = userNotificationMap.get(notification.getNotificationId());
-                if (userNotification != null) {
-                    dto.setIsRead("1".equals(userNotification.getIsRead()));
-                    dto.setReadTime(userNotification.getReadTime());
-                } else {
-                    dto.setIsRead(false);
-                }
+            // 按状态筛选
+            notificationQuery.eq(SysNotification::getStatus, NotificationStatus.NORMAL.getCode());
 
-                return dto;
-            }).collect(Collectors.toList());
+            // 设置排序：先按优先级，再按创建时间倒序
+            notificationQuery.orderByAsc(SysNotification::getPriority);
+            notificationQuery.orderByDesc(SysNotification::getCreateTime);
 
-            // 查询总数
-            int total = notificationUserMapper.countUserNotificationsByType(userId, type, isReadStr);
+            // 3. 查询通知列表
+            List<SysNotification> notifications = notificationMapper.selectList(notificationQuery);
 
-            return new TableDataInfo<>(dtoList, total);
+            // 4. 查询用户通知关系，获取已读状态
+            Map<Long, Boolean> readStatusMap = new HashMap<>();
+            Map<Long, Date> readTimeMap = new HashMap<>();
 
+            userResult.getRecords().forEach(userNotice -> {
+                readStatusMap.put(userNotice.getNotificationId(), "1".equals(userNotice.getIsRead()));
+                readTimeMap.put(userNotice.getNotificationId(), userNotice.getReadTime());
+            });
+
+            // 5. 转换为VO并设置已读状态
+            List<NotificationVO> voList = notifications.stream()
+                .map(notification -> {
+                    NotificationVO vo = BeanUtil.copyProperties(notification, NotificationVO.class);
+                    vo.setRead(readStatusMap.getOrDefault(notification.getNotificationId(), false));
+                    vo.setReadTime(readTimeMap.get(notification.getNotificationId()));
+                    return vo;
+                })
+                .collect(Collectors.toList());
+
+            // 6. 如果需要按已读状态筛选，在内存中过滤
+            if (isRead != null) {
+                voList = voList.stream()
+                    .filter(vo -> vo.getRead() == isRead)
+                    .collect(Collectors.toList());
+            }
+
+            // 7. 计算总数
+            long total = voList.size();
+
+            return new TableDataInfo<>(voList, (int) total);
         } catch (Exception e) {
             log.error("查询用户通知列表异常", e);
             throw new NotificationException("500", "查询通知列表失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 获取用户待办列表（不分页）
-     */
-    @Override
-    public List<TodoResult> getUserTodoList(Long userId) {
-        try {
-            return todoService.getUserTodoList(userId);
-        } catch (Exception e) {
-            log.error("获取用户待办列表异常: {}", e.getMessage(), e);
-            return new ArrayList<>();
         }
     }
 
@@ -265,27 +270,66 @@ public class NotificationServiceImpl implements INotificationService {
         Map<String, Integer> result = new HashMap<>();
 
         try {
-            // 统计待办数量
-            List<TodoResult> todoList = getUserTodoList(userId);
-            int todoCount = todoList.size();
+            // 获取用户所有未读通知
+            LambdaQueryWrapper<SysNotificationUser> userQuery = new LambdaQueryWrapper<>();
+            userQuery.eq(SysNotificationUser::getUserId, userId);
+            userQuery.eq(SysNotificationUser::getIsRead, "0");
 
-            // 统计各类型未读数量
-            int alertCount = notificationUserMapper.countUnreadByType(userId, NotificationTypeConstants.TYPE_ALERT);
-            int messageCount = notificationUserMapper.countUnreadByType(userId, NotificationTypeConstants.TYPE_MESSAGE);
-            int announcementCount = notificationUserMapper.countUnreadByType(userId, NotificationTypeConstants.TYPE_ANNOUNCEMENT);
+            List<SysNotificationUser> userNotifications = notificationUserMapper.selectList(userQuery);
 
-            // 计算总数
-            int totalCount = alertCount + messageCount + announcementCount;
+            if (userNotifications.isEmpty()) {
+                result.put("total", 0);
+                result.put("todo", 0);
+                result.put("alert", 0);
+                result.put("message", 0);
+                result.put("announcement", 0);
+                return result;
+            }
+
+            // 获取通知ID列表
+            List<Long> notificationIds = userNotifications.stream()
+                .map(SysNotificationUser::getNotificationId)
+                .collect(Collectors.toList());
+
+            // 查询通知详情
+            LambdaQueryWrapper<SysNotification> notificationQuery = new LambdaQueryWrapper<>();
+            notificationQuery.in(SysNotification::getNotificationId, notificationIds);
+            notificationQuery.eq(SysNotification::getStatus, NotificationStatus.NORMAL.getCode());
+
+            List<SysNotification> notifications = notificationMapper.selectList(notificationQuery);
+
+            // 按类型统计
+            int todoCount = 0;
+            int messageCount = 0;
+            int announcementCount = 0;
+
+            for (SysNotification notification : notifications) {
+                String type = notification.getType();
+                if (NotificationTypeConstants.TYPE_TODO.equals(type)) {
+                    todoCount++;
+                } else if (NotificationTypeConstants.TYPE_MESSAGE.equals(type)) {
+                    messageCount++;
+                } else if (NotificationTypeConstants.TYPE_ANNOUNCEMENT.equals(type)) {
+                    announcementCount++;
+                }
+            }
+
+            // 汇总结果
+            int totalCount = notifications.size();
 
             result.put("total", totalCount);
             result.put("todo", todoCount);
-            result.put("alert", alertCount);
             result.put("message", messageCount);
             result.put("announcement", announcementCount);
 
             return result;
         } catch (Exception e) {
             log.error("获取未读通知统计异常: {}", e.getMessage(), e);
+            // 返回空结果，避免前端错误
+            result.put("total", 0);
+            result.put("todo", 0);
+            result.put("message", 0);
+            result.put("announcement", 0);
             return result;
         }
     }
@@ -295,26 +339,29 @@ public class NotificationServiceImpl implements INotificationService {
      */
     @Override
     public boolean markAsRead(Long userId, Long notificationId) {
-        SysNotificationUser recipient = notificationUserMapper.selectByNotificationIdAndUserId(notificationId, userId);
+        // 查询用户通知关系
+        LambdaQueryWrapper<SysNotificationUser> query = new LambdaQueryWrapper<>();
+        query.eq(SysNotificationUser::getUserId, userId);
+        query.eq(SysNotificationUser::getNotificationId, notificationId);
 
-        if (recipient == null) {
+        SysNotificationUser userNotification = notificationUserMapper.selectOne(query);
+
+        if (userNotification == null) {
             log.warn("通知接收记录不存在, 用户ID: {}, 通知ID: {}", userId, notificationId);
             return false;
         }
 
-        if ("1".equals(recipient.getIsRead())) {
+        if ("1".equals(userNotification.getIsRead())) {
             // 已经是已读状态
             return true;
         }
 
-        recipient.setIsRead("1");
-        recipient.setReadTime(new Date());
-        recipient.setUpdateTime(new Date());
+        // 更新为已读
+        userNotification.setIsRead("1");
+        userNotification.setReadTime(new Date());
+        userNotification.setUpdateTime(new Date());
 
-        notificationUserMapper.updateById(recipient);
-        log.info("标记通知为已读，用户ID: {}, 通知ID: {}", userId, notificationId);
-
-        return true;
+        return notificationUserMapper.updateById(userNotification) > 0;
     }
 
     /**
@@ -333,7 +380,6 @@ public class NotificationServiceImpl implements INotificationService {
             }
         }
 
-        log.info("批量标记通知为已读，用户ID: {}, 成功数量: {}", userId, count);
         return count;
     }
 
@@ -342,18 +388,15 @@ public class NotificationServiceImpl implements INotificationService {
      */
     @Override
     public int markAllAsRead(Long userId, String type) {
-        int count;
         Date now = new Date();
 
         if (StringUtils.isEmpty(type)) {
-            count = notificationUserMapper.markAllAsRead(userId, now);
+            // 标记所有类型通知为已读
+            return notificationUserMapper.markAllAsRead(userId, now);
         } else {
-            count = notificationUserMapper.markAllAsReadByType(userId, type, now);
+            // 标记指定类型通知为已读
+            return notificationUserMapper.markAllAsReadByType(userId, type, now);
         }
-
-        log.info("标记所有{}通知为已读，用户ID: {}, 更新数量: {}",
-            StringUtils.isEmpty(type) ? "" : type + "类型", userId, count);
-        return count;
     }
 
     /**
@@ -424,226 +467,15 @@ public class NotificationServiceImpl implements INotificationService {
     }
 
     /**
-     * 发送通知到用户
+     * 发送通知到各个渠道
      */
-    private void sendNotificationToUsers(SysNotification notification,
-                                         List<Long> userIds,
-                                         SysNotificationTemplate template,
-                                         Map<String, Object> templateParams) {
-        for (Long userId : userIds) {
-            try {
-                // 1. 获取用户设置
-                Map<String, Object> settings = new HashMap<>();
-
-                // 2. 检查是否在免打扰时间
-                if (isInDoNotDisturbTime(settings)) {
-                    // 仅发送系统内通知
-                    sendSystemNotification(notification, userId);
-                    continue;
-                }
-
-                // 3. 发送系统内通知
-                sendSystemNotification(notification, userId);
-
-                // 4. 根据通知类型和用户设置发送短信
-                if (shouldSendSms(notification.getType(), settings)) {
-                    String mobile = getUserMobile(userId);
-                    if (StringUtils.isNotEmpty(mobile)) {
-                        sendSmsNotification(notification, userId, mobile, template, templateParams);
-                    }
-                }
-
-                // 5. 根据通知类型和用户设置发送邮件
-                if (shouldSendEmail(notification.getType(), settings)) {
-                    String email = getUserEmail(userId);
-                    if (StringUtils.isNotEmpty(email)) {
-                        sendEmailNotification(notification, userId, email, template, templateParams);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("发送通知给用户异常, 用户ID: {}, 通知ID: {}", userId, notification.getNotificationId(), e);
-            }
-        }
-    }
-
-    /**
-     * 发送系统内通知
-     */
-    private void sendSystemNotification(SysNotification notification, Long userId) {
-        // 系统内通知不需要特殊处理，已经在数据库中创建了对应关系
-        log.debug("发送系统内通知，用户ID: {}, 通知ID: {}", userId, notification.getNotificationId());
-    }
-
-    /**
-     * 发送短信通知
-     */
-    private void sendSmsNotification(SysNotification notification, Long userId,
-                                     String mobile, SysNotificationTemplate template,
-                                     Map<String, Object> templateParams) {
-        try {
-            // 渲染短信内容
-            String smsContent;
-            if (StringUtils.isNotEmpty(template.getSmsTemplate())) {
-                smsContent = renderTemplate(template.getSmsTemplate(), templateParams);
-            } else {
-                // 使用通知内容作为短信内容
-                smsContent = notification.getTitle() + "\n" + notification.getContent();
-            }
-
-            // 创建发送记录
-            createDeliveryRecord(notification.getNotificationId(), userId, "sms", smsContent, mobile);
-
-            // 发送短信
-            smsService.send(mobile, smsContent);
-
-        } catch (Exception e) {
-            log.error("发送短信通知异常，用户ID: {}, 手机号: {}", userId, maskSensitiveInfo(mobile), e);
-        }
-    }
-
-    /**
-     * 发送邮件通知
-     */
-    private void sendEmailNotification(SysNotification notification, Long userId,
-                                       String email, SysNotificationTemplate template,
-                                       Map<String, Object> templateParams) {
-        try {
-            // 渲染邮件主题和内容
-            String subject;
-            if (StringUtils.isNotEmpty(template.getEmailSubject())) {
-                subject = renderTemplate(template.getEmailSubject(), templateParams);
-            } else {
-                subject = notification.getTitle();
-            }
-
-            String content;
-            if (StringUtils.isNotEmpty(template.getEmailContent())) {
-                content = renderTemplate(template.getEmailContent(), templateParams);
-            } else {
-                content = notification.getContent();
-            }
-
-            // 创建发送记录
-            createDeliveryRecord(notification.getNotificationId(), userId, "email",
-                subject + "\n" + content, email);
-
-            // 发送邮件
-            emailService.send(email, subject, content);
-
-        } catch (Exception e) {
-            log.error("发送邮件通知异常，用户ID: {}, 邮箱: {}", userId, maskSensitiveInfo(email), e);
-        }
-    }
-
-    /**
-     * 创建发送记录
-     */
-    private void createDeliveryRecord(Long notificationId, Long userId,
-                                      String channel, String content, String targetAddress) {
-        // 使用Mapper直接创建记录，简化实现
-    }
-
-    /**
-     * 脱敏处理
-     */
-    private String maskSensitiveInfo(String info) {
-        if (info == null) {
-            return null;
-        }
-
-        // 邮箱脱敏
-        if (info.contains("@")) {
-            int atIndex = info.indexOf('@');
-            if (atIndex <= 1) {
-                return info;
-            }
-
-            String local = info.substring(0, atIndex);
-            String domain = info.substring(atIndex);
-
-            if (local.length() <= 2) {
-                return info;
-            }
-
-            String maskedLocal = local.substring(0, 1) + "****" + local.substring(local.length() - 1);
-            return maskedLocal + domain;
-        }
-
-        // 手机号脱敏
-        if (info.length() >= 11) {
-            return info.substring(0, 3) + "****" + info.substring(7);
-        }
-
-        return info;
-    }
-
-    /**
-     * 检查是否应该发送短信
-     */
-    private boolean shouldSendSms(String notificationType, Map<String, Object> settings) {
-        String settingKey = notificationType + "_notify_sms";
-        return settings != null &&
-            settings.containsKey(settingKey) &&
-            "1".equals(settings.get(settingKey).toString());
-    }
-
-    /**
-     * 检查是否应该发送邮件
-     */
-    private boolean shouldSendEmail(String notificationType, Map<String, Object> settings) {
-        String settingKey = notificationType + "_notify_email";
-        return settings != null &&
-            settings.containsKey(settingKey) &&
-            "1".equals(settings.get(settingKey).toString());
-    }
-
-    /**
-     * 检查是否在免打扰时间
-     */
-    private boolean isInDoNotDisturbTime(Map<String, Object> settings) {
-        Object startTimeObj = settings.get("do_not_disturb_start");
-        Object endTimeObj = settings.get("do_not_disturb_end");
-
-        if (startTimeObj == null || endTimeObj == null) {
-            return false;
-        }
-
-        try {
-            // 当前时间
-            Calendar now = Calendar.getInstance();
-            int hour = now.get(Calendar.HOUR_OF_DAY);
-            int minute = now.get(Calendar.MINUTE);
-
-            // 解析设置中的时间字符串
-            String startTimeStr = startTimeObj.toString();
-            String endTimeStr = endTimeObj.toString();
-
-            // 免打扰开始时间
-            String[] startParts = startTimeStr.split(":");
-            int startHour = Integer.parseInt(startParts[0]);
-            int startMinute = Integer.parseInt(startParts[1]);
-
-            // 免打扰结束时间
-            String[] endParts = endTimeStr.split(":");
-            int endHour = Integer.parseInt(endParts[0]);
-            int endMinute = Integer.parseInt(endParts[1]);
-
-            // 转换为分钟数进行比较
-            int nowMinutes = hour * 60 + minute;
-            int startMinutes = startHour * 60 + startMinute;
-            int endMinutes = endHour * 60 + endMinute;
-
-            if (startMinutes < endMinutes) {
-                // 同一天内的时间段，如 22:00 - 23:00
-                return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
-            } else {
-                // 跨天的时间段，如 22:00 - 06:00
-                return nowMinutes >= startMinutes || nowMinutes <= endMinutes;
-            }
-        } catch (Exception e) {
-            log.error("解析免打扰时间异常: {}", e.getMessage());
-            return false;
-        }
+    private void sendNotificationToChannels(SysNotification notification,
+                                            List<Long> userIds,
+                                            SysNotificationTemplate template,
+                                            Map<String, Object> templateParams) {
+        // 这里可以添加发送到不同渠道的逻辑：短信、邮件等
+        // 本实现中，只记录在数据库中
+        log.info("发送通知到{}个用户: {}", userIds.size(), notification.getTitle());
     }
 
     /**
@@ -692,21 +524,4 @@ public class NotificationServiceImpl implements INotificationService {
         notification.setMenuPerms(template.getMenuPerms());
         // 数据范围SQL可能需要特殊处理
     }
-
-    /**
-     * 获取用户手机号
-     */
-    private String getUserMobile(Long userId) {
-        // 实际项目中应该从用户服务或用户表中获取
-        return "13800138000";
-    }
-
-    /**
-     * 获取用户邮箱
-     */
-    private String getUserEmail(Long userId) {
-        // 实际项目中应该从用户服务或用户表中获取
-        return "user@example.com";
-    }
-
 }

@@ -4,8 +4,11 @@ import java.util.Map;
 
 /**
  * 通知设置服务接口
+ *
+ * @author zzf
  */
 public interface INotificationSettingService {
+
     /**
      * 获取用户通知设置
      *

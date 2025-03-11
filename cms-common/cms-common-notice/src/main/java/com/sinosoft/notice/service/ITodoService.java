@@ -1,6 +1,7 @@
 package com.sinosoft.notice.service;
 
-import com.sinosoft.notice.core.todo.TodoResult;
+import com.sinosoft.notice.domain.dto.TodoResultDTO;
+
 import java.util.List;
 
 /**
@@ -12,5 +13,5 @@ public interface ITodoService {
      * @param userId 用户ID
      * @return 待办结果列表
      */
-    List<TodoResult> getUserTodoList(Long userId);
+    List<TodoResultDTO> getUserTodoList(Long userId);
 }

@@ -54,6 +54,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         WHERE nu.user_id = #{userId}
         <if test="type != null and type != ''">
             AND n.type = #{type}
+            <if test="messageSubtype != null and messageSubtype != ''">
+                AND (n.type != 'message' OR n.message_subtype = #{messageSubtype})
+            </if>
         </if>
         <if test="isRead != null and isRead != ''">
             AND nu.is_read = #{isRead}

@@ -44,4 +44,7 @@ public class NotificationDTO {
 
     /** 业务数据 */
     private String businessData;
+
+    /** 消息子类型 */
+    private String messageSubtype;
 }

@@ -1,16 +1,18 @@
 package com.sinosoft.notice.service;
 
+import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
-import com.sinosoft.notice.core.todo.TodoResult;
+import com.sinosoft.notice.domain.dto.NotificationDTO;
+import com.sinosoft.notice.domain.vo.NotificationVO;
 import com.sinosoft.notice.model.NotificationPayload;
-import com.sinosoft.notice.model.dto.NotificationDTO;
-import com.sinosoft.notice.model.dto.NotificationQueryDTO;
 
 import java.util.List;
 import java.util.Map;
 
 /**
  * 通知服务接口
+ *
+ * @author zzf
  */
 public interface INotificationService {
 
@@ -43,18 +45,11 @@ public interface INotificationService {
      * 查询用户通知列表（分页）
      * 支持预警通知、消息通知、公告通知
      *
-     * @param queryDTO 查询条件
+     * @param dto       查询条件
+     * @param pageQuery 分页参数
      * @return 分页通知列表
      */
-    TableDataInfo<NotificationDTO> getNotifications(NotificationQueryDTO queryDTO);
-
-    /**
-     * 获取用户待办列表（不分页）
-     *
-     * @param userId 用户ID
-     * @return 待办列表
-     */
-    List<TodoResult> getUserTodoList(Long userId);
+    TableDataInfo<NotificationVO> getNotifications(NotificationDTO dto, PageQuery pageQuery);
 
     /**
      * 获取用户未读通知统计
@@ -67,7 +62,7 @@ public interface INotificationService {
     /**
      * 标记通知为已读
      *
-     * @param userId 用户ID
+     * @param userId         用户ID
      * @param notificationId 通知ID
      * @return 是否成功
      */
@@ -76,7 +71,7 @@ public interface INotificationService {
     /**
      * 批量标记通知为已读
      *
-     * @param userId 用户ID
+     * @param userId          用户ID
      * @param notificationIds 通知ID列表
      * @return 成功标记的数量
      */
@@ -86,7 +81,7 @@ public interface INotificationService {
      * 标记所有通知为已读
      *
      * @param userId 用户ID
-     * @param type 通知类型（可选）
+     * @param type   通知类型（可选）
      * @return 更新的通知数量
      */
     int markAllAsRead(Long userId, String type);

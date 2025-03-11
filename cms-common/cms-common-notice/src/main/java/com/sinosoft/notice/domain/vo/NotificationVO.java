@@ -1,19 +1,22 @@
-package com.sinosoft.notice.domain;
+package com.sinosoft.notice.domain.vo;
 
-import com.baomidou.mybatisplus.annotation.*;
-import com.sinosoft.common.mybatis.core.domain.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.github.linpeilie.annotations.AutoMapper;
 import lombok.Data;
-
-import java.util.Date;
+import com.sinosoft.notice.domain.SysNotification;
 
 import java.io.Serial;
+import java.io.Serializable;
+import java.util.Date;
 
 /**
- * 通知主对象 sys_notification (简化版)
+ * 通知视图对象
+ *
+ * @author zzf
  */
 @Data
-@TableName("sys_notification")
-public class SysNotification extends BaseEntity {
+@AutoMapper(target = SysNotification.class)
+public class NotificationVO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -21,7 +24,6 @@ public class SysNotification extends BaseEntity {
     /**
      * 通知ID
      */
-    @TableId(value = "notification_id")
     private Long notificationId;
 
     /**
@@ -30,7 +32,7 @@ public class SysNotification extends BaseEntity {
     private Long templateId;
 
     /**
-     * 通知类型：todo-待办, alert-预警, announcement-公告
+     * 通知类型：todo-待办, alert-预警, announcement-公告, message-消息
      */
     private String type;
 
@@ -45,12 +47,12 @@ public class SysNotification extends BaseEntity {
     private String content;
 
     /**
-     * 通知来源类型，如contract, policy, performance等
+     * 通知来源类型
      */
     private String sourceType;
 
     /**
-     * 通知来源ID，关联到业务ID
+     * 通知来源ID
      */
     private String sourceId;
 
@@ -60,34 +62,20 @@ public class SysNotification extends BaseEntity {
     private String priority;
 
     /**
-     * 指定接收角色ID列表，JSON数组格式
+     * 是否已读
      */
-    private String roleIds;
+    private Boolean read;
 
     /**
-     * 消息子类型：normal-普通消息, alert-预警消息
-     * 仅当type为message时有效
+     * 阅读时间
      */
-    private String messageSubtype;
-
-    /**
-     * 数据范围SQL条件
-     */
-    private String dataScopeSql;
-
-    /**
-     * 所需菜单权限，JSON数组格式
-     */
-    private String menuPerms;
-
-    /**
-     * 业务键，用于识别重复通知
-     */
-    private String businessKey;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date readTime;
 
     /**
      * 过期时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date expirationDate;
 
     /**
@@ -101,7 +89,7 @@ public class SysNotification extends BaseEntity {
     private String attachments;
 
     /**
-     * 业务数据，JSON格式，用于动态展示或操作
+     * 业务数据，JSON格式
      */
     private String businessData;
 
@@ -109,6 +97,28 @@ public class SysNotification extends BaseEntity {
      * 通知状态（0正常 1过期 2取消）
      */
     private String status;
+
+    /**
+     * 创建者
+     */
+    private Long createBy;
+
+    /**
+     * 创建时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date createTime;
+
+    /**
+     * 更新者
+     */
+    private Long updateBy;
+
+    /**
+     * 更新时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date updateTime;
 
     /**
      * 备注
