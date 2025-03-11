@@ -16,9 +16,9 @@
         <!-- 消息 -->
         <el-tooltip :content="$t('navbar.message')" effect="dark" placement="bottom">
           <div class="icon-container">
-            <el-popover placement="bottom" trigger="click" transition="el-zoom-in-top" :width="300" :persistent="false">
+            <el-popover placement="bottom" trigger="click" transition="el-zoom-in-top" :width="350" :persistent="false">
               <template #reference>
-                <el-badge :value="newNotice > 0 ? newNotice : ''" :max="99" class="badge-item">
+                <el-badge :value="unreadTotal > 0 ? unreadTotal : ''" :max="99" class="badge-item">
                   <svg-icon icon-class="message" class="menu-icon" />
                 </el-badge>
               </template>
@@ -67,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, onMounted } from 'vue';
 import SearchMenu from './TopBar/search.vue';
 import useAppStore from '@/store/modules/app';
 import useUserStore from '@/store/modules/user';
@@ -81,8 +82,10 @@ import router from '@/router';
 const appStore = useAppStore();
 const userStore = useUserStore();
 const settingsStore = useSettingsStore();
-const noticeStore = storeToRefs(useNoticeStore());
-const newNotice = ref(<number>0);
+const noticeStore = useNoticeStore();
+
+// 使用 ref 存储未读消息数量
+const unreadTotal = ref(0);
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
@@ -128,6 +131,53 @@ const initTenantList = async () => {
   }
 };
 
+// 更新未读消息计数
+const updateUnreadCount = () => {
+  // 尝试从各种可能的位置获取未读计数
+  try {
+    // 首先尝试使用新API
+    if (typeof noticeStore.getUnreadNoticeCount === 'function') {
+      noticeStore.getUnreadNoticeCount();
+    }
+
+    // 然后从各种可能的位置获取数据
+    if (noticeStore.state?.unreadCount?.total !== undefined) {
+      // 如果新的结构可用
+      unreadTotal.value = noticeStore.state.unreadCount.total;
+    } else if (noticeStore.state?.notices) {
+      // 如果在state下
+      unreadTotal.value = noticeStore.state.notices.filter(notice => !notice.read).length;
+    } else if (Array.isArray(noticeStore.notices)) {
+      // 如果直接在根对象上
+      unreadTotal.value = noticeStore.notices.filter(notice => !notice.read).length;
+    } else {
+      // 尝试旧的store结构
+      const oldNotices = noticeStore?.state?.notices || [];
+      if (Array.isArray(oldNotices)) {
+        unreadTotal.value = oldNotices.filter(notice => !notice.read).length;
+      }
+    }
+  } catch (e) {
+    console.error('更新未读消息计数出错:', e);
+    unreadTotal.value = 0; // 出错时使用默认值
+  }
+};
+
+// 初始化通知
+const initNotifications = async () => {
+  try {
+    // 尝试调用新的API
+    if (typeof noticeStore.getUnreadNoticeCount === 'function') {
+      await noticeStore.getUnreadNoticeCount();
+    }
+
+    // 更新未读计数
+    updateUnreadCount();
+  } catch (e) {
+    console.error('初始化通知出错:', e);
+  }
+};
+
 defineExpose({
   initTenantList
 });
@@ -167,14 +217,20 @@ const handleCommand = (command: string) => {
     commandMap[command]();
   }
 };
-//用深度监听 消息
+
+// 安全地监听通知变化，使用深度监听整个store
 watch(
-  () => noticeStore.state.value.notices,
-  (newVal) => {
-    newNotice.value = newVal.filter((item: any) => !item.read).length;
+  () => noticeStore,
+  () => {
+    updateUnreadCount();
   },
   { deep: true }
 );
+
+// 页面加载时初始化
+onMounted(() => {
+  initNotifications();
+});
 </script>
 
 <style lang="scss" scoped>
