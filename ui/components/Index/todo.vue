@@ -95,7 +95,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { getTodoList } from '@/api/system/notice';
+import { getTodoList } from '@/api/system/notification';
 import { ElMessage } from 'element-plus';
 import dayjs from 'dayjs';
 import Pagination from '@/components/Pagination/index.vue';

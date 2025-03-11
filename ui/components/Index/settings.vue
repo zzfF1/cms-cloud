@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { getNotificationSettings, updateNotificationSettings } from '@/api/system/notice';
+import { getNotificationSettings, updateNotificationSettings } from '@/api/system/notification';
 import { ElMessage } from 'element-plus';
 import type { FormInstance } from 'element-plus';
 import dayjs from 'dayjs';

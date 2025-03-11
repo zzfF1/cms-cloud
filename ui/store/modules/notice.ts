@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getNotifications, getUnreadCount, markNotificationRead, batchMarkRead, markAllRead, getTodoList } from '@/api/system/notice';
+import { getNotifications, getUnreadCount, markNotificationRead, batchMarkRead, markAllRead, getTodoList } from '@/api/system/notification';
 import useUserStore from './user';
 import { ElMessage } from 'element-plus';
 

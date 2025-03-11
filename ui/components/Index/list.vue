@@ -246,7 +246,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { getNotifications, markNotificationRead, markAllRead } from '@/api/system/notice';
+import { getNotifications, markNotificationRead, markAllRead } from '@/api/system/notification';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import dayjs from 'dayjs';
 import Pagination from '@/components/Pagination/index.vue';

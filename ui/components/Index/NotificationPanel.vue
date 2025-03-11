@@ -235,7 +235,7 @@
 import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import useNoticeStore from '@/store/modules/notice';
-import { getNotifications, getNotificationSettings, updateNotificationSettings } from '@/api/system/notice';
+import { getNotifications, getNotificationSettings, updateNotificationSettings } from '@/api/system/notification';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
