@@ -235,7 +235,7 @@ onMounted(async () => {
 
   try {
     // 加载通知数据
-    await noticeStore.getNotifications({ page: 1, size: 5 });
+    await noticeStore.getNotifications({ pageNum: 1, pageSize: 10 });
 
     // 加载待办数据
     await noticeStore.getTodoList();

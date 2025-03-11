@@ -42,8 +42,8 @@ const useNoticeStore = defineStore('notice', {
 
         const mergedParams = {
           userId,
-          page: 1,
-          size: 20,
+          pageNum: 1,
+          pageSize: 20,
           ...params
         };
 

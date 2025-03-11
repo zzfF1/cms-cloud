@@ -585,28 +585,26 @@ const fetchNotifications = async () => {
 
   try {
     const params: any = {
-      page: pagination.value.current,
-      size: pagination.value.size
+      pageNum: pagination.value.current,
+      pageSize: pagination.value.size
     };
-
     if (activeTab.value !== 'all') {
       params.type = activeTab.value;
     }
-
-    const { data } = await getNotifications(params);
-
-    if (data && data.code === 200) {
-      notificationList.value = data.rows || [];
-      pagination.value.total = data.total || 0;
-
+    const response = await getNotifications(params);
+    // 直接使用返回值
+    if (response && response.code === 200) {
+      notificationList.value = response.rows || [];
+      pagination.value.total = response.total || 0;
       // 同时更新未读统计
       await noticeStore.getUnreadCount();
     } else {
-      error.value = data?.msg || '获取通知数据失败';
+      error.value = response?.msg || '获取通知数据失败';
     }
   } catch (err) {
     console.error('获取通知列表出错:', err);
     error.value = '获取通知时发生错误，请稍后重试';
+    notificationList.value = [];
   } finally {
     loading.value = false;
   }

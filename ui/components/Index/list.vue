@@ -259,8 +259,8 @@ const notificationList = ref([]);
 const total = ref(0);
 const dateRange = ref([]);
 const queryParams = reactive({
-  page: 1,
-  size: 10,
+  pageNum: 1,
+  pageSize: 10,
   type: '',
   isRead: '',
   keyword: '',

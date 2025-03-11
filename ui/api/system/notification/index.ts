@@ -8,7 +8,7 @@ import { AxiosPromise } from 'axios';
  */
 export function getNotifications(params: NotificationParams): AxiosPromise<any> {
   return request({
-    url: '/system/notice/notifications',
+    url: '/system/notification/notifications',
     method: 'get',
     params
   });
@@ -19,7 +19,7 @@ export function getNotifications(params: NotificationParams): AxiosPromise<any> 
  */
 export function getUnreadCount(): AxiosPromise<any> {
   return request({
-    url: '/system/notice/unread/count',
+    url: '/system/notification/unread/count',
     method: 'get'
   });
 }
@@ -30,7 +30,7 @@ export function getUnreadCount(): AxiosPromise<any> {
  */
 export function markNotificationRead(notificationId: number | string): AxiosPromise<any> {
   return request({
-    url: `/system/notice/read/${notificationId}`,
+    url: `/system/notification/read/${notificationId}`,
     method: 'put'
   });
 }
@@ -41,7 +41,7 @@ export function markNotificationRead(notificationId: number | string): AxiosProm
  */
 export function batchMarkRead(notificationIds: (number | string)[]): AxiosPromise<any> {
   return request({
-    url: '/system/notice/read/batch',
+    url: '/system/notification/read/batch',
     method: 'put',
     data: { notificationIds }
   });
@@ -53,7 +53,7 @@ export function batchMarkRead(notificationIds: (number | string)[]): AxiosPromis
  */
 export function markAllRead(type?: string): AxiosPromise<any> {
   return request({
-    url: '/system/notice/read/all',
+    url: '/system/notification/read/all',
     method: 'put',
     params: { type }
   });
@@ -64,7 +64,7 @@ export function markAllRead(type?: string): AxiosPromise<any> {
  */
 export function getTodoList(): AxiosPromise<any> {
   return request({
-    url: '/system/notice/todo/list',
+    url: '/system/notification/todo/list',
     method: 'get'
   });
 }
@@ -74,7 +74,7 @@ export function getTodoList(): AxiosPromise<any> {
  */
 export function getNotificationSettings(): AxiosPromise<any> {
   return request({
-    url: '/system/notice/settings',
+    url: '/system/notification/settings',
     method: 'get'
   });
 }
@@ -85,7 +85,7 @@ export function getNotificationSettings(): AxiosPromise<any> {
  */
 export function updateNotificationSettings(settings: any): AxiosPromise<any> {
   return request({
-    url: '/system/notice/settings',
+    url: '/system/notification/settings',
     method: 'put',
     data: settings
   });

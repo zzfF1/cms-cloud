@@ -5,6 +5,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.template.Template;
 import cn.hutool.extra.template.TemplateEngine;
+import cn.hutool.http.HttpStatus;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -254,8 +255,10 @@ public class NotificationServiceImpl implements INotificationService {
 
             // 7. 计算总数
             long total = voList.size();
-
-            return new TableDataInfo<>(voList, (int) total);
+            TableDataInfo dataInfo = new TableDataInfo<>(voList, (int) total);
+            dataInfo.setCode(HttpStatus.HTTP_OK);
+            dataInfo.setMsg("查询成功");
+            return dataInfo;
         } catch (Exception e) {
             log.error("查询用户通知列表异常", e);
             throw new NotificationException("500", "查询通知列表失败: " + e.getMessage());
