@@ -54,6 +54,11 @@
         </dependency>
 
         <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-mybatis</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-poi</artifactId>
         </dependency>
@@ -67,6 +72,11 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-api-system</artifactId>
         </dependency>
     </dependencies>
 </project>
