@@ -21,6 +21,10 @@ import java.util.function.Function;
 @Slf4j
 public class RabbitMqAdapter extends AbstractMqAdapter {
 
+    //---------------------
+    // 字段/属性
+    //---------------------
+
     private ConnectionFactory connectionFactory;
     private Connection connection;
     private Channel producerChannel;
@@ -30,12 +34,19 @@ public class RabbitMqAdapter extends AbstractMqAdapter {
     private final MqConfigProperties.RabbitProperties rabbitProperties;
     private final MqConfigProperties mqConfigProperties; // 添加整个配置对象的引用
 
+    //---------------------
+    // 构造函数
+    //---------------------
 
     public RabbitMqAdapter(String clusterName, MqConfigProperties.RabbitProperties rabbitProperties, MqConfigProperties mqConfigProperties) {
         super(clusterName);
         this.rabbitProperties = rabbitProperties;
         this.mqConfigProperties = mqConfigProperties; // 保存对完整配置的引用
     }
+
+    //---------------------
+    // 初始化和生命周期方法
+    //---------------------
 
     @Override
     protected void doInitialize() {
@@ -64,6 +75,94 @@ public class RabbitMqAdapter extends AbstractMqAdapter {
         }
     }
 
+    @Override
+    protected void doStart() {
+        // 消费者已经在订阅时启动
+    }
+
+    @Override
+    protected void doPause() {
+        consumerChannels.forEach((key, channel) -> {
+            try {
+                String consumerTag = consumerTags.get(key);
+                if (consumerTag != null) {
+                    channel.basicCancel(consumerTag);
+                }
+            } catch (Exception e) {
+                log.warn("暂停RabbitMQ消费者时发生错误: {}", key, e);
+            }
+        });
+    }
+
+    @Override
+    protected void doResume() {
+        consumerChannels.forEach((key, channel) -> {
+            try {
+                String[] parts = key.split("#");
+                String topic = parts[0];
+                String tags = parts.length > 1 ? parts[1] : "#";
+                Function<MqMessage, MqResult<?>> listener = listeners.get(key);
+
+                if (listener != null) {
+                    String queue = "queue." + topic;
+
+                    DefaultConsumer consumer = new DefaultConsumer(channel) {
+                        @Override
+                        public void handleDelivery(
+                            String consumerTag,
+                            Envelope envelope,
+                            AMQP.BasicProperties properties,
+                            byte[] body) throws IOException {
+
+                            processMessage(channel, envelope, properties, body, listener);
+                        }
+                    };
+
+                    String consumerTag = channel.basicConsume(queue, false, consumer);
+                    consumerTags.put(key, consumerTag);
+                }
+            } catch (Exception e) {
+                log.warn("恢复RabbitMQ消费者时发生错误: {}", key, e);
+            }
+        });
+    }
+
+    @Override
+    protected void doShutdown() {
+        // 关闭消费者通道
+        for (Channel channel : consumerChannels.values()) {
+            try {
+                channel.close();
+            } catch (Exception e) {
+                log.warn("关闭RabbitMQ消费者通道时发生错误", e);
+            }
+        }
+        consumerChannels.clear();
+        consumerTags.clear();
+        listeners.clear();
+
+        // 关闭生产者通道
+        if (producerChannel != null) {
+            try {
+                producerChannel.close();
+            } catch (Exception e) {
+                log.warn("关闭RabbitMQ生产者通道时发生错误", e);
+            }
+        }
+
+        // 关闭连接
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (Exception e) {
+                log.warn("关闭RabbitMQ连接时发生错误", e);
+            }
+        }
+    }
+
+    //---------------------
+    // 生产者方法
+    //---------------------
 
     @Override
     public MqResult<String> send(MqMessage message) {
@@ -174,6 +273,10 @@ public class RabbitMqAdapter extends AbstractMqAdapter {
         }
     }
 
+    //---------------------
+    // 消费者方法
+    //---------------------
+
     @Override
     public void subscribe(String topic, String tags, Function<MqMessage, MqResult<?>> messageListener) {
         checkInitialized();
@@ -230,6 +333,32 @@ public class RabbitMqAdapter extends AbstractMqAdapter {
         }
     }
 
+    @Override
+    public void unsubscribe(String topic) {
+        consumerChannels.entrySet().removeIf(entry -> {
+            if (entry.getKey().startsWith(topic + "#")) {
+                try {
+                    String consumerTag = consumerTags.get(entry.getKey());
+                    if (consumerTag != null) {
+                        entry.getValue().basicCancel(consumerTag);
+                    }
+                    entry.getValue().close();
+                    listeners.remove(entry.getKey());
+                    consumerTags.remove(entry.getKey());
+                    log.info("已取消订阅RabbitMQ主题: {}", topic);
+                } catch (Exception e) {
+                    log.warn("取消订阅RabbitMQ主题时发生错误: {}", topic, e);
+                }
+                return true;
+            }
+            return false;
+        });
+    }
+
+    //---------------------
+    // 交换机和队列管理方法
+    //---------------------
+
     /**
      * 确保交换机和队列存在
      */
@@ -272,112 +401,64 @@ public class RabbitMqAdapter extends AbstractMqAdapter {
         );
     }
 
-    @Override
-    public void unsubscribe(String topic) {
-        consumerChannels.entrySet().removeIf(entry -> {
-            if (entry.getKey().startsWith(topic + "#")) {
-                try {
-                    String consumerTag = consumerTags.get(entry.getKey());
-                    if (consumerTag != null) {
-                        entry.getValue().basicCancel(consumerTag);
-                    }
-                    entry.getValue().close();
-                    listeners.remove(entry.getKey());
-                    consumerTags.remove(entry.getKey());
-                    log.info("已取消订阅RabbitMQ主题: {}", topic);
-                } catch (Exception e) {
-                    log.warn("取消订阅RabbitMQ主题时发生错误: {}", topic, e);
-                }
-                return true;
-            }
-            return false;
-        });
+    /**
+     * 声明交换机
+     */
+    private void declareExchange(String exchange) throws IOException {
+        producerChannel.exchangeDeclare(exchange, rabbitProperties.getExchangeType(), true);
     }
 
-    @Override
-    protected void doStart() {
-        // 消费者已经在订阅时启动
-    }
-
-    @Override
-    protected void doPause() {
-        consumerChannels.forEach((key, channel) -> {
-            try {
-                String consumerTag = consumerTags.get(key);
-                if (consumerTag != null) {
-                    channel.basicCancel(consumerTag);
-                }
-            } catch (Exception e) {
-                log.warn("暂停RabbitMQ消费者时发生错误: {}", key, e);
-            }
-        });
-    }
-
-    @Override
-    protected void doResume() {
-        consumerChannels.forEach((key, channel) -> {
-            try {
-                String[] parts = key.split("#");
-                String topic = parts[0];
-                String tags = parts.length > 1 ? parts[1] : "#";
-                Function<MqMessage, MqResult<?>> listener = listeners.get(key);
-
-                if (listener != null) {
-                    String queue = "queue." + topic;
-
-                    DefaultConsumer consumer = new DefaultConsumer(channel) {
-                        @Override
-                        public void handleDelivery(
-                            String consumerTag,
-                            Envelope envelope,
-                            AMQP.BasicProperties properties,
-                            byte[] body) throws IOException {
-
-                            processMessage(channel, envelope, properties, body, listener);
-                        }
-                    };
-
-                    String consumerTag = channel.basicConsume(queue, false, consumer);
-                    consumerTags.put(key, consumerTag);
-                }
-            } catch (Exception e) {
-                log.warn("恢复RabbitMQ消费者时发生错误: {}", key, e);
-            }
-        });
-    }
-
-    @Override
-    protected void doShutdown() {
-        // 关闭消费者通道
-        for (Channel channel : consumerChannels.values()) {
-            try {
-                channel.close();
-            } catch (Exception e) {
-                log.warn("关闭RabbitMQ消费者通道时发生错误", e);
-            }
-        }
-        consumerChannels.clear();
-        consumerTags.clear();
-        listeners.clear();
-
-        // 关闭生产者通道
-        if (producerChannel != null) {
-            try {
-                producerChannel.close();
-            } catch (Exception e) {
-                log.warn("关闭RabbitMQ生产者通道时发生错误", e);
-            }
+    /**
+     * 只创建交换机和队列，不发送消息
+     * 用于从注解自动创建
+     */
+    public void createExchangeAndQueue(String topic) {
+        if (!rabbitProperties.isAutoCreateQueues()) {
+            log.info("跳过队列创建：{} (未启用自动创建)", topic);
+            return;
         }
 
-        // 关闭连接
-        if (connection != null) {
-            try {
-                connection.close();
-            } catch (Exception e) {
-                log.warn("关闭RabbitMQ连接时发生错误", e);
-            }
+        try {
+            // 确保生产者通道已初始化
+            checkInitialized();
+
+            String exchange = "exchange." + topic;
+            String queue = "queue." + topic;
+            String routingKey = "#";  // 使用通配符作为默认路由键
+
+            // 声明交换机
+            producerChannel.exchangeDeclare(
+                exchange,
+                rabbitProperties.getExchangeType(),
+                true,   // 持久化
+                false,  // 不自动删除
+                null    // 无特殊参数
+            );
+
+            // 声明队列
+            Map<String, Object> args = new HashMap<>();
+            // 可以在这里添加队列参数
+
+            producerChannel.queueDeclare(
+                queue,
+                rabbitProperties.isDurableQueues(),      // 持久化
+                false,                                  // 非排他
+                rabbitProperties.isAutoDeleteQueues(),  // 是否自动删除
+                args
+            );
+
+            // 绑定队列到交换机
+            producerChannel.queueBind(queue, exchange, routingKey);
+
+            log.info("成功创建RabbitMQ交换机和队列: {}", topic);
+        } catch (Exception e) {
+            log.warn("创建RabbitMQ交换机和队列失败: {}", topic, e);
         }
     }
+
+    //---------------------
+    // 辅助方法
+    //---------------------
 
     /**
      * 处理接收到的消息
@@ -431,13 +512,6 @@ public class RabbitMqAdapter extends AbstractMqAdapter {
     private boolean shouldRetry(String code) {
         // 根据业务需求实现重试策略
         return code != null && code.startsWith("RETRY");
-    }
-
-    /**
-     * 声明交换机
-     */
-    private void declareExchange(String exchange) throws IOException {
-        producerChannel.exchangeDeclare(exchange, rabbitProperties.getExchangeType(), true);
     }
 
     /**

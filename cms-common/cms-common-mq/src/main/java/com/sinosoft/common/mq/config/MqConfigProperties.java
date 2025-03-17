@@ -58,6 +58,16 @@ public class MqConfigProperties {
     private int maxReconnectAttempts = -1;
 
     /**
+     * 是否只作为生产者使用（不消费消息）
+     */
+    private boolean producerOnly = false;
+
+    /**
+     * 是否自动注册消费者
+     */
+    private boolean consumerEnabled = true;
+
+    /**
      * Kafka配置
      */
     private KafkaProperties kafka = new KafkaProperties();
@@ -74,6 +84,7 @@ public class MqConfigProperties {
 
     /**
      * 主题自动创建配置
+     * 简化为只保留一个启用开关，不再需要声明主题列表
      */
     private AutoCreateConfig autoCreate = new AutoCreateConfig();
 
@@ -92,7 +103,7 @@ public class MqConfigProperties {
         log.info("rabbit配置被设置: default-cluster={}, clusters={}",
             rabbit.getDefaultCluster(),
             rabbit.getClusters() != null ? rabbit.getClusters().stream()
-                .map(c -> c.getName() + ":" + c.getPassword())
+                .map(c -> c.getName() + ":" + c.getAddresses())
                 .collect(Collectors.joining(",")) : "null");
     }
 
@@ -101,7 +112,7 @@ public class MqConfigProperties {
      */
     @Data
     public static class KafkaProperties {
-        // 原有属性保持不变
+        // 原有属性
         private List<KafkaCluster> clusters;
         private String defaultCluster;
         private int consumerThreads = 10;
@@ -112,7 +123,12 @@ public class MqConfigProperties {
         private int defaultPartitions = 3;
         private int defaultReplicas = 1;
 
-        // 原有方法保持不变
+        /**
+         * 是否在发送消息时自动创建主题
+         */
+        private boolean autoCreateTopicsOnSend = false;
+
+        // 原有方法
         public String getBootstrapServers() {
             if (clusters == null || clusters.isEmpty()) {
                 throw new IllegalStateException("未配置Kafka集群");
@@ -158,7 +174,7 @@ public class MqConfigProperties {
      */
     @Data
     public static class RabbitProperties {
-        // 原有属性保持不变
+        // 原有属性
         private List<RabbitCluster> clusters;
         private String defaultCluster;
         private String host = "localhost";
@@ -173,7 +189,7 @@ public class MqConfigProperties {
         private boolean autoDeleteQueues = false;
         private boolean durableQueues = true;
 
-        // 原有方法保持不变
+        // 原有方法
         public String getAddresses() {
             if (clusters == null || clusters.isEmpty()) {
                 return host + ":" + port;
@@ -222,7 +238,7 @@ public class MqConfigProperties {
      */
     @Data
     public static class RocketMqProperties {
-        // 原有属性保持不变
+        // 原有属性
         private List<RocketCluster> clusters;
         private String defaultCluster;
         private String nameServer = "localhost:9876";
@@ -233,7 +249,7 @@ public class MqConfigProperties {
         private int consumeThreadMin = 5;
         private int consumeThreadMax = 20;
 
-        // 原有方法保持不变
+        // 原有方法
         public String getNameServer() {
             if (clusters == null || clusters.isEmpty()) {
                 return nameServer;
@@ -275,11 +291,20 @@ public class MqConfigProperties {
     }
 
     /**
-     * 主题自动创建配置
+     * 主题自动创建配置 (简化版)
      */
     @Data
     public static class AutoCreateConfig {
+        /**
+         * 是否启用从注解自动创建主题
+         */
         private boolean enabled = true;
+
+        /**
+         * 预定义主题列表，已废弃，保留向后兼容
+         * 现在使用注解扫描自动创建
+         */
+        @Deprecated
         private List<TopicConfig> topics = new ArrayList<>();
     }
 

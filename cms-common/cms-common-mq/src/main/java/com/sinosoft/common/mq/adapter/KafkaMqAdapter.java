@@ -34,6 +34,10 @@ import java.util.function.Function;
 @Slf4j
 public class KafkaMqAdapter extends AbstractMqAdapter {
 
+    //---------------------
+    // 字段/属性
+    //---------------------
+
     private KafkaProducer<String, Object> producer;
     private Map<String, KafkaConsumer<String, Object>> consumers = new ConcurrentHashMap<>();
     private Map<String, Function<MqMessage, MqResult<?>>> listeners = new ConcurrentHashMap<>();
@@ -43,11 +47,19 @@ public class KafkaMqAdapter extends AbstractMqAdapter {
     private final MqConfigProperties mqConfigProperties; // 添加整个配置对象的引用
     private volatile boolean consumerRunning = false;
 
+    //---------------------
+    // 构造函数
+    //---------------------
+
     public KafkaMqAdapter(String clusterName, MqConfigProperties.KafkaProperties kafkaProperties, MqConfigProperties mqConfigProperties) {
         super(clusterName);
         this.kafkaProperties = kafkaProperties;
         this.mqConfigProperties = mqConfigProperties; // 保存对完整配置的引用
     }
+
+    //---------------------
+    // 初始化和生命周期方法
+    //---------------------
 
     @Override
     protected void doInitialize() {
@@ -87,6 +99,177 @@ public class KafkaMqAdapter extends AbstractMqAdapter {
             createPredefinedTopics();
         }
     }
+
+    @Override
+    protected void doStart() {
+        startConsumers();
+    }
+
+    @Override
+    protected void doPause() {
+        consumerRunning = false;
+    }
+
+    @Override
+    protected void doResume() {
+        startConsumers();
+    }
+
+    @Override
+    protected void doShutdown() {
+        consumerRunning = false;
+        // 关闭消费者
+        for (KafkaConsumer<String, Object> consumer : consumers.values()) {
+            try {
+                consumer.close();
+            } catch (Exception e) {
+                log.warn("关闭Kafka消费者时发生错误", e);
+            }
+        }
+        consumers.clear();
+        listeners.clear();
+
+        // 关闭生产者
+        if (producer != null) {
+            try {
+                producer.close();
+            } catch (Exception e) {
+                log.warn("关闭Kafka生产者时发生错误", e);
+            }
+        }
+
+        // 关闭线程池
+        if (executorService != null) {
+            executorService.shutdown();
+            try {
+                if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executorService.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+        // 关闭AdminClient
+        if (adminClient != null) {
+            try {
+                adminClient.close();
+            } catch (Exception e) {
+                log.warn("关闭Kafka管理客户端时发生错误", e);
+            }
+        }
+    }
+
+    //---------------------
+    // 生产者方法
+    //---------------------
+
+    @Override
+    public MqResult<String> send(MqMessage message) {
+        checkInitialized();
+        try {
+            // 检查并创建主题
+            ensureTopicExists(message.getTopic());
+            ProducerRecord<String, Object> record = createProducerRecord(message);
+            RecordMetadata metadata = producer.send(record).get();
+            return MqResult.success(metadata.topic() + "-" + metadata.partition() + "-" + metadata.offset());
+        } catch (Exception e) {
+            log.error("发送Kafka消息失败: {}", message, e);
+            return MqResult.failure("KAFKA-001", "发送Kafka消息失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public CompletableFuture<MqResult<String>> sendAsync(MqMessage message) {
+        checkInitialized();
+        CompletableFuture<MqResult<String>> future = new CompletableFuture<>();
+        try {
+            ProducerRecord<String, Object> record = createProducerRecord(message);
+            producer.send(record, (metadata, exception) -> {
+                if (exception != null) {
+                    future.complete(MqResult.failure("KAFKA-002", "异步发送Kafka消息失败: " + exception.getMessage()));
+                } else {
+                    future.complete(MqResult.success(metadata.topic() + "-" + metadata.partition() + "-" + metadata.offset()));
+                }
+            });
+        } catch (Exception e) {
+            log.error("异步发送Kafka消息失败: {}", message, e);
+            future.complete(MqResult.failure("KAFKA-003", "异步发送Kafka消息失败: " + e.getMessage()));
+        }
+        return future;
+    }
+
+    @Override
+    public MqResult<String> sendDelay(MqMessage message, long delayTime) {
+        // Kafka原生不支持延迟消息，可以通过时间戳实现
+        message.addHeader("__DELAY_TIME__", System.currentTimeMillis() + delayTime);
+        return send(message);
+    }
+
+    @Override
+    public MqResult<String> sendTransactional(MqMessage message, Object arg) {
+        // 基础版本暂不实现事务消息
+        log.warn("Kafka适配器尚未实现事务消息功能");
+        return send(message);
+    }
+
+    //---------------------
+    // 消费者方法
+    //---------------------
+
+    @Override
+    public void subscribe(String topic, String tags, Function<MqMessage, MqResult<?>> messageListener) {
+        checkInitialized();
+        String consumerKey = topic + "#" + (StringUtils.hasText(tags) ? tags : "*");
+
+        // 创建消费者
+        if (!consumers.containsKey(consumerKey)) {
+            Properties consumerProps = new Properties();
+            consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
+            consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaProperties.getConsumerGroup());
+            consumerProps.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId + "-consumer-" + topic);
+            consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+            consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+            consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+            consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+
+            // 合并用户自定义配置
+            if (kafkaProperties.getConsumerProps() != null) {
+                consumerProps.putAll(kafkaProperties.getConsumerProps());
+            }
+
+            KafkaConsumer<String, Object> consumer = new KafkaConsumer<>(consumerProps);
+            consumer.subscribe(Collections.singletonList(topic));
+            consumers.put(consumerKey, consumer);
+        }
+
+        // 注册监听器
+        listeners.put(consumerKey, messageListener);
+
+        // 如果消费者正在运行，则不需要再次启动
+        if (!consumerRunning && running) {
+            startConsumers();
+        }
+
+        log.info("已订阅Kafka主题: {}, 标签: {}", topic, tags);
+    }
+
+    @Override
+    public void unsubscribe(String topic) {
+        consumers.entrySet().removeIf(entry -> {
+            if (entry.getKey().startsWith(topic + "#")) {
+                entry.getValue().close();
+                listeners.remove(entry.getKey());
+                log.info("已取消订阅Kafka主题: {}", topic);
+                return true;
+            }
+            return false;
+        });
+    }
+
+    //---------------------
+    // 主题管理方法
+    //---------------------
 
     /**
      * 创建预定义主题
@@ -158,164 +341,43 @@ public class KafkaMqAdapter extends AbstractMqAdapter {
         }
     }
 
-    @Override
-    public MqResult<String> send(MqMessage message) {
-        checkInitialized();
+    /**
+     * 只创建主题，不发送消息
+     * 用于从注解自动创建主题
+     */
+    public void createTopic(String topic) {
+        if (!kafkaProperties.isAutoCreateTopics() || adminClient == null) {
+            log.info("跳过主题创建：{} (未启用自动创建或adminClient为null)", topic);
+            return;
+        }
+
         try {
-            // 检查并创建主题
-            ensureTopicExists(message.getTopic());
-            ProducerRecord<String, Object> record = createProducerRecord(message);
-            RecordMetadata metadata = producer.send(record).get();
-            return MqResult.success(metadata.topic() + "-" + metadata.partition() + "-" + metadata.offset());
+            // 检查主题是否存在
+            Set<String> existingTopics = adminClient.listTopics().names().get(5, TimeUnit.SECONDS);
+
+            if (!existingTopics.contains(topic)) {
+                // 创建新主题
+                NewTopic newTopic = new NewTopic(
+                    topic,
+                    kafkaProperties.getDefaultPartitions(),
+                    (short) kafkaProperties.getDefaultReplicas()
+                );
+
+                adminClient.createTopics(Collections.singleton(newTopic))
+                    .all().get(10, TimeUnit.SECONDS);
+
+                log.info("成功创建Kafka主题: {}", topic);
+            } else {
+                log.info("Kafka主题已存在: {}", topic);
+            }
         } catch (Exception e) {
-            log.error("发送Kafka消息失败: {}", message, e);
-            return MqResult.failure("KAFKA-001", "发送Kafka消息失败: " + e.getMessage());
+            log.warn("创建Kafka主题失败: {}", topic, e);
         }
     }
 
-    @Override
-    public CompletableFuture<MqResult<String>> sendAsync(MqMessage message) {
-        checkInitialized();
-        CompletableFuture<MqResult<String>> future = new CompletableFuture<>();
-        try {
-            ProducerRecord<String, Object> record = createProducerRecord(message);
-            producer.send(record, (metadata, exception) -> {
-                if (exception != null) {
-                    future.complete(MqResult.failure("KAFKA-002", "异步发送Kafka消息失败: " + exception.getMessage()));
-                } else {
-                    future.complete(MqResult.success(metadata.topic() + "-" + metadata.partition() + "-" + metadata.offset()));
-                }
-            });
-        } catch (Exception e) {
-            log.error("异步发送Kafka消息失败: {}", message, e);
-            future.complete(MqResult.failure("KAFKA-003", "异步发送Kafka消息失败: " + e.getMessage()));
-        }
-        return future;
-    }
-
-    @Override
-    public MqResult<String> sendDelay(MqMessage message, long delayTime) {
-        // Kafka原生不支持延迟消息，可以通过时间戳实现
-        message.addHeader("__DELAY_TIME__", System.currentTimeMillis() + delayTime);
-        return send(message);
-    }
-
-    @Override
-    public MqResult<String> sendTransactional(MqMessage message, Object arg) {
-        // 基础版本暂不实现事务消息
-        log.warn("Kafka适配器尚未实现事务消息功能");
-        return send(message);
-    }
-
-    @Override
-    public void subscribe(String topic, String tags, Function<MqMessage, MqResult<?>> messageListener) {
-        checkInitialized();
-        String consumerKey = topic + "#" + (StringUtils.hasText(tags) ? tags : "*");
-
-        // 创建消费者
-        if (!consumers.containsKey(consumerKey)) {
-            Properties consumerProps = new Properties();
-            consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
-            consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaProperties.getConsumerGroup());
-            consumerProps.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId + "-consumer-" + topic);
-            consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-            consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-            consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-            consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-
-            // 合并用户自定义配置
-            if (kafkaProperties.getConsumerProps() != null) {
-                consumerProps.putAll(kafkaProperties.getConsumerProps());
-            }
-
-            KafkaConsumer<String, Object> consumer = new KafkaConsumer<>(consumerProps);
-            consumer.subscribe(Collections.singletonList(topic));
-            consumers.put(consumerKey, consumer);
-        }
-
-        // 注册监听器
-        listeners.put(consumerKey, messageListener);
-
-        // 如果消费者正在运行，则不需要再次启动
-        if (!consumerRunning && running) {
-            startConsumers();
-        }
-
-        log.info("已订阅Kafka主题: {}, 标签: {}", topic, tags);
-    }
-
-    @Override
-    public void unsubscribe(String topic) {
-        consumers.entrySet().removeIf(entry -> {
-            if (entry.getKey().startsWith(topic + "#")) {
-                entry.getValue().close();
-                listeners.remove(entry.getKey());
-                log.info("已取消订阅Kafka主题: {}", topic);
-                return true;
-            }
-            return false;
-        });
-    }
-
-    @Override
-    protected void doStart() {
-        startConsumers();
-    }
-
-    @Override
-    protected void doPause() {
-        consumerRunning = false;
-    }
-
-    @Override
-    protected void doResume() {
-        startConsumers();
-    }
-
-    @Override
-    protected void doShutdown() {
-        consumerRunning = false;
-        // 关闭消费者
-        for (KafkaConsumer<String, Object> consumer : consumers.values()) {
-            try {
-                consumer.close();
-            } catch (Exception e) {
-                log.warn("关闭Kafka消费者时发生错误", e);
-            }
-        }
-        consumers.clear();
-        listeners.clear();
-
-        // 关闭生产者
-        if (producer != null) {
-            try {
-                producer.close();
-            } catch (Exception e) {
-                log.warn("关闭Kafka生产者时发生错误", e);
-            }
-        }
-
-        // 关闭线程池
-        if (executorService != null) {
-            executorService.shutdown();
-            try {
-                if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-                    executorService.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                executorService.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
-        // 关闭AdminClient
-        if (adminClient != null) {
-            try {
-                adminClient.close();
-            } catch (Exception e) {
-                log.warn("关闭Kafka管理客户端时发生错误", e);
-            }
-        }
-    }
+    //---------------------
+    // 辅助方法
+    //---------------------
 
     /**
      * 启动消费者线程

@@ -5,7 +5,6 @@ import com.sinosoft.common.mq.core.MqConsumer;
 import com.sinosoft.common.mq.core.MqProducer;
 import com.sinosoft.common.mq.core.MqType;
 import com.sinosoft.common.mq.factory.MqFactory;
-import com.sinosoft.common.mq.util.MqTraceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -123,22 +122,13 @@ public class MqAutoConfiguration {
     }
 
     /**
-     * 配置MQ追踪工具
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public MqTraceUtil mqTraceUtil() {
-        return new MqTraceUtil();
-    }
-
-    /**
      * 配置MQ监听器注解处理器
      */
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "mq", name = {"enabled", "consumerEnabled"}, havingValue = "true", matchIfMissing = true)
     public MqListenerAnnotationBeanPostProcessor mqListenerAnnotationBeanPostProcessor(
-        MqFactory mqFactory, MqTraceUtil mqTraceUtil) {
-        return new MqListenerAnnotationBeanPostProcessor(mqFactory, mqTraceUtil);
+        MqFactory mqFactory, MqConfigProperties mqConfigProperties) {
+        return new MqListenerAnnotationBeanPostProcessor(mqFactory, mqConfigProperties);
     }
-
 }
