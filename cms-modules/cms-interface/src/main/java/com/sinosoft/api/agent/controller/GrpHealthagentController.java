@@ -40,7 +40,6 @@ public class GrpHealthagentController extends BaseController {
         }
         return GlobalResponse.ok(lahealthinsauthinfoService.queryHealthToAgentList(queryBo.getManageCom()));
     }
-
     /**
      * 查询中介机构中介人员信息
      */
@@ -63,7 +62,6 @@ public class GrpHealthagentController extends BaseController {
         vo1.setName("b");
         vo1.setSaleCode("c");
         vo1.setSaleName("d");
-
         saleInfoVos.add(vo1);
         return GlobalResponse.ok(saleInfoVos);
     }

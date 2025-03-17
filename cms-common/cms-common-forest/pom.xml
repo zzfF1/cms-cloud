@@ -12,7 +12,7 @@
     <artifactId>cms-common-forest</artifactId>
 
     <description>
-        cms-common-forest forest框架的http服务
+        forest框架的http服务
     </description>
 
     <dependencies>

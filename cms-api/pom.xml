@@ -13,6 +13,7 @@
         <module>cms-api-system</module>
         <module>cms-api-resource</module>
         <module>cms-api-workflow</module>
+        <module>cms-api-interface</module>
     </modules>
 
     <artifactId>cms-api</artifactId>

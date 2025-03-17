@@ -49,6 +49,8 @@
         <module>cms-common-base-core</module>
         <module>cms-common-forest</module>
         <module>cms-common-notice</module>
+        <module>cms-common-sync</module>
+        <module>cms-common-mq</module>
     </modules>
 
     <artifactId>cms-common</artifactId>

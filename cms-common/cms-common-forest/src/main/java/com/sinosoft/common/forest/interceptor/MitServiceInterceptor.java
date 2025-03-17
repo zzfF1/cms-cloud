@@ -4,6 +4,7 @@ import com.dtflys.forest.http.ForestRequest;
 import com.dtflys.forest.http.ForestResponse;
 import com.dtflys.forest.interceptor.Interceptor;
 import com.dtflys.forest.utils.ForestDataType;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -53,25 +54,20 @@ public class MitServiceInterceptor<T> implements Interceptor<T> {
         String responseBody = response.getContent();
         log.debug("原始响应内容: {}", responseBody);
         try {
-            // 解析XML响应
+            //解析XML响应
             JsonNode rootNode = xmlMapper.readTree(responseBody);
-            // 按照SOAP响应的结构导航到ns:return节点
-            JsonNode bodyNode = rootNode.path("Body");
-            JsonNode responseNode = bodyNode.path("queryBankSaleCodeResponse");
-            JsonNode returnNode = responseNode.path("return");
-            if (returnNode.isMissingNode()) {
-                log.warn("未能从响应中找到return节点");
+            JsonNode bodyNode = rootNode.at("/Body/DoServiceResponse/DoServiceReturn");
+            if (bodyNode.isMissingNode()) {
+                log.warn("未能从响应中找到Package节点");
                 return;
             }
-            // 获取ns:return的文本内容
-            String xmlContent = returnNode.asText();
+            // 获取文本内容
+            String xmlContent = bodyNode.asText();
             log.debug("提取的XML内容: {}", xmlContent);
-
             // 确保XML内容完整并解码
             if (!xmlContent.trim().startsWith("<?xml")) {
-                xmlContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + xmlContent;
+                xmlContent = "<?xml version=\"1.0\" encoding=\"GBK\"?>\n" + xmlContent;
             }
-            xmlContent = StringEscapeUtils.unescapeXml(xmlContent);
             // 验证内容是否为有效XML
             if (StringUtils.isBlank(xmlContent)) {
                 log.warn("XML内容为空，无法转换为对象");
@@ -84,4 +80,51 @@ public class MitServiceInterceptor<T> implements Interceptor<T> {
         }
     }
 
+    public static void main(String[] args) {
+        String responseBody = "<?xml version=\"1.0\" encoding=\"utf-8\"?><soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><soapenv:Body><DoServiceResponse xmlns=\"http://ec.lis.sinosoft.com\"><DoServiceReturn>&lt;?xml version=&quot;1.0&quot; encoding=&quot;GBK&quot;?&gt;&lt;Package&gt;\n" +
+            "        &lt;ClientInfo&gt;\n" +
+            "                &lt;DealType&gt;&#x57F9;&#x8BAD;&#x4FE1;&#x606F;&#x63A5;&#x53E3;&lt;/DealType&gt;\n" +
+            "                &lt;BusinessCode&gt;1110150&lt;/BusinessCode&gt;\n" +
+            "                &lt;SubTransCode&gt;\n" +
+            "        &lt;/SubTransCode&gt;\n" +
+            "                &lt;Date&gt;\n" +
+            "        &lt;/Date&gt;\n" +
+            "                &lt;Time&gt;00:00:00&lt;/Time&gt;\n" +
+            "                &lt;SeqNo&gt;00000&lt;/SeqNo&gt;\n" +
+            "                &lt;Operator&gt;001&lt;/Operator&gt;\n" +
+            "                &lt;RowNumStart&gt;\n" +
+            "        &lt;/RowNumStart&gt;\n" +
+            "                &lt;PageRowNum&gt;\n" +
+            "        &lt;/PageRowNum&gt;\n" +
+            "                &lt;ResultCode&gt;200&lt;/ResultCode&gt;\n" +
+            "        &lt;/ClientInfo&gt;\n" +
+            "        &lt;Response&gt;\n" +
+            "                &lt;trainiseligible&gt;&#x5408;&#x683C;&lt;/trainiseligible&gt;\n" +
+            "                &lt;baseGrade&gt;80&lt;/baseGrade&gt;\n" +
+            "                &lt;trainEndGrade&gt;80&lt;/trainEndGrade&gt;\n" +
+            "                &lt;newProductGrade&gt;80&lt;/newProductGrade&gt;\n" +
+            "                &lt;eligibleGrade&gt;80&lt;/eligibleGrade&gt;\n" +
+            "        &lt;/Response&gt;\n" +
+            "&lt;/Package&gt;\n" +
+            "</DoServiceReturn></DoServiceResponse></soapenv:Body></soapenv:Envelope>";
+
+        try {
+            // 第一步：解析 SOAP XML
+            XmlMapper xmlMapper = new XmlMapper();
+            JsonNode rootNode = xmlMapper.readTree(responseBody);
+
+            // 获取 DoServiceReturn 里的内容（注意：此内容是 XML 的字符串）
+            JsonNode bodyNode = rootNode.at("/Body/DoServiceResponse/DoServiceReturn");
+            String escapedXmlContent = bodyNode.asText();
+            System.out.println("escapedXmlContent = " + escapedXmlContent);
+            // 第二步：解析 DoServiceReturn 里的 XML
+            JsonNode innerXmlNode = xmlMapper.readTree(escapedXmlContent);
+
+            // 打印解析后的 XML 结构
+            System.out.println("Parsed XML Content:");
+            System.out.println(innerXmlNode.toPrettyString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

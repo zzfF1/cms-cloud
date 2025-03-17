@@ -2,6 +2,7 @@ package com.sinosoft.api.interceptor;
 
 import cn.hutool.json.JSONUtil;
 import com.dtflys.forest.exceptions.ForestRuntimeException;
+import com.dtflys.forest.http.ForestHeaderMap;
 import com.dtflys.forest.http.ForestRequest;
 import com.dtflys.forest.http.ForestResponse;
 import com.dtflys.forest.interceptor.Interceptor;
@@ -19,7 +20,9 @@ import com.sinosoft.common.json.utils.JsonUtils;
 import com.sinosoft.common.redis.utils.RedisUtils;
 import com.sinosoft.system.api.domain.vo.RemoteClientVo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -65,7 +68,18 @@ public class YdSecurityInterceptor<T> implements Interceptor<T> {
             YdForestUtils.setRequestBody(request);      // 设置请求体
             YdForestUtils.handleEncryption(request, clientVo);  // 处理加密
             YdForestUtils.generateSignatures(request, clientVo); // 生成签名
-
+            {
+                //TODO 请求输出
+                ForestHeaderMap headers = request.getHeaders();
+                StringBuilder headersLog = new StringBuilder("Request Headers: {");
+                headers.forEach((name, values) -> {
+                    headersLog.append("\n  ").append(name).append(": ").append(String.join(", ", values));
+                });
+                headersLog.append("\n}");
+                headersLog.append("\nRequest URI: ").append(request.getURI());
+                headersLog.append("\nbody: ").append(request.body().encodeToString(ForestDataType.JSON));
+                log.info(headersLog.toString());
+            }
             return true; // 继续执行请求
         } catch (Exception e) {
             // 记录异常并转换为ForestException

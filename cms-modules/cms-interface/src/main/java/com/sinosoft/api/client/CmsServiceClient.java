@@ -13,7 +13,7 @@ import com.dtflys.forest.http.ForestResponse;
  */
 public interface CmsServiceClient {
 
-    @Post(url = "http://localhost:7001/cms/services/CmsService.CmsServiceHttpSoap11Endpoint/")
+    @Post(url = "http://localhost:7002/cms/services/CmsService.CmsServiceHttpSoap11Endpoint/")
     @Headers({
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: urn:queryBankSaleCode"

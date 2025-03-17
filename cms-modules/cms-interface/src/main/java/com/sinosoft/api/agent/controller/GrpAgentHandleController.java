@@ -1,23 +1,19 @@
 package com.sinosoft.api.agent.controller;
 
-
-import cn.hutool.json.JSONUtil;
-import com.dtflys.forest.http.ForestResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
-import com.sinosoft.api.agent.domain.CmsResult;
 import com.sinosoft.api.agent.domain.TestDemo;
-import com.sinosoft.api.agent.domain.TrainingInfoRequest;
-import com.sinosoft.api.agent.domain.TrainingInfoResponse;
+import com.sinosoft.api.agent.domain.bo.CheckContractChangeBo;
+import com.sinosoft.api.agent.domain.bo.CheckOrphanSingleBo;
+import com.sinosoft.api.agent.domain.vo.SaleInfoVo;
 import com.sinosoft.api.client.JkphClient;
 import com.sinosoft.api.client.TestClient;
 import com.sinosoft.common.core.domain.GlobalResponse;
-import com.sinosoft.api.client.MitServiceClient;
+import com.sinosoft.common.mq.core.MqMessage;
+import com.sinosoft.common.mq.core.MqProducer;
+import com.sinosoft.common.mq.core.MqResult;
+import com.sinosoft.common.mq.core.MqType;
+import com.sinosoft.common.mq.factory.MqFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringEscapeUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Date;
 
 /**
  * 测试接口
@@ -44,7 +41,7 @@ public class GrpAgentHandleController {
 
     private final TestClient testClient;
     private final JkphClient jkphClient;
-    private final MitServiceClient mitServiceClient;
+    private final MqFactory mqFactory;
 
     @PostMapping("/list")
     public GlobalResponse<Map> test(@RequestBody Map<String, Object> requestData) {
@@ -68,49 +65,103 @@ public class GrpAgentHandleController {
 //        String msg = testClient.testList("admin", "e5cd7e4891bf95d1d19206ce24a7b32e");
 //        String msg = testClient.testManagecom("86");
 //        String msg = testClient.testSaleManagecom("86");
-//
+
 //        List<CheckContractChangeBo> queryBo = new ArrayList<>();
 //        CheckContractChangeBo checkContractChangeBo = new CheckContractChangeBo();
 //        checkContractChangeBo.setContNo("1");
 //        checkContractChangeBo.setCode("2");
 //
 //        queryBo.add(checkContractChangeBo);
-//        GlobalResponse<List<SaleInfoVo>> response = jkphClient.checkContractChange(queryBo);
-//        System.out.println(response.toString());
+        //GlobalResponse<List<SaleInfoVo>> response = jkphClient.checkContractChange(queryBo);
+        //System.out.println("信息："+response.toString());
+//        System.out.println("msg = " + msg);
 
-        try {
+        kafkaTest();
+        rabbitTest();
+        return "123456";
+    }
 
-            XmlMapper xmlMapper = new XmlMapper();
+    public void kafkaTest() {
+        // 获取Kafka生产者
+        MqProducer producer = mqFactory.getProducer(MqType.KAFKA, "local");
 
-            TrainingInfoRequest request = new TrainingInfoRequest();
-            // 设置ClientInfo
-            TrainingInfoRequest.ClientInfo clientInfo = new TrainingInfoRequest.ClientInfo();
-            clientInfo.setDealType("培训信息接口");
-            clientInfo.setBusinessCode("1110150");
-            clientInfo.setDate("2025-03-05");
-            clientInfo.setTime("00:00:00");
-            clientInfo.setSeqNo("00000");
-            clientInfo.setOperator("001");
-            request.setClientInfo(clientInfo);
+        // 发送测试消息
+        log.info("开始发送Kafka测试消息...");
 
-            TrainingInfoRequest.Request reqData = new TrainingInfoRequest.Request();
-            reqData.setName("*晓娟");
-            reqData.setIdnoType("0");
-            reqData.setIdno("140603199103072124");
-            reqData.setManageCom("861400");
-            request.setRequest(reqData);
+        for (int i = 1; i <= 5; i++) {
+            // 创建消息
+            String messageContent = "测试消息 #" + i + ", 时间: " + new Date();
+            MqMessage message = new MqMessage("test-topic", messageContent);
 
-            String cXml = xmlMapper.writeValueAsString(request);
-            cXml = "<?xml version=\"1.0\" encoding=\"GBK\"?>" + cXml;
-            String response = mitServiceClient.doService(cXml);
+            // 发送消息
+            MqResult<String> result = producer.send(message);
+            if (result.isSuccess()) {
+                log.info("消息发送成功: {}, messageId: {}", messageContent, result.getData());
+            } else {
+                log.error("消息发送失败: {}, 错误: {}", messageContent, result.getMessage());
+            }
+            // 等待1秒
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        log.info("Kafka测试消息发送完成");
+    }
 
-            TrainingInfoResponse response1 = xmlMapper.readValue(response, TrainingInfoResponse.class);
-            System.out.println("response.getContent() = " + JSONUtil.toJsonStr(response1));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+    public void rabbitTest() {
+        // 获取RabbitMQ生产者
+        MqProducer producer = mqFactory.getProducer(MqType.RABBIT_MQ, "local");
+
+        // 发送测试消息
+        log.info("开始发送RabbitMQ测试消息...");
+
+        for (int i = 1; i <= 5; i++) {
+            // 创建消息
+            String messageContent = "RabbitMQ测试消息 #" + i + ", 时间: " + new Date();
+            MqMessage message = new MqMessage("test-rabbit-topic", "test", messageContent);
+
+            // 发送消息
+            MqResult<String> result = producer.send(message);
+            if (result.isSuccess()) {
+                log.info("RabbitMQ消息发送成功: {}, messageId: {}", messageContent, result.getData());
+            } else {
+                log.error("RabbitMQ消息发送失败: {}, 错误: {}", messageContent, result.getMessage());
+            }
+
+            // 等待1秒
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
-//        System.out.println("msg = " + msg);
-        return "123456";
+        log.info("RabbitMQ测试消息发送完成");
+    }
+
+
+    @PostMapping("/logina")
+    public String testLogin1() {
+//        String msg = testClient.testLogin("000000", "admin", "admin123", "e5cd7e4891bf95d1d19206ce24a7b32e", "password");
+//        String msg = testClient.testList("admin", "e5cd7e4891bf95d1d19206ce24a7b32e");
+//        String msg = testClient.testManagecom("86");
+//        String msg = testClient.testSaleManagecom("86");
+
+        List<CheckOrphanSingleBo> queryBo = new ArrayList<>();
+        CheckOrphanSingleBo checkContractChangeBo = new CheckOrphanSingleBo();
+        checkContractChangeBo.setConNo("1");
+        checkContractChangeBo.setName("2");
+        checkContractChangeBo.setCode("2");
+        checkContractChangeBo.setChangeName("2");
+        checkContractChangeBo.setChangeCode("2");
+        checkContractChangeBo.setChangeDate("2");
+
+        queryBo.add(checkContractChangeBo);
+        GlobalResponse<List<SaleInfoVo>> response = jkphClient.checkContractChange1(queryBo);
+        System.out.println(response.toString());
+        System.out.println("msg孤儿单 = " + response.toString());
+        return "34444";
     }
 }

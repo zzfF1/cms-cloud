@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.sinosoft</groupId>
+        <artifactId>cms-common</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>cms-common-mq</artifactId>
+
+    <description>
+        Mq
+    </description>
+
+    <dependencies>
+
+        <!-- Cms Common Core-->
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-nacos</artifactId>
+        </dependency>
+
+        <!--Kafka-->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <!--rabbitmq-->
+        <dependency>
+            <groupId>org.springframework.amqp</groupId>
+            <artifactId>spring-rabbit</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sinosoft</groupId>
+            <artifactId>cms-common-web</artifactId>
+        </dependency>
+
+    </dependencies>
+
+</project>

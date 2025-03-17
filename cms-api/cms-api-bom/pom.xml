@@ -41,6 +41,13 @@
                 <version>${revision}</version>
             </dependency>
 
+            <!-- interface接口 -->
+            <dependency>
+                <groupId>com.sinosoft</groupId>
+                <artifactId>cms-api-interface</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 </project>
