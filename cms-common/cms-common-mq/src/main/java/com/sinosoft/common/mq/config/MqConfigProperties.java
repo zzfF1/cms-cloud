@@ -179,8 +179,8 @@ public class MqConfigProperties {
         private String defaultCluster;
         private String host = "localhost";
         private int port = 5672;
-        private String username = "ruoyi";
-        private String password = "ruoyi";
+        private String username = "";
+        private String password = "";
         private String virtualHost = "/";
         private String exchangeType = "topic";
         private int prefetchCount = 10;
@@ -218,6 +218,57 @@ public class MqConfigProperties {
             }
 
             throw new IllegalArgumentException("未找到RabbitMQ集群: " + clusterName);
+        }
+
+        public String getUsername() {
+            if (clusters != null && !clusters.isEmpty()) {
+                if (defaultCluster != null) {
+                    for (RabbitCluster cluster : clusters) {
+                        if (defaultCluster.equals(cluster.getName()) && cluster.getUsername() != null) {
+                            return cluster.getUsername();
+                        }
+                    }
+                }
+                // 尝试使用第一个集群的用户名
+                if (clusters.get(0).getUsername() != null) {
+                    return clusters.get(0).getUsername();
+                }
+            }
+            return username;
+        }
+
+        public String getPassword() {
+            if (clusters != null && !clusters.isEmpty()) {
+                if (defaultCluster != null) {
+                    for (RabbitCluster cluster : clusters) {
+                        if (defaultCluster.equals(cluster.getName()) && cluster.getPassword() != null) {
+                            return cluster.getPassword();
+                        }
+                    }
+                }
+                // 尝试使用第一个集群的密码
+                if (clusters.get(0).getPassword() != null) {
+                    return clusters.get(0).getPassword();
+                }
+            }
+            return password;
+        }
+
+        public String getVirtualHost() {
+            if (clusters != null && !clusters.isEmpty()) {
+                if (defaultCluster != null) {
+                    for (RabbitCluster cluster : clusters) {
+                        if (defaultCluster.equals(cluster.getName()) && cluster.getVirtualHost() != null) {
+                            return cluster.getVirtualHost();
+                        }
+                    }
+                }
+                // 尝试使用第一个集群的virtualHost
+                if (clusters.get(0).getVirtualHost() != null) {
+                    return clusters.get(0).getVirtualHost();
+                }
+            }
+            return virtualHost;
         }
     }
 
