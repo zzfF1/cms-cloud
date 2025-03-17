@@ -50,7 +50,6 @@ public class MqFactory implements InitializingBean, DisposableBean {
      * 标记MQ服务是否可用
      */
     private volatile boolean mqServiceAvailable = false;
-    private volatile boolean initializing = false;
 
     //--------------------
     // 构造函数
@@ -101,12 +100,6 @@ public class MqFactory implements InitializingBean, DisposableBean {
         return getProducer(MqCluster.defaultKafka());
     }
 
-    /**
-     * 获取Kafka主集群生产者
-     */
-    public MqProducer getKafkaMainProducer() {
-        return getProducer(MqCluster.getKafkaMain());
-    }
 
     /**
      * 获取指定名称的Kafka集群生产者
@@ -122,12 +115,6 @@ public class MqFactory implements InitializingBean, DisposableBean {
         return getProducer(MqCluster.defaultRabbit());
     }
 
-    /**
-     * 获取RabbitMQ主集群生产者
-     */
-    public MqProducer getRabbitMainProducer() {
-        return getProducer(MqCluster.getRabbitMain());
-    }
 
     /**
      * 获取指定名称的RabbitMQ集群生产者
@@ -143,12 +130,6 @@ public class MqFactory implements InitializingBean, DisposableBean {
         return getProducer(MqCluster.defaultRocket());
     }
 
-    /**
-     * 获取RocketMQ主集群生产者
-     */
-    public MqProducer getRocketMainProducer() {
-        return getProducer(MqCluster.getRocketMain());
-    }
 
     /**
      * 获取指定名称的RocketMQ集群生产者
@@ -217,12 +198,6 @@ public class MqFactory implements InitializingBean, DisposableBean {
         return getConsumer(MqCluster.defaultKafka());
     }
 
-    /**
-     * 获取Kafka主集群消费者
-     */
-    public MqConsumer getKafkaMainConsumer() {
-        return getConsumer(MqCluster.getKafkaMain());
-    }
 
     /**
      * 获取指定名称的Kafka集群消费者
@@ -238,12 +213,6 @@ public class MqFactory implements InitializingBean, DisposableBean {
         return getConsumer(MqCluster.defaultRabbit());
     }
 
-    /**
-     * 获取RabbitMQ主集群消费者
-     */
-    public MqConsumer getRabbitMainConsumer() {
-        return getConsumer(MqCluster.getRabbitMain());
-    }
 
     /**
      * 获取指定名称的RabbitMQ集群消费者
@@ -259,12 +228,6 @@ public class MqFactory implements InitializingBean, DisposableBean {
         return getConsumer(MqCluster.defaultRocket());
     }
 
-    /**
-     * 获取RocketMQ主集群消费者
-     */
-    public MqConsumer getRocketMainConsumer() {
-        return getConsumer(MqCluster.getRocketMain());
-    }
 
     /**
      * 获取指定名称的RocketMQ集群消费者
@@ -504,19 +467,24 @@ public class MqFactory implements InitializingBean, DisposableBean {
      * 检查MQ服务可用性，如果需要则初始化
      */
     private void checkMqServiceAndInit() {
-        if (!mqServiceAvailable && !initializing) {
+        // 简化的双重检查逻辑，移除initializing标志
+        if (!mqServiceAvailable) {
             synchronized (this) {
-                if (!mqServiceAvailable && !initializing) {
-                    initializing = true;
+                if (!mqServiceAvailable) {
                     try {
-                        tryInitDefaultInstances();
-                    } finally {
-                        initializing = false;
+                        // 尝试初始化默认实例
+                        initDefaultInstances();
+                        mqServiceAvailable = true;
+                    } catch (Exception e) {
+                        log.warn("MQ服务初始化失败: {}", e.getMessage());
+                        log.debug("MQ初始化异常详情", e);
+                        mqServiceAvailable = false;
                     }
                 }
             }
         }
 
+        // 如果服务不可用且未启用降级，则抛出异常
         if (!mqServiceAvailable && !configProperties.isFallbackEnabled()) {
             throw new MqException("MQ-SERVICE-UNAVAILABLE", "MQ服务当前不可用");
         }

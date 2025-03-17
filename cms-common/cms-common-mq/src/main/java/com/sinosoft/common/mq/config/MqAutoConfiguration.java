@@ -82,17 +82,6 @@ public class MqAutoConfiguration {
         return mqFactory.getKafkaProducer();
     }
 
-    /**
-     * 配置Kafka主集群生产者
-     */
-    @Bean(name = "kafkaMainMqProducer")
-    @ConditionalOnProperty(prefix = "mq.kafka", name = "enabled", havingValue = "true")
-    @ConditionalOnMissingBean(name = "kafkaMainMqProducer")
-    @RefreshScope
-    public MqProducer kafkaMainMqProducer(MqFactory mqFactory) {
-        log.info("创建Kafka主集群生产者");
-        return mqFactory.getKafkaMainProducer();
-    }
 
     /**
      * 配置RabbitMQ生产者
@@ -106,17 +95,6 @@ public class MqAutoConfiguration {
         return mqFactory.getRabbitProducer();
     }
 
-    /**
-     * 配置RabbitMQ主集群生产者
-     */
-    @Bean(name = "rabbitMainMqProducer")
-    @ConditionalOnProperty(prefix = "mq.rabbit", name = "enabled", havingValue = "true")
-    @ConditionalOnMissingBean(name = "rabbitMainMqProducer")
-    @RefreshScope
-    public MqProducer rabbitMainMqProducer(MqFactory mqFactory) {
-        log.info("创建RabbitMQ主集群生产者");
-        return mqFactory.getRabbitMainProducer();
-    }
 
     /**
      * 配置RocketMQ生产者

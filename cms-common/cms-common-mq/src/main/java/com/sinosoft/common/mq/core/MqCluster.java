@@ -13,19 +13,16 @@ public enum MqCluster {
     // Kafka集群
     //==========================
     KAFKA_DEFAULT("kafka", "default", "Kafka默认集群"),
-    KAFKA_MAIN("kafka", "main", "Kafka主集群"),
 
     //==========================
     // RabbitMQ集群
     //==========================
     RABBIT_DEFAULT("rabbit", "default", "RabbitMQ默认集群"),
-    RABBIT_MAIN("rabbit", "main", "RabbitMQ主集群"),
 
     //==========================
     // RocketMQ集群
     //==========================
-    ROCKET_DEFAULT("rocket", "default", "RocketMQ默认集群"),
-    ROCKET_MAIN("rocket", "main", "RocketMQ主集群");
+    ROCKET_DEFAULT("rocket", "default", "RocketMQ默认集群");
 
     private final String mqType;
     private final String clusterName;
@@ -73,14 +70,6 @@ public enum MqCluster {
         return fromTypeAndName(mqType.getType(), clusterName);
     }
 
-    /**
-     * 获取Kafka主集群
-     *
-     * @return Kafka主集群
-     */
-    public static MqCluster getKafkaMain() {
-        return KAFKA_MAIN;
-    }
 
     /**
      * 获取Kafka默认集群
@@ -91,14 +80,6 @@ public enum MqCluster {
         return KAFKA_DEFAULT;
     }
 
-    /**
-     * 获取RabbitMQ主集群
-     *
-     * @return RabbitMQ主集群
-     */
-    public static MqCluster getRabbitMain() {
-        return RABBIT_MAIN;
-    }
 
     /**
      * 获取RabbitMQ默认集群
@@ -109,14 +90,6 @@ public enum MqCluster {
         return RABBIT_DEFAULT;
     }
 
-    /**
-     * 获取RocketMQ主集群
-     *
-     * @return RocketMQ主集群
-     */
-    public static MqCluster getRocketMain() {
-        return ROCKET_MAIN;
-    }
 
     /**
      * 获取RocketMQ默认集群
