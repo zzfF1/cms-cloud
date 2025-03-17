@@ -1,6 +1,7 @@
 package com.sinosoft.common.mq.annotation;
 
 import com.sinosoft.common.mq.config.MqConfigProperties;
+import com.sinosoft.common.mq.core.MqCluster;
 import com.sinosoft.common.mq.core.MqConsumer;
 import com.sinosoft.common.mq.core.MqMessage;
 import com.sinosoft.common.mq.core.MqResult;
@@ -81,10 +82,12 @@ public class MqListenerAnnotationBeanPostProcessor implements BeanPostProcessor,
 
         if (StringUtils.hasText(clusterInfo)) {
             String[] parts = clusterInfo.split(":");
-            mqType = parts.length > 0 ? MqType.fromString(parts[0]) : MqType.fromString(mqConfigProperties.getDefaultType());
+            // 如果指定了MQ类型，则使用指定的类型
+            mqType = parts.length > 0 ? MqType.fromString(parts[0]) : MqType.KAFKA;
             clusterName = parts.length > 1 ? parts[1] : null;
         } else {
-            mqType = MqType.fromString(mqConfigProperties.getDefaultType());
+            // 默认使用Kafka
+            mqType = MqType.KAFKA;
         }
 
         TopicDefinition topicDef = new TopicDefinition(topic, mqType, clusterName);
@@ -119,14 +122,17 @@ public class MqListenerAnnotationBeanPostProcessor implements BeanPostProcessor,
         MqConsumer consumer;
         if (StringUtils.hasText(clusterInfo)) {
             String[] parts = clusterInfo.split(":");
-            MqType mqType = parts.length > 0 ? MqType.fromString(parts[0]) : MqType.fromString(mqConfigProperties.getDefaultType());
+            MqType mqType = parts.length > 0 ? MqType.fromString(parts[0]) : MqType.KAFKA;
             String clusterName = parts.length > 1 ? parts[1] : null;
-            consumer = mqFactory.getConsumer(mqType, clusterName);
+
+            // 使用新API获取消费者
+            consumer = getConsumerByTypeAndName(mqType, clusterName);
             log.info("注册MQ监听器: bean={}, method={}, topic={}, tags={}, mqType={}, cluster={}",
                 bean.getClass().getSimpleName(), method.getName(), topic, tags, mqType, clusterName);
         } else {
-            consumer = mqFactory.getConsumer();
-            log.info("注册MQ监听器: bean={}, method={}, topic={}, tags={}, 使用默认消费者",
+            // 使用默认Kafka消费者
+            consumer = mqFactory.getKafkaConsumer();
+            log.info("注册MQ监听器: bean={}, method={}, topic={}, tags={}, 使用默认Kafka消费者",
                 bean.getClass().getSimpleName(), method.getName(), topic, tags);
         }
 
@@ -156,5 +162,30 @@ public class MqListenerAnnotationBeanPostProcessor implements BeanPostProcessor,
         // 订阅主题
         consumer.subscribe(topic, tags, handler);
         consumer.start();
+    }
+
+    /**
+     * 根据MQ类型和集群名称获取合适的消费者
+     */
+    private MqConsumer getConsumerByTypeAndName(MqType mqType, String clusterName) {
+        // 根据MQ类型和集群名称选择合适的消费者
+        switch (mqType) {
+            case KAFKA:
+                return StringUtils.hasText(clusterName) ?
+                    mqFactory.getKafkaConsumer(clusterName) :
+                    mqFactory.getKafkaConsumer();
+            case RABBIT_MQ:
+                return StringUtils.hasText(clusterName) ?
+                    mqFactory.getRabbitConsumer(clusterName) :
+                    mqFactory.getRabbitConsumer();
+            case ROCKET_MQ:
+                return StringUtils.hasText(clusterName) ?
+                    mqFactory.getRocketConsumer(clusterName) :
+                    mqFactory.getRocketConsumer();
+            default:
+                // 默认使用Kafka
+                log.warn("未知的MQ类型: {}, 使用默认Kafka消费者", mqType);
+                return mqFactory.getKafkaConsumer();
+        }
     }
 }

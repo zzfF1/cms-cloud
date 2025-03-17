@@ -28,34 +28,14 @@ public class MqConfigProperties {
     private boolean enabled = true;
 
     /**
-     * 默认MQ类型
+     * 为向后兼容保留，但功能上已不再使用
      */
     private String defaultType = MqType.KAFKA.getType();
-
-    /**
-     * 是否懒加载（首次使用时初始化）
-     */
-    private boolean lazyInit = false;
 
     /**
      * 是否启用降级机制（当MQ服务不可用时使用空实现）
      */
     private boolean fallbackEnabled = true;
-
-    /**
-     * 是否自动重连
-     */
-    private boolean autoReconnect = true;
-
-    /**
-     * 重连间隔（秒）
-     */
-    private int reconnectIntervalSeconds = 30;
-
-    /**
-     * 最大重连次数，-1表示无限重试
-     */
-    private int maxReconnectAttempts = -1;
 
     /**
      * 是否只作为生产者使用（不消费消息）
@@ -66,6 +46,11 @@ public class MqConfigProperties {
      * 是否自动注册消费者
      */
     private boolean consumerEnabled = true;
+
+    /**
+     * 主题自动创建配置
+     */
+    private AutoCreateConfig autoCreate = new AutoCreateConfig();
 
     /**
      * Kafka配置
@@ -84,27 +69,29 @@ public class MqConfigProperties {
 
     /**
      * 主题自动创建配置
-     * 简化为只保留一个启用开关，不再需要声明主题列表
      */
-    private AutoCreateConfig autoCreate = new AutoCreateConfig();
+    @Data
+    public static class AutoCreateConfig {
+        /**
+         * 是否启用从注解自动创建主题
+         */
+        private boolean enabled = true;
 
+        /**
+         * 预定义主题列表
+         */
+        private List<TopicConfig> topics = new ArrayList<>();
 
-    public void setKafka(KafkaProperties kafka) {
-        this.kafka = kafka;
-        log.info("Kafka配置被设置: default-cluster={}, clusters={}",
-            kafka.getDefaultCluster(),
-            kafka.getClusters() != null ? kafka.getClusters().stream()
-                .map(c -> c.getName() + ":" + c.getBootstrapServers())
-                .collect(Collectors.joining(",")) : "null");
     }
 
-    public void setRabbit(RabbitProperties rabbit) {
-        this.rabbit = rabbit;
-        log.info("rabbit配置被设置: default-cluster={}, clusters={}",
-            rabbit.getDefaultCluster(),
-            rabbit.getClusters() != null ? rabbit.getClusters().stream()
-                .map(c -> c.getName() + ":" + c.getAddresses())
-                .collect(Collectors.joining(",")) : "null");
+    /**
+     * 主题配置
+     */
+    @Data
+    public static class TopicConfig {
+        private String name;
+        private int partitions = 3;
+        private int replicas = 1;
     }
 
     /**
@@ -112,23 +99,20 @@ public class MqConfigProperties {
      */
     @Data
     public static class KafkaProperties {
-        // 原有属性
         private List<KafkaCluster> clusters;
-        private String defaultCluster;
-        private int consumerThreads = 10;
+        private String defaultCluster = "default";  // 默认使用default集群
         private String consumerGroup = "default-consumer-group";
-        private Properties producerProps;
-        private Properties consumerProps;
+        private int consumerThreads = 10;
         private boolean autoCreateTopics = true;
         private int defaultPartitions = 3;
         private int defaultReplicas = 1;
-
-        /**
-         * 是否在发送消息时自动创建主题
-         */
+        private Properties producerProps;
+        private Properties consumerProps;
         private boolean autoCreateTopicsOnSend = false;
 
-        // 原有方法
+        /**
+         * 获取默认集群的Bootstrap Servers
+         */
         public String getBootstrapServers() {
             if (clusters == null || clusters.isEmpty()) {
                 throw new IllegalStateException("未配置Kafka集群");
@@ -145,6 +129,9 @@ public class MqConfigProperties {
             return clusters.get(0).getBootstrapServers();
         }
 
+        /**
+         * 获取指定集群的Bootstrap Servers
+         */
         public String getBootstrapServers(String clusterName) {
             if (clusters == null || clusters.isEmpty()) {
                 throw new IllegalStateException("未配置Kafka集群");
@@ -156,7 +143,9 @@ public class MqConfigProperties {
                 }
             }
 
-            throw new IllegalArgumentException("未找到Kafka集群: " + clusterName);
+            // 如果找不到指定的集群，使用默认集群
+            log.warn("未找到Kafka集群: {}, 使用默认集群", clusterName);
+            return getBootstrapServers();
         }
     }
 
@@ -174,25 +163,21 @@ public class MqConfigProperties {
      */
     @Data
     public static class RabbitProperties {
-        // 原有属性
         private List<RabbitCluster> clusters;
-        private String defaultCluster;
-        private String host = "localhost";
-        private int port = 5672;
-        private String username = "";
-        private String password = "";
-        private String virtualHost = "/";
+        private String defaultCluster = "default";  // 默认使用default集群
         private String exchangeType = "topic";
         private int prefetchCount = 10;
-        private String msgTtl = "10000";
         private boolean autoCreateQueues = true;
         private boolean autoDeleteQueues = false;
         private boolean durableQueues = true;
+        private String msgTtl = "10000";
 
-        // 原有方法
+        /**
+         * 获取默认集群的地址
+         */
         public String getAddresses() {
             if (clusters == null || clusters.isEmpty()) {
-                return host + ":" + port;
+                throw new IllegalStateException("未配置RabbitMQ集群");
             }
 
             if (defaultCluster != null) {
@@ -206,9 +191,12 @@ public class MqConfigProperties {
             return clusters.get(0).getAddresses();
         }
 
+        /**
+         * 获取指定集群的地址
+         */
         public String getAddresses(String clusterName) {
             if (clusters == null || clusters.isEmpty()) {
-                return host + ":" + port;
+                throw new IllegalStateException("未配置RabbitMQ集群");
             }
 
             for (RabbitCluster cluster : clusters) {
@@ -217,9 +205,14 @@ public class MqConfigProperties {
                 }
             }
 
-            throw new IllegalArgumentException("未找到RabbitMQ集群: " + clusterName);
+            // 如果找不到指定的集群，使用默认集群
+            log.warn("未找到RabbitMQ集群: {}, 使用默认集群", clusterName);
+            return getAddresses();
         }
 
+        /**
+         * 获取用户名
+         */
         public String getUsername() {
             if (clusters != null && !clusters.isEmpty()) {
                 if (defaultCluster != null) {
@@ -229,14 +222,14 @@ public class MqConfigProperties {
                         }
                     }
                 }
-                // 尝试使用第一个集群的用户名
-                if (clusters.get(0).getUsername() != null) {
-                    return clusters.get(0).getUsername();
-                }
+                return clusters.get(0).getUsername();
             }
-            return username;
+            throw new IllegalStateException("未配置RabbitMQ集群");
         }
 
+        /**
+         * 获取密码
+         */
         public String getPassword() {
             if (clusters != null && !clusters.isEmpty()) {
                 if (defaultCluster != null) {
@@ -246,14 +239,14 @@ public class MqConfigProperties {
                         }
                     }
                 }
-                // 尝试使用第一个集群的密码
-                if (clusters.get(0).getPassword() != null) {
-                    return clusters.get(0).getPassword();
-                }
+                return clusters.get(0).getPassword();
             }
-            return password;
+            throw new IllegalStateException("未配置RabbitMQ集群");
         }
 
+        /**
+         * 获取虚拟主机
+         */
         public String getVirtualHost() {
             if (clusters != null && !clusters.isEmpty()) {
                 if (defaultCluster != null) {
@@ -263,12 +256,31 @@ public class MqConfigProperties {
                         }
                     }
                 }
-                // 尝试使用第一个集群的virtualHost
-                if (clusters.get(0).getVirtualHost() != null) {
-                    return clusters.get(0).getVirtualHost();
-                }
+                return clusters.get(0).getVirtualHost();
             }
-            return virtualHost;
+            throw new IllegalStateException("未配置RabbitMQ集群");
+        }
+
+        /**
+         * 获取默认主机
+         */
+        public String getHost() {
+            String addresses = getAddresses();
+            if (addresses.contains(":")) {
+                return addresses.split(":")[0];
+            }
+            return addresses;
+        }
+
+        /**
+         * 获取默认端口
+         */
+        public int getPort() {
+            String addresses = getAddresses();
+            if (addresses.contains(":")) {
+                return Integer.parseInt(addresses.split(":")[1]);
+            }
+            return 5672; // 默认端口
         }
     }
 
@@ -289,9 +301,8 @@ public class MqConfigProperties {
      */
     @Data
     public static class RocketMqProperties {
-        // 原有属性
         private List<RocketCluster> clusters;
-        private String defaultCluster;
+        private String defaultCluster = "default";  // 默认使用default集群
         private String nameServer = "localhost:9876";
         private String producerGroup = "default-producer-group";
         private String consumerGroup = "default-consumer-group";
@@ -300,7 +311,9 @@ public class MqConfigProperties {
         private int consumeThreadMin = 5;
         private int consumeThreadMax = 20;
 
-        // 原有方法
+        /**
+         * 获取默认集群的NameServer地址
+         */
         public String getNameServer() {
             if (clusters == null || clusters.isEmpty()) {
                 return nameServer;
@@ -317,6 +330,9 @@ public class MqConfigProperties {
             return clusters.get(0).getNameServer();
         }
 
+        /**
+         * 获取指定集群的NameServer地址
+         */
         public String getNameServer(String clusterName) {
             if (clusters == null || clusters.isEmpty()) {
                 return nameServer;
@@ -328,7 +344,9 @@ public class MqConfigProperties {
                 }
             }
 
-            throw new IllegalArgumentException("未找到RocketMQ集群: " + clusterName);
+            // 如果找不到指定的集群，使用默认集群
+            log.warn("未找到RocketMQ集群: {}, 使用默认集群", clusterName);
+            return getNameServer();
         }
     }
 
@@ -339,33 +357,5 @@ public class MqConfigProperties {
     public static class RocketCluster {
         private String name;
         private String nameServer;
-    }
-
-    /**
-     * 主题自动创建配置 (简化版)
-     */
-    @Data
-    public static class AutoCreateConfig {
-        /**
-         * 是否启用从注解自动创建主题
-         */
-        private boolean enabled = true;
-
-        /**
-         * 预定义主题列表，已废弃，保留向后兼容
-         * 现在使用注解扫描自动创建
-         */
-        @Deprecated
-        private List<TopicConfig> topics = new ArrayList<>();
-    }
-
-    /**
-     * 主题配置
-     */
-    @Data
-    public static class TopicConfig {
-        private String name;
-        private int partitions = 3;
-        private int replicas = 1;
     }
 }

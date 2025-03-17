@@ -4,6 +4,7 @@ import com.sinosoft.common.mq.adapter.AbstractMqAdapter;
 import com.sinosoft.common.mq.adapter.KafkaMqAdapter;
 import com.sinosoft.common.mq.adapter.RabbitMqAdapter;
 import com.sinosoft.common.mq.config.MqConfigProperties;
+import com.sinosoft.common.mq.core.MqCluster;
 import com.sinosoft.common.mq.core.MqConsumer;
 import com.sinosoft.common.mq.core.MqProducer;
 import com.sinosoft.common.mq.core.MqType;
@@ -17,9 +18,6 @@ import org.springframework.util.Assert;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * MQ工厂，负责创建和管理MQ实例
@@ -54,11 +52,6 @@ public class MqFactory implements InitializingBean, DisposableBean {
     private volatile boolean mqServiceAvailable = false;
     private volatile boolean initializing = false;
 
-    /**
-     * 用于重试连接的调度器
-     */
-    private ScheduledExecutorService reconnectScheduler;
-
     //--------------------
     // 构造函数
     //--------------------
@@ -87,57 +80,87 @@ public class MqFactory implements InitializingBean, DisposableBean {
             return;
         }
 
-        // 判断是否启用延迟初始化
-        if (configProperties.isLazyInit()) {
-            log.info("MQ懒加载模式启用，将在首次使用时初始化MQ客户端");
-            return;
-        }
-
-        if (configProperties.isAutoReconnect()) {
-            // 启动重连调度器
-            startReconnectScheduler();
-        } else {
-            // 尝试初始化，但不阻止应用启动
-            tryInitDefaultInstances();
-        }
+        // 尝试初始化默认实例
+        tryInitDefaultInstances();
     }
 
     @Override
     public void destroy() {
-        // 关闭重连调度器
-        if (reconnectScheduler != null) {
-            reconnectScheduler.shutdownNow();
-        }
-
         // 关闭所有MQ实例
         shutdown();
     }
 
     //--------------------
-    // 主要对外API方法
+    // 主要对外API方法 - 获取生产者
     //--------------------
 
     /**
-     * 获取默认类型的生产者
+     * 获取Kafka默认生产者
      */
-    public MqProducer getProducer() {
-        // 检查MQ功能是否启用
-        if (!configProperties.isEnabled()) {
-            log.warn("MQ功能已禁用，返回空实现");
-            return new NoOpMqProducer();
-        }
-
-        // 检查MQ服务可用性
-        checkMqServiceAndInit();
-
-        MqType defaultType = MqType.fromString(configProperties.getDefaultType());
-        return getProducer(defaultType, null);
+    public MqProducer getKafkaProducer() {
+        return getProducer(MqCluster.defaultKafka());
     }
 
     /**
-     * 获取指定类型的生产者
+     * 获取Kafka主集群生产者
      */
-    public MqProducer getProducer(MqType mqType, String clusterName) {
+    public MqProducer getKafkaMainProducer() {
+        return getProducer(MqCluster.getKafkaMain());
+    }
+
+    /**
+     * 获取指定名称的Kafka集群生产者
+     */
+    public MqProducer getKafkaProducer(String clusterName) {
+        return getProducer(MqCluster.getKafkaCluster(clusterName));
+    }
+
+    /**
+     * 获取RabbitMQ默认生产者
+     */
+    public MqProducer getRabbitProducer() {
+        return getProducer(MqCluster.defaultRabbit());
+    }
+
+    /**
+     * 获取RabbitMQ主集群生产者
+     */
+    public MqProducer getRabbitMainProducer() {
+        return getProducer(MqCluster.getRabbitMain());
+    }
+
+    /**
+     * 获取指定名称的RabbitMQ集群生产者
+     */
+    public MqProducer getRabbitProducer(String clusterName) {
+        return getProducer(MqCluster.getRabbitCluster(clusterName));
+    }
+
+    /**
+     * 获取RocketMQ默认生产者
+     */
+    public MqProducer getRocketProducer() {
+        return getProducer(MqCluster.defaultRocket());
+    }
+
+    /**
+     * 获取RocketMQ主集群生产者
+     */
+    public MqProducer getRocketMainProducer() {
+        return getProducer(MqCluster.getRocketMain());
+    }
+
+    /**
+     * 获取指定名称的RocketMQ集群生产者
+     */
+    public MqProducer getRocketProducer(String clusterName) {
+        return getProducer(MqCluster.getRocketCluster(clusterName));
+    }
+
+    /**
+     * 获取指定集群的生产者（使用枚举类型增强类型安全）
+     */
+    public MqProducer getProducer(MqCluster mqCluster) {
         // 检查MQ功能是否启用
         if (!configProperties.isEnabled()) {
             log.warn("MQ功能已禁用，返回空实现");
@@ -147,7 +170,7 @@ public class MqFactory implements InitializingBean, DisposableBean {
         // 检查MQ服务可用性
         checkMqServiceAndInit();
 
-        String cacheKey = mqType.getType() + "#" + (clusterName != null ? clusterName : "default");
+        String cacheKey = mqCluster.getMqType() + "#" + mqCluster.getClusterName();
 
         // 检查缓存
         MqProducer producer = producerCache.get(cacheKey);
@@ -162,7 +185,7 @@ public class MqFactory implements InitializingBean, DisposableBean {
         }
 
         // 创建新实例
-        AbstractMqAdapter adapter = createAdapter(mqType, clusterName);
+        AbstractMqAdapter adapter = createAdapter(mqCluster);
         try {
             adapter.initialize();
             mqServiceAvailable = true;
@@ -173,6 +196,7 @@ public class MqFactory implements InitializingBean, DisposableBean {
         } catch (Exception e) {
             mqServiceAvailable = false;
             log.error("无法初始化MQ生产者: {}", e.getMessage());
+            log.debug("初始化异常详情", e);
 
             if (configProperties.isFallbackEnabled()) {
                 log.warn("返回空实现生产者作为降级策略");
@@ -182,25 +206,77 @@ public class MqFactory implements InitializingBean, DisposableBean {
         }
     }
 
-    /**
-     * 获取默认类型的消费者
-     */
-    public MqConsumer getConsumer() {
-        // 检查MQ功能是否启用
-        if (!configProperties.isEnabled()) {
-            log.warn("MQ功能已禁用，返回空实现");
-            return new NoOpMqConsumer();
-        }
+    //--------------------
+    // 主要对外API方法 - 获取消费者
+    //--------------------
 
-        checkMqServiceAndInit();
-        MqType defaultType = MqType.fromString(configProperties.getDefaultType());
-        return getConsumer(defaultType, null);
+    /**
+     * 获取Kafka默认消费者
+     */
+    public MqConsumer getKafkaConsumer() {
+        return getConsumer(MqCluster.defaultKafka());
     }
 
     /**
-     * 获取指定类型的消费者
+     * 获取Kafka主集群消费者
      */
-    public MqConsumer getConsumer(MqType mqType, String clusterName) {
+    public MqConsumer getKafkaMainConsumer() {
+        return getConsumer(MqCluster.getKafkaMain());
+    }
+
+    /**
+     * 获取指定名称的Kafka集群消费者
+     */
+    public MqConsumer getKafkaConsumer(String clusterName) {
+        return getConsumer(MqCluster.getKafkaCluster(clusterName));
+    }
+
+    /**
+     * 获取RabbitMQ默认消费者
+     */
+    public MqConsumer getRabbitConsumer() {
+        return getConsumer(MqCluster.defaultRabbit());
+    }
+
+    /**
+     * 获取RabbitMQ主集群消费者
+     */
+    public MqConsumer getRabbitMainConsumer() {
+        return getConsumer(MqCluster.getRabbitMain());
+    }
+
+    /**
+     * 获取指定名称的RabbitMQ集群消费者
+     */
+    public MqConsumer getRabbitConsumer(String clusterName) {
+        return getConsumer(MqCluster.getRabbitCluster(clusterName));
+    }
+
+    /**
+     * 获取RocketMQ默认消费者
+     */
+    public MqConsumer getRocketConsumer() {
+        return getConsumer(MqCluster.defaultRocket());
+    }
+
+    /**
+     * 获取RocketMQ主集群消费者
+     */
+    public MqConsumer getRocketMainConsumer() {
+        return getConsumer(MqCluster.getRocketMain());
+    }
+
+    /**
+     * 获取指定名称的RocketMQ集群消费者
+     */
+    public MqConsumer getRocketConsumer(String clusterName) {
+        return getConsumer(MqCluster.getRocketCluster(clusterName));
+    }
+
+    /**
+     * 获取指定集群的消费者（使用枚举类型增强类型安全）
+     */
+    public MqConsumer getConsumer(MqCluster mqCluster) {
         // 检查MQ功能是否启用
         if (!configProperties.isEnabled()) {
             log.warn("MQ功能已禁用，返回空实现");
@@ -210,7 +286,7 @@ public class MqFactory implements InitializingBean, DisposableBean {
         // 检查MQ服务可用性
         checkMqServiceAndInit();
 
-        String cacheKey = mqType.getType() + "#" + (clusterName != null ? clusterName : "default");
+        String cacheKey = mqCluster.getMqType() + "#" + mqCluster.getClusterName();
 
         // 检查缓存
         MqConsumer consumer = consumerCache.get(cacheKey);
@@ -225,7 +301,7 @@ public class MqFactory implements InitializingBean, DisposableBean {
         }
 
         // 创建新实例
-        AbstractMqAdapter adapter = createAdapter(mqType, clusterName);
+        AbstractMqAdapter adapter = createAdapter(mqCluster);
         try {
             adapter.initialize();
             mqServiceAvailable = true;
@@ -236,6 +312,7 @@ public class MqFactory implements InitializingBean, DisposableBean {
         } catch (Exception e) {
             mqServiceAvailable = false;
             log.error("无法初始化MQ消费者: {}", e.getMessage());
+            log.debug("初始化异常详情", e);
 
             if (configProperties.isFallbackEnabled()) {
                 log.warn("返回空实现消费者作为降级策略");
@@ -244,6 +321,10 @@ public class MqFactory implements InitializingBean, DisposableBean {
             throw e;
         }
     }
+
+    //--------------------
+    // 主题管理方法
+    //--------------------
 
     /**
      * 根据注解信息创建主题
@@ -255,16 +336,47 @@ public class MqFactory implements InitializingBean, DisposableBean {
             return;
         }
 
+        MqCluster mqCluster = MqCluster.fromTypeAndName(mqType, clusterName);
+        if (mqCluster == null) {
+            log.warn("未找到指定的集群配置: type={}, name={}, 使用该类型的默认集群", mqType, clusterName);
+            switch (mqType) {
+                case KAFKA:
+                    mqCluster = MqCluster.defaultKafka();
+                    break;
+                case RABBIT_MQ:
+                    mqCluster = MqCluster.defaultRabbit();
+                    break;
+                case ROCKET_MQ:
+                    mqCluster = MqCluster.defaultRocket();
+                    break;
+                default:
+                    throw new MqException("MQ-102", "不支持的MQ类型: " + mqType);
+            }
+        }
+
+        createTopic(topic, mqCluster);
+    }
+
+    /**
+     * 使用MqCluster创建主题
+     */
+    public void createTopic(String topic, MqCluster mqCluster) {
+        // 检查MQ功能是否启用
+        if (!configProperties.isEnabled()) {
+            log.warn("MQ功能已禁用，跳过主题创建: {}", topic);
+            return;
+        }
+
         // 获取或创建适配器
         AbstractMqAdapter adapter;
-        String cacheKey = mqType.getType() + "#" + (clusterName != null ? clusterName : "default");
+        String cacheKey = mqCluster.getMqType() + "#" + mqCluster.getClusterName();
 
         // 先检查缓存中是否已有适配器
         MqProducer cachedProducer = producerCache.get(cacheKey);
         if (cachedProducer instanceof AbstractMqAdapter) {
             adapter = (AbstractMqAdapter) cachedProducer;
         } else {
-            adapter = createAdapter(mqType, clusterName);
+            adapter = createAdapter(mqCluster);
             try {
                 adapter.initialize();
             } catch (Exception e) {
@@ -284,11 +396,79 @@ public class MqFactory implements InitializingBean, DisposableBean {
                 return;
             }
 
-            log.info("已创建主题: {}, 类型: {}, 集群: {}", topic, mqType, clusterName);
+            log.info("已创建主题: {}, 集群: {}", topic, mqCluster.getDescription());
         } catch (Exception e) {
-            log.error("创建主题失败: {}, 类型: {}, 集群: {}, 错误: {}",
-                topic, mqType, clusterName, e.getMessage());
+            log.error("创建主题失败: {}, 集群: {}, 错误: {}",
+                topic, mqCluster.getDescription(), e.getMessage());
         }
+    }
+
+    //--------------------
+    // 向后兼容的方法
+    //--------------------
+
+    /**
+     * 为了向后兼容，提供接受MqType和集群名字符串的方法
+     */
+    public MqProducer getProducer(MqType mqType, String clusterName) {
+        MqCluster cluster = MqCluster.fromTypeAndName(mqType, clusterName);
+        if (cluster == null) {
+            log.warn("未找到指定的集群配置: type={}, name={}, 使用该类型的默认集群", mqType, clusterName);
+            // 使用该类型的默认集群
+            switch (mqType) {
+                case KAFKA:
+                    cluster = MqCluster.defaultKafka();
+                    break;
+                case RABBIT_MQ:
+                    cluster = MqCluster.defaultRabbit();
+                    break;
+                case ROCKET_MQ:
+                    cluster = MqCluster.defaultRocket();
+                    break;
+                default:
+                    throw new MqException("MQ-102", "不支持的MQ类型: " + mqType);
+            }
+        }
+        return getProducer(cluster);
+    }
+
+    /**
+     * 为了向后兼容，提供接受MqType和集群名字符串的方法
+     */
+    public MqConsumer getConsumer(MqType mqType, String clusterName) {
+        MqCluster cluster = MqCluster.fromTypeAndName(mqType, clusterName);
+        if (cluster == null) {
+            log.warn("未找到指定的集群配置: type={}, name={}, 使用该类型的默认集群", mqType, clusterName);
+            // 使用该类型的默认集群
+            switch (mqType) {
+                case KAFKA:
+                    cluster = MqCluster.defaultKafka();
+                    break;
+                case RABBIT_MQ:
+                    cluster = MqCluster.defaultRabbit();
+                    break;
+                case ROCKET_MQ:
+                    cluster = MqCluster.defaultRocket();
+                    break;
+                default:
+                    throw new MqException("MQ-102", "不支持的MQ类型: " + mqType);
+            }
+        }
+        return getConsumer(cluster);
+    }
+
+    /**
+     * 获取默认生产者（向后兼容）
+     */
+    public MqProducer getProducer() {
+        return getKafkaProducer();
+    }
+
+    /**
+     * 获取默认消费者（向后兼容）
+     */
+    public MqConsumer getConsumer() {
+        return getKafkaConsumer();
     }
 
     //--------------------
@@ -296,29 +476,11 @@ public class MqFactory implements InitializingBean, DisposableBean {
     //--------------------
 
     /**
-     * 启动重连调度器
-     */
-    private void startReconnectScheduler() {
-        reconnectScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread thread = new Thread(r, "mq-reconnect-scheduler");
-            thread.setDaemon(true); // 使用守护线程，不阻止应用关闭
-            return thread;
-        });
-
-        // 立即执行一次，然后按配置的间隔重试
-        reconnectScheduler.scheduleWithFixedDelay(() -> {
-            if (!mqServiceAvailable) {
-                log.info("尝试连接MQ服务...");
-                tryInitDefaultInstances();
-            }
-        }, 0, configProperties.getReconnectIntervalSeconds(), TimeUnit.SECONDS);
-    }
-
-    /**
      * 尝试初始化默认实例，但捕获异常不影响应用启动
      */
     private void tryInitDefaultInstances() {
         try {
+            // 初始化所有类型的默认实例
             initDefaultInstances();
             mqServiceAvailable = true;
         } catch (Exception e) {
@@ -332,29 +494,17 @@ public class MqFactory implements InitializingBean, DisposableBean {
      * 初始化默认MQ实例
      */
     private void initDefaultInstances() {
-        MqType defaultType = MqType.fromString(configProperties.getDefaultType());
-
-        // 为每种MQ类型初始化默认实例
-        switch (defaultType) {
-            case KAFKA:
-                getProducer(MqType.KAFKA, null);
-                break;
-            case RABBIT_MQ:
-                getProducer(MqType.RABBIT_MQ, null);
-                break;
-            case ROCKET_MQ:
-                getProducer(MqType.ROCKET_MQ, null);
-                break;
-            default:
-                log.warn("未知的MQ类型: {}", defaultType);
-        }
+        // 预初始化所有类型的默认实例
+        getKafkaProducer();
+        getRabbitProducer();
+        getRocketProducer();
     }
 
     /**
-     * 检查MQ服务可用性，如果启用了延迟初始化则尝试初始化
+     * 检查MQ服务可用性，如果需要则初始化
      */
     private void checkMqServiceAndInit() {
-        if (!mqServiceAvailable && configProperties.isLazyInit() && !initializing) {
+        if (!mqServiceAvailable && !initializing) {
             synchronized (this) {
                 if (!mqServiceAvailable && !initializing) {
                     initializing = true;
@@ -373,18 +523,20 @@ public class MqFactory implements InitializingBean, DisposableBean {
     }
 
     /**
-     * 创建适配器实例
+     * 创建适配器实例（使用MqCluster枚举）
      */
-    private AbstractMqAdapter createAdapter(MqType mqType, String clusterName) {
-        if (clusterName == null) {
-            clusterName = "default";
-        }
+    private AbstractMqAdapter createAdapter(MqCluster mqCluster) {
+        MqType mqType = mqCluster.getMqTypeEnum();
+        String clusterName = mqCluster.getClusterName();
 
         switch (mqType) {
             case KAFKA:
                 return new KafkaMqAdapter(clusterName, configProperties.getKafka(), configProperties);
             case RABBIT_MQ:
                 return new RabbitMqAdapter(clusterName, configProperties.getRabbit(), configProperties);
+            case ROCKET_MQ:
+                // 可以添加RocketMQ适配器的实现
+                // return new RocketMqAdapter(clusterName, configProperties.getRocket(), configProperties);
             default:
                 throw new MqException("MQ-101", "不支持的MQ类型: " + mqType);
         }
@@ -427,9 +579,7 @@ public class MqFactory implements InitializingBean, DisposableBean {
         }
 
         // 重新初始化默认实例
-        if (!configProperties.isLazyInit()) {
-            tryInitDefaultInstances();
-        }
+        tryInitDefaultInstances();
     }
 
     /**
