@@ -1,0 +1,1 @@
+{"doc":"","fields":[{"name":"conNo","doc":" 合同号\n"},{"name":"name","doc":" 业务员名称\n"},{"name":"code","doc":" 业务员编码\n"},{"name":"changeName","doc":" 业务员名称\n"},{"name":"changeCode","doc":" 业务员编码\n"},{"name":"changeDate","doc":" 变更时间\n"}],"enumConstants":[],"methods":[],"constructors":[]}

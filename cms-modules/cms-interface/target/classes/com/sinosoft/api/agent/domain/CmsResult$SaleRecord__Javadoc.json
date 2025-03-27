@@ -1,0 +1,1 @@
+{"doc":" 销售记录\n","fields":[{"name":"agentCom","doc":" 代理机构代码\n"},{"name":"msg","doc":" 消息\n"},{"name":"success","doc":" 是否成功 Y/N\n"},{"name":"saleCode","doc":" 销售代码\n"},{"name":"saleName","doc":" 销售名称\n"}],"enumConstants":[],"methods":[],"constructors":[]}

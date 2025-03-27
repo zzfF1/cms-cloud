@@ -1,0 +1,1 @@
+{"doc":" 服务同步适配器接口\n 用于适配不同的同步服务实现，解决模块间依赖问题\n","fields":[],"enumConstants":[],"methods":[{"name":"syncAgentData","paramTypes":["java.util.List","java.lang.String"],"doc":" 同步人员基础信息\n"},{"name":"syncTreeData","paramTypes":["java.util.List","java.lang.String"],"doc":" 同步人员职级信息\n"}],"constructors":[]}

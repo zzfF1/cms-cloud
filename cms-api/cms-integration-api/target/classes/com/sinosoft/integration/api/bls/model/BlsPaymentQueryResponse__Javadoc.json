@@ -1,0 +1,1 @@
+{"doc":" 支付查询响应\n","fields":[{"name":"resualt","doc":" 结果\n"},{"name":"resultReason","doc":" 结果原因\n"},{"name":"transQuery","doc":" 查询结果\n"}],"enumConstants":[],"methods":[],"constructors":[]}

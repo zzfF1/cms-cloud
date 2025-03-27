@@ -1,0 +1,1 @@
+{"doc":" 人员基础信息\n\n @author: zzf\n @create: 2025-02-24 11:37\n","fields":[{"name":"agentCode","doc":" 工号\n"},{"name":"name","doc":" 姓名\n"}],"enumConstants":[],"methods":[],"constructors":[]}

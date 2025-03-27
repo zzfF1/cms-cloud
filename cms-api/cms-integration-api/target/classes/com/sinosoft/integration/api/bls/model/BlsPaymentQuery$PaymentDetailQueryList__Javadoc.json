@@ -1,0 +1,1 @@
+{"doc":" 支付明细查询列表类\n","fields":[{"name":"transSeq","doc":" 交易流水号\n"},{"name":"transList","doc":" 交易列表\n"}],"enumConstants":[],"methods":[],"constructors":[]}

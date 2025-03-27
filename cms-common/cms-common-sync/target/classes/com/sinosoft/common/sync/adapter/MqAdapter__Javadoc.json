@@ -1,0 +1,1 @@
+{"doc":"","fields":[],"enumConstants":[],"methods":[{"name":"sendMessageWithProperties","paramTypes":["java.lang.String","java.lang.String","java.lang.String","java.lang.String","java.util.Map"],"doc":" 发送同步消息\n"},{"name":"sendMessage","paramTypes":["java.lang.String","java.lang.String"],"doc":" 简化版发送方法\n"}],"constructors":[]}

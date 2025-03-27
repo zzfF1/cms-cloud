@@ -1,0 +1,1 @@
+{"doc":" 第三方人员基础信息\n\n @author: zzf\n @create: 2025-02-24 11:37\n","fields":[{"name":"agentCom","doc":" 中介机构编码\n"},{"name":"name","doc":" 中介机构名称\n"},{"name":"saleCode","doc":" 工号\n"},{"name":"saleName","doc":" 姓名\n"}],"enumConstants":[],"methods":[],"constructors":[]}

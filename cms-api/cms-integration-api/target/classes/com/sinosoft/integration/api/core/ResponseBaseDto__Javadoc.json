@@ -1,0 +1,1 @@
+{"doc":" 响应抽象类\n\n @author: zzf\n @create: 2025-03-26 15:18\n","fields":[{"name":"success","doc":" 请求结果\n"},{"name":"code","doc":" 状态\n"},{"name":"message","doc":" 消息\n"}],"enumConstants":[],"methods":[],"constructors":[]}

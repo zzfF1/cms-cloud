@@ -1,0 +1,1 @@
+{"doc":" 培训信息接口统一响应类\n","fields":[],"enumConstants":[],"methods":[{"name":"isSuccess","paramTypes":[],"doc":" 判断是否成功响应\n\n @return 如果ResultCode为200则返回true，否则返回false\n"}],"constructors":[]}
