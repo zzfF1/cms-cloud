@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.bank.charge.mapper.BkRateCommisionMapper">
+
+    <select id="selectRateCommisionList" resultType="com.sinosoft.common.schema.commission.domain.LaRateCommision">
+        select
+            seriesno,
+            configid,
+            managecom,
+            agentcom,
+            branchtype,
+            branchtype2,
+            riskcode,
+            startdate,enddate,
+            jjfs_jflx,
+            jjfs_jfjg,
+            jjfs_jfqj_down,
+            jjfs_jfqj_up,
+            bzfs_bzlx,
+            bzfs_bzqj_down,bzfs_bzqj_up,
+            pay_count_down,pay_count_up,amnt_down,amnt_up,trans_money_down,trans_money_up,plan_code,plan_name,
+            f01,f01_down,f01_up,f02,f02_down,f02_up,f03,f03_down,f03_up,f04,f04_down,f04_up,
+            f05,f05_down,f05_up,f06,f06_down,f06_up,f07,f07_down,f07_up,f08,f08_down,f08_up,
+            f09,f010,f011,f012,f013,f014,f015,f016,f017,f018,f019,f020,
+            weight,remark,rate
+        from
+            la_rate_commision a
+            ${ew.getCustomSqlSegment}
+    </select>
+
+</mapper>

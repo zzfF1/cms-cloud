@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.bank.team.mapper.BkBranchGroupMapper">
+
+     <select id="selectBkPageShowList"
+            resultType="com.sinosoft.bank.team.domain.vo.BkBranchGroupShowVo">
+         select agentgroup,
+                managecom,
+                (select name from ldcom lc where comcode = a.managecom)                     managecomname,
+                branchattr,
+                name,
+                branchmanager,
+                branchmanagername,
+                fieldflag,
+                endflag,
+                founddate,
+                enddate,
+                branchlevel,
+                upbranchattr,
+                (select branchlevelname
+                 from labranchlevel level
+                 where level.branchlevelcode = a.branchlevel
+                   and level.branchtype = a.branchtype)                                      branchlevelname
+         from labranchgroup a
+             ${ew.getCustomSqlSegment}
+     </select>
+
+    <select id="getMaxBranchAttr" resultType="java.lang.String">
+        select max(branchattr) as branchattr
+        from labranchgroup
+        where branchtype = #{branchType}
+        and branchlevel = #{branchLevel}
+        <if test="curBranchAttr != null and curBranchAttr.length()>0">
+            and branchattr like CONCAT(#{curBranchAttr},'%')
+        </if>
+    </select>
+
+    <select id="selectFromById" resultType="com.sinosoft.bank.team.domain.vo.BkBranchGroupFormVo">
+        select agentgroup,
+               managecom,
+               (select name from ldcom lc where comcode = a.managecom)                     managecomname,
+               branchattr,
+               name,
+               branchlevel,
+               branchmanager,
+               branchmanagername,
+               founddate,
+               enddate,
+               endflag,
+               branchaddress,
+               branchphone,
+               branchfax,
+               branchzipcode,
+               upbranchattr,
+               upbranch,
+               (select b.name
+                from labranchgroup b
+                where b.agentgroup = a.upbranch and b.branchtype = a.branchtype)          upbranchgroupname,
+               (select b.branchattr
+                from labranchgroup b
+                where b.agentgroup = a.upbranch and b.branchtype = a.branchtype)          upbranchgroupattr
+        from labranchgroup a
+        where agentgroup = #{agentGroup}
+          and branchtype = '3'
+    </select>
+
+
+</mapper>

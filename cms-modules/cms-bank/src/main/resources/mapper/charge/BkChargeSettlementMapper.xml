@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.bank.charge.mapper.BkChargeSettlementMapper">
+
+    <select id="queryJsList"
+            resultType="com.sinosoft.bank.charge.domain.vo.BkChargeJsVo">
+        select serial_no,
+               manage_com,
+               (select ldcom.short_name from ldcom where ldcom.comcode = la_charge.manage_com)   as                manage_com_name,
+               agent_com,
+               (select name from la_com where la_com.agent_com = la_charge.agent_com)                as                agent_com_name,
+               grp_cont_no,
+               receipt_no,
+               appnt_name,
+               risk_code,
+               (select risk_name from lm_risk_app where lm_risk_app.risk_code = la_charge.risk_code) as                risk_name,
+               trans_money,
+               charge_type,
+               (select dict_label from sys_dict_data where dict_type = 'grp_charge_type' and dict_value = charge_type) charge_type_name,
+               charge_rate,
+               charge,
+               trans_type,
+               (select dict_label from sys_dict_data where dict_type = 'grp_trans_type' and dict_value = trans_type)   trans_type_name,
+               f5,
+               f6,
+               f7
+        from la_charge
+                 ${ew.getCustomSqlSegment}
+    </select>
+
+    <select id="querySettlementList"
+            resultType="com.sinosoft.bank.charge.domain.vo.BkSettlementVo">
+        select commision_sn,commision_bn,
+               manage_com,
+               (select ldcom.short_name from ldcom where ldcom.comcode = la_settlement.manage_com)   as manage_com_name,
+               agent_com,
+               (select name from la_com where la_com.agent_com = la_settlement.agent_com)                as agent_com_name,
+               start_date,
+               end_date,
+               trans_money,
+               charge,state,material_state,
+               (select name from lc_define where lc_serialno=45 and id=la_settlement.material_state) lcName,reason,f01
+        from la_settlement ${ew.getCustomSqlSegment}
+    </select>
+
+    <select id="queryChargePrint"
+            resultType="com.sinosoft.bank.charge.domain.vo.BkChargeJsPrintVo">
+        select commision_sn,
+               agent_com,
+               (select name from la_com where la_com.agent_com = la_charge.agent_com)                as                agent_com_name,
+               grp_cont_no,appnt_name,
+               risk_code,
+               (select risk_name from lm_risk_app where lm_risk_app.risk_code = la_charge.risk_code) as                risk_code_name,
+               sum(trans_money) as trans_money,charge_rate,sum(charge) as charge
+        from la_charge where 1=1
+        <if test="commisionSn != null and commisionSn !=''">
+            and commision_sn = #{commisionSn}
+        </if>
+        <if test="commisionBn != null and commisionBn !=''">
+            and commision_sn in (select commision_sn from la_settlement where la_settlement.commision_bn=#{commisionBn})
+        </if>
+        group by commision_sn,agent_com,grp_cont_no,risk_code,charge_rate,appnt_name
+    </select>
+</mapper>

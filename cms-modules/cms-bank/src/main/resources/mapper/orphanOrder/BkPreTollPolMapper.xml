@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.bank.orphanOrder.mapper.BkPreTollPolInputMapper">
+
+    <select id="selectVoPage"
+            resultType="com.sinosoft.bank.orphanOrder.domain.vo.BkPreTollPolVo">
+        select (select name
+                from ldcom
+                where trim(comcode) = a.manage_com)       manage_com,
+               (select name
+                from la_branch_group
+                where branch_series = a.new_branch_series) new_branch_series,
+               cont_no,
+               agent_code,
+               (select name
+                from la_agent
+                where agent_code = a.agent_code)           agent_code_name,
+               new_agent_code,
+               (select name
+                from la_agent
+                where agent_code = a.new_agent_code)       new_agent_code_name,
+               update_time,
+               (select nick_name
+                from sys_user su
+                where su.user_id = a.update_by)            update_by_name,
+               branch_type,
+               state
+        from la_pre_toll_pol a
+            ${ew.getCustomSqlSegment}
+    </select>
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.bank.agent.mapper.BkLaagentinformationMapper">
+    <update id="updateAgentSnapshot">
+        UPDATE laagentinformation
+        SET
+        managecom = #{agentInfo.managecom},
+        <if test="agentInfo.yearmonth != null and agentInfo.yearmonth != ''">
+            yearmonth = #{agentInfo.yearmonth},
+        </if>
+        agentseries = #{agentInfo.agentseries},
+        agentgrade = #{agentInfo.agentgrade},
+        agentgroup = #{agentInfo.agentgroup},
+        branchattr = #{agentInfo.branchattr},
+        branchname = #{agentInfo.branchname},
+        branchmanager = #{agentInfo.branchmanager},
+        branchmanagername = #{agentInfo.branchmanagername},
+        quagentgroup = #{agentInfo.quagentgroup},
+        qubranchname = #{agentInfo.qubranchname},
+        qubranchattr = #{agentInfo.qubranchattr},
+        qubranchmanager = #{agentInfo.qubranchmanager},
+        qubranchmanagername = #{agentInfo.qubranchmanagername},
+        buagentgroup = #{agentInfo.buagentgroup},
+        bubranchname = #{agentInfo.bubranchname},
+        bubranchattr = #{agentInfo.bubranchattr},
+        bubranchmanager = #{agentInfo.bubranchmanager},
+        bubranchmanagername = #{agentInfo.bubranchmanagername},
+        persontype = #{agentInfo.persontype},
+        branchtype = #{agentInfo.branchtype},
+        modifyoperator = #{agentInfo.modifyoperator},
+        modifydate = #{agentInfo.modifydate},
+        modifytime = #{agentInfo.modifytime}
+        WHERE agentcode = #{agentCode}
+        and yearmonth >= DATE_FORMAT(#{effectiveDate}, '%Y%m')
+    </update>
+
+    <select id="getAgentSnapshotCount" resultType="java.lang.Integer">
+        select count(*)
+        from laagentinformation
+        where agentcode = #{agentCode}
+          and yearmonth >= DATE_FORMAT(#{effectiveDate}, '%Y%m')
+    </select>
+</mapper>

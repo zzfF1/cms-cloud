@@ -7,6 +7,7 @@ import com.sinosoft.common.sync.domain.SyncRecord;
 import com.sinosoft.common.sync.event.DataSyncEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -17,6 +18,7 @@ import java.util.*;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnBean(MqAdapter.class)  // 添加此注解
 public class MqSyncStrategy implements SyncStrategy {
 
     private final MqAdapter mqAdapter;

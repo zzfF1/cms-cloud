@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.bank.orphanOrder.mapper.BkOrphanPolicyMapper">
+
+    <select id ="selectOrphanPolicy" resultType="com.sinosoft.bank.orphanOrder.domain.vo.BkOrphanPolicyVo">
+        select cont_no,
+               agent_code,
+               (select name from la_agent la where agent_code = a.agent_code) name,
+               manage_com,
+               (select name from ldcom lc where comcode = a.manage_com)     manage_com_name,
+               t1,
+               sale_flag
+        from la_orphan_policy a
+            ${ew.getCustomSqlSegment}
+    </select>
+
+</mapper>

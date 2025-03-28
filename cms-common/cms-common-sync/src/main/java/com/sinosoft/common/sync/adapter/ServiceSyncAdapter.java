@@ -22,6 +22,10 @@ public interface ServiceSyncAdapter {
     SyncResult syncTreeData(List<?> treeList, String businessCode);
 
     /**
+     * 同步销售机构信息
+     */
+    SyncResult syncBranchData(List<?> branchList, String businessCode);
+    /**
      * 同步结果
      */
     @Data
@@ -44,15 +48,19 @@ public interface ServiceSyncAdapter {
     class NoOpAdapter implements ServiceSyncAdapter {
         @Override
         public SyncResult syncAgentData(List<?> agentList, String businessCode) {
-            log.warn("使用默认空实现，未配置实际同步适配器。数据类型: Agent, 数据数量: {}",
-                agentList != null ? agentList.size() : 0);
+            log.warn("使用默认空实现，未配置实际同步适配器。数据类型: Agent, 数据数量: {}", agentList != null ? agentList.size() : 0);
             return new SyncResult(false, "No sync adapter configured");
         }
 
         @Override
         public SyncResult syncTreeData(List<?> treeList, String businessCode) {
-            log.warn("使用默认空实现，未配置实际同步适配器。数据类型: Tree, 数据数量: {}",
-                treeList != null ? treeList.size() : 0);
+            log.warn("使用默认空实现，未配置实际同步适配器。数据类型: Tree, 数据数量: {}", treeList != null ? treeList.size() : 0);
+            return new SyncResult(false, "No sync adapter configured");
+        }
+
+        @Override
+        public SyncResult syncBranchData(List<?> branchList, String businessCode) {
+            log.warn("使用默认空实现，未配置实际同步适配器。数据类型: Branch, 数据数量: {}", branchList != null ? branchList.size() : 0);
             return new SyncResult(false, "No sync adapter configured");
         }
     }

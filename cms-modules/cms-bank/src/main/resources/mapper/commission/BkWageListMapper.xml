@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.bank.commission.mapper.BkWageListMapper">
+
+    <select id="selectWageList" resultType="com.sinosoft.bank.commission.domain.vo.BkWageListVo">
+        SELECT (SELECT TRIM(NAME) FROM laagent WHERE agentcode = a.agentcode)                  as name,
+               a.agentcode,
+               a.managecom,
+               (select NAME from ldcom where comcode = a.managecom)                            as manageComName,
+               a.branchattr,
+               (SELECT NAME FROM labranchgroup WHERE branchattr = a.branchattr)                as branchAttrName,
+               a.indexcalno,
+               (IFNULL(f01, 0.00) + IFNULL(f04, 0.00))                                         as baseMoney,
+               IFNULL(f03, 0.00)                                                               as f03,
+               IFNULL(f11, 0)                                                                  as f11,
+               IFNULL(f09, 0.00)                                                               as f09,
+               IFNULL(f12, 0.00)                                                               as f12,
+               IFNULL(f13, 0.00)                                                               as f13,
+               IFNULL(f14, 0.00)                                                               as f14,
+               (IFNULL(f01, 0.00) + IFNULL(f03, 0.00) + IFNULL(f04, 0.00) + IFNULL(f12, 0.00) +
+                IFNULL(f11, 0.00) + IFNULL(f09, 0.00) + IFNULL(f13, 0.00) + IFNULL(f14, 0.00)) as baseTotal,
+               IFNULL(f05, 0.00)                                                               as f05,
+               IFNULL(f06, 0.00)                                                               as f06,
+               IFNULL((CASE SUBSTR(b.agentgrade, 0, 2) WHEN 'B1' THEN f07 WHEN 'B2' THEN f08 WHEN 'B3' THEN f21 END),
+                      0.00)                                                                    as f07,
+               IFNULL(f17, 0.00)                                                               as f17,
+               IFNULL(f18, 0.00)                                                               as f18,
+               IFNULL(f10, 0.00)                                                               as f10,
+               (IFNULL(f05, 0.00) + IFNULL(f06, 0.00) +
+                IFNULL(CASE SUBSTR(b.agentgrade, 0, 2) WHEN 'B1' THEN f07 WHEN 'B2' THEN f08 WHEN 'B3' THEN f21 END,
+                       0.00)
+                   + IFNULL(f10, 0.00) + IFNULL(a.f17, 0.00) + IFNULL(a.f18, 0.00))            as permanceTotal,
+               IFNULL(summoney, 0.00) - IFNULL(a.f20, 0.00)                                    as payAbleTotal,
+               IFNULL(a.f20, 0.00)                                                             as f20,
+               IFNULL(summoney, 0.00)                                                          as summoney,
+               IFNULL(a.f22, 0)                                                                as f22,
+               IFNULL(a.k08, 0)                                                                as k08,
+               IFNULL(a.k09, 0)                                                                as k09,
+               IFNULL(a.k10, 0)                                                                as k10,
+               IFNULL(a.k11, 0)                                                                as k11,
+               IFNULL(a.f23, 0) + IFNULL(a.f26, 0) + IFNULL(a.f27, 0)                          as otherTax,
+               IFNULL(a.f24, 0)                                                                as f24,
+               IFNULL(a.currmoney, 0.00)                                                       as currmoney
+        FROM lawage a,
+             latree b ${ew.getCustomSqlSegment}
+        and a.agentcode = b.agentcode
+        ORDER BY a.agentgroup, a.agentgrade DESC, a.agentcode
+    </select>
+
+    <select id="selectSumWageList" resultType="com.sinosoft.bank.commission.domain.vo.BkWageListVo">
+        SELECT sum((IFNULL(f01, 0.00) + IFNULL(f04, 0.00)))                                         as sumBaseMoney,
+               sum(IFNULL(f03, 0.00))                                                               as sumF03,
+               sum(IFNULL(f11, 0))                                                                  as sumF11,
+               sum(IFNULL(f09, 0.00))                                                               as sumF09,
+               sum(IFNULL(f12, 0.00))                                                               as sumF12,
+               sum(IFNULL(f13, 0.00))                                                               as sumF13,
+               sum(IFNULL(f14, 0.00))                                                               as sumF14,
+               sum((IFNULL(f01, 0.00) + IFNULL(f03, 0.00) + IFNULL(f04, 0.00) + IFNULL(f12, 0.00) +
+                    IFNULL(f11, 0.00) + IFNULL(f09, 0.00) + IFNULL(f13, 0.00) + IFNULL(f14, 0.00))) as sumBaseTotal,
+               sum(IFNULL(f05, 0.00))                                                               as sumF05,
+               sum(IFNULL(f06, 0.00))                                                               as sumF06,
+               sum(IFNULL(
+                   (CASE SUBSTR(b.agentgrade, 0, 2) WHEN 'B1' THEN f07 WHEN 'B2' THEN f08 WHEN 'B3' THEN f21 END),
+                   0.00))                                                                           as sumF07,
+               sum(IFNULL(f17, 0.00))                                                               as sumF17,
+               sum(IFNULL(f18, 0.00))                                                               as sumF18,
+               sum(IFNULL(f10, 0.00))                                                               as sumF10,
+               sum((IFNULL(f05, 0.00) + IFNULL(f06, 0.00) +
+                    IFNULL(CASE SUBSTR(b.agentgrade, 0, 2) WHEN 'B1' THEN f07 WHEN 'B2' THEN f08 WHEN 'B3' THEN f21 END,
+                           0.00)
+                   + IFNULL(f10, 0.00) + IFNULL(a.f17, 0.00) + IFNULL(a.f18, 0.00)))                as sumPermanceTotal,
+               sum(IFNULL(summoney, 0.00) - IFNULL(a.f20, 0.00))                                    as sumPayAbleTotal,
+               sum(IFNULL(a.f20, 0.00))                                                             as sumF20,
+               sum(IFNULL(summoney, 0.00))                                                          as sumSumMoney,
+               sum(IFNULL(a.f22, 0))                                                                as sumF22,
+               sum(IFNULL(a.k08, 0))                                                                as sumK08,
+               sum(IFNULL(a.k09, 0))                                                                as sumK09,
+               sum(IFNULL(a.k10, 0))                                                                as sumK10,
+               sum(IFNULL(a.k11, 0))                                                                as sumK11,
+               sum(IFNULL(a.f23, 0) + IFNULL(a.f26, 0) + IFNULL(a.f27, 0))                          as sumOtherTax,
+               sum(IFNULL(a.f24, 0))                                                                as sumF24,
+               sum(IFNULL(a.currmoney, 0.00))                                                       as sumCurrMoney
+        FROM lawage a,
+             latree b ${ew.getCustomSqlSegment}
+        and a.agentcode = b.agentcode
+    </select>
+
+    <select id="selectPageShowList"
+            resultType="com.sinosoft.bank.commission.domain.vo.BkWageShowListVo">
+        select left(a.managecom, 4)                                                                 managecom,
+               (select concat(comcode, '-', shortname)
+                from ldcom ld
+                where ld.comcode = left(a.managecom, 4))                                            managecomname,
+               a.indexcalno,
+               versioncode as                                                                       base_code,
+               (select name from base_law_version where id = a.versioncode)                         base_name,
+               (select att_id
+                from sys_attachment_business_data
+                where bus_code = 'wagefj'
+                  and bus_data_id = concat(left(a.managecom, 4), a.indexcalno, '01', a.branchtype)) attid,
+               sum(a.f11)                                                                           f01,
+               sum(a.k07)                                                                           f02,
+               count(a.agentcode)                                                                   agents,
+               a.a1                                                                                 lcid,
+               (select name from lc_define lc where lc.id = a.a1)                                   lcstate
+        from lawage a
+            ${ew.getCustomSqlSegment}
+        group by left (a.managecom, 4), a.indexcalno, a.a1
+        order by a.managecom, a.indexcalno desc
+    </select>
+
+    <select id="selectDetailPageShowList" resultType="com.sinosoft.bank.commission.domain.vo.BkWageDetailListVo">
+        select a.id,
+               (select concat(comcode, '-', shortname) from ldcom ld where ld.comcode = a.managecom)        managecom,
+               (select concat(branchattr, '-', name)
+                from labranchgroup branch
+                where branch.agentgroup = a.agentgroup)                                                     agentgroup,
+               (select concat(agentcode, '-', name) from laagent agent where agent.agentcode = a.agentcode) agentcode,
+               (select concat(gradecode, '-', gradename)
+                from laagentgrade grade
+                where grade.gradecode = a.agentgrade)                                                       agentgrade,
+               indexcalno,
+               f01,
+               f02,
+               f03,
+               f04,
+               f05,
+               f06,
+               f07,
+               f08,
+               f09,
+               f10,
+               f11,
+               k01,
+               k02,
+               k03,
+               k04,
+               k05,
+               k06,
+               k07,
+               (select name from lc_define lc where lc.id = a.a1)                                           w35
+        from lawage a
+            ${ew.getCustomSqlSegment}
+        order by a.managecom, a.branchattr
+    </select>
+
+    <select id="selectWageBaseInfo" resultType="com.sinosoft.common.schema.commission.domain.vo.WageBaseInfoVo">
+        select ''                                                                                      num,
+               a.indexcalno as                                                                         wageno,
+               (select concat(b.comcode, '-', b.shortname) from ldcom b where b.comcode = a.managecom) managecom,
+               a.agentcode,
+               agent.name                                                                              agentname,
+               (select dict_label
+                from sys_dict_data b
+                where b.dict_type = 'indagentidtype'
+                  and b.dict_value = agent.idnotype)                                                    idnotype,
+               agent.idno,
+               CAST(agent.employdate as CHAR)                                                          employdate,
+               (select concat(b.gradecode, '-', b.gradename)
+                from laagentgrade b
+                where b.gradecode = tree.agentgrade)                                                   agentgrade
+        from lawage a
+                 left join laagent agent on a.agentcode = agent.agentcode
+                 left join latree tree on a.agentcode = tree.agentcode
+            ${ew.getCustomSqlSegment}
+    </select>
+    <select id="selectWagePageShowList"
+            resultType="com.sinosoft.bank.commission.domain.vo.BkWageListVo">
+        SELECT (SELECT TRIM(NAME) FROM laagent WHERE agentcode = a.agentcode)                 as name,
+               a.agentcode,
+               a.managecom,
+               (select NAME from ldcom where comcode = a.managecom)                           as manageComName,
+               (SELECT NAME FROM labranchgroup WHERE labranchgroup.agentgroup = b.agentgroup)    branchAttrName,
+               a.indexcalno,
+               (IFNULL(f01, 0.00) + IFNULL(f04, 0.00))                                        as baseMoney,
+               IFNULL(f03, 0.00)                                                              as f03,
+               IFNULL(f11, 0)                                                                 as f11,
+               IFNULL(f09, 0.00)                                                              as f09,
+               IFNULL(f12, 0.00)                                                              as f12,
+               IFNULL(f13, 0.00)                                                              as f13,
+               IFNULL(f14, 0.00)                                                              as f14,
+               (IFNULL(f01, 0.00) + IFNULL(f03, 0.00) + IFNULL(f04, 0.00) + IFNULL(f12, 0.00) + IFNULL(f11, 0.00) +
+                IFNULL(f09, 0.00) + IFNULL(f13, 0.00) + IFNULL(f14, 0.00))                    as baseTotal,
+               IFNULL(f05, 0.00)                                                              as f05,
+               IFNULL(f06, 0.00)                                                              as f06,
+               IFNULL((CASE SUBSTR(b.agentgrade, 0, 2) WHEN 'B1' THEN f07 WHEN 'B2' THEN f08 WHEN 'B3' THEN f21 END),
+                      0.00)                                                                   as f07,
+               IFNULL(f17, 0.00)                                                              as f17,
+               IFNULL(f18, 0.00)                                                              as f18,
+               IFNULL(f10, 0.00)                                                              as f10,
+               (IFNULL(f05, 0.00) + IFNULL(f06, 0.00) +
+                IFNULL(CASE SUBSTR(b.agentgrade, 0, 2) WHEN 'B1' THEN f07 WHEN 'B2' THEN f08 WHEN 'B3' THEN f21 END,
+                       0.00) + IFNULL(f10, 0.00) + IFNULL(a.f17, 0.00) + IFNULL(a.f18, 0.00)) as permanceTotal,
+               IFNULL(summoney, 0.00) - IFNULL(a.f20, 0.00)                                   as payAbleTotal,
+               IFNULL(a.f20, 0.00)                                                            as f20,
+               IFNULL(summoney, 0.00)                                                         as summoney,
+               IFNULL(a.f22, 0)                                                               as f22,
+               IFNULL(a.k08, 0)                                                               as k08,
+               IFNULL(a.k09, 0)                                                               as k09,
+               IFNULL(a.k10, 0)                                                               as k10,
+               IFNULL(a.k11, 0)                                                               as k11,
+               IFNULL(a.f23, 0) + IFNULL(a.f26, 0) + IFNULL(a.f27, 0)                         as otherTax,
+               IFNULL(a.f24, 0)                                                               as f24,
+               IFNULL(a.currmoney, 0.00)                                                      as currmoney
+        FROM lawage a,
+             latree b
+            ${ew.getCustomSqlSegment}
+    </select>
+
+</mapper>

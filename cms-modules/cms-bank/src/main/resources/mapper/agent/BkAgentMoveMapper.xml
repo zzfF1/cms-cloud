@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinosoft.bank.agent.mapper.BkAgentMoveMapper">
+
+    <sql id="selectBase">
+        select a.id,
+               a.agentcode,
+               agent.name        as                         agentcodename,
+               a.branchtype,
+               a.oldmanagecom,
+               a.newmanagecom,
+               a.oldagentgroup,
+               branch.branchattr as                         oldagentgroupbranchattr,
+               branch.name       as                         oldagentgroupbranchname,
+               a.newagentgroup,
+               a.oldbranchcode,
+               a.newbranchcode,
+               a.oldbranchmanager,
+               a.newbranchmanager,
+               a.adjustdate,
+               a.effectdate,
+               a.reason,
+               a.f01,
+               a.f05,
+               a.operator,
+               a.makedate,
+               (select name from lc_define where id = a.f01) lcid,
+               a.f02             as                         rejstatus,
+               a.f03
+        from agentmovechange a
+                 left join labranchgroup branch on a.oldagentgroup = branch.agentgroup
+                 left join laagent agent on a.agentcode = agent.agentcode
+    </sql>
+
+    <select id="selectPageList"
+            resultType="com.sinosoft.bank.agent.domain.vo.BkAgentMoveListShow">
+        <include refid="selectBase"/>
+        ${ew.getCustomSqlSegment}
+    </select>
+
+    <select id="queryAgentMoveList"
+            resultType="com.sinosoft.bank.agent.domain.vo.BkShowMoveAgentVo">
+        select agent.managecom,
+               com.shortname as managecomname,
+               agent.agentgroup,
+               branch.branchattr,
+               branch.name    as branchname,
+               agent.agentcode,
+               agent.name,
+               tree.agentgrade
+        from laagent agent
+                 left join latree tree on agent.agentcode = tree.agentcode
+                 left join ldcom com on agent.managecom = com.comcode
+                 left join labranchgroup branch on agent.agentgroup = branch.agentgroup
+            ${ew.getCustomSqlSegment}
+    </select>
+
+</mapper>

@@ -32,8 +32,8 @@ public class DubboSyncStrategy implements SyncStrategy {
         // 初始化表与方法的映射关系
         methodMappings.put("laagent", serviceSyncAdapter::syncAgentData);
         methodMappings.put("latree", serviceSyncAdapter::syncTreeData);
+        methodMappings.put("labranchgroup", serviceSyncAdapter::syncBranchData);
         // 可以在这里添加更多的映射关系
-
         log.info("已初始化Dubbo同步方法映射: {}", methodMappings.keySet());
     }
 
