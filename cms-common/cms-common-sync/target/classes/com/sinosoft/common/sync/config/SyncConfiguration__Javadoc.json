@@ -1,1 +1,0 @@
-{"doc":"","fields":[],"enumConstants":[],"methods":[{"name":"defaultServiceSyncAdapter","paramTypes":[],"doc":" 默认服务同步适配器（空实现）\n 仅当没有其他实现时使用\n"}],"constructors":[]}

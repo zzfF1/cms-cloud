@@ -1,6 +1,0 @@
-com.sinosoft.common.sync.util.DataSyncHelper
-com.sinosoft.common.sync.handler.DataSyncEventHandler
-com.sinosoft.common.sync.config.SyncConfigManager
-com.sinosoft.common.sync.service.impl.SyncRecordServiceImpl
-com.sinosoft.common.sync.adapter.MqAdapter
-com.sinosoft.common.sync.adapter.HttpAdapter

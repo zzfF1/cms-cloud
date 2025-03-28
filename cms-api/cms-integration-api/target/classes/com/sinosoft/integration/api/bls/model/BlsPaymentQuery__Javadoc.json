@@ -1,1 +1,0 @@
-{"doc":" 支付结果查询\n\n @author: zzf\n @create: 2025-03-13 18:13\n","fields":[{"name":"fromSystem","doc":" 系统来源\n"},{"name":"paymentDetailQueryList","doc":" 支付明细查询列表\n"}],"enumConstants":[],"methods":[],"constructors":[]}

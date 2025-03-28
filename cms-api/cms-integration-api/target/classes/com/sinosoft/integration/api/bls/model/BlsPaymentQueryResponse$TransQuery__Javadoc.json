@@ -1,1 +1,0 @@
-{"doc":" 查询参数明细类\n","fields":[{"name":"transSeq","doc":" 交易流水号\n"},{"name":"reqSeqState","doc":" 查询批次状态\n 0-批次不存在，2-查询成功\n"},{"name":"transList","doc":" 交易列表\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" @program: cms-cloud\n @description:\n @author: zzf\n @create: 2025-02-27 19:47\n","fields":[{"name":"contNo","doc":" 团单号\n"},{"name":"code","doc":" 工号\n"}],"enumConstants":[],"methods":[],"constructors":[]}

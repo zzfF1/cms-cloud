@@ -1,1 +1,0 @@
-{"doc":" CMS结果实体类\n 优化XML映射，解决转换问题\n\n @author: zzf\n @create: 2025-03-06 17:30\n","fields":[{"name":"batchNum","doc":" 批次号\n"},{"name":"times","doc":" 时间戳\n"},{"name":"totalCount","doc":" 总数量\n"},{"name":"resultSuccess","doc":" 结果是否成功 Y/N\n"},{"name":"resultMsg","doc":" 结果消息\n"},{"name":"sales","doc":" 销售记录集合\n"}],"enumConstants":[],"methods":[],"constructors":[]}

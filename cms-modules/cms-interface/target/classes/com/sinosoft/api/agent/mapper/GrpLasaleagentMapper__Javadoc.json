@@ -1,1 +1,0 @@
-{"doc":" 销管中介人员信息Mapper接口\n\n @author zzf\n @date 2024-09-03\n","fields":[],"enumConstants":[],"methods":[{"name":"selectSaleAgentInfo","paramTypes":["java.lang.String"],"doc":" 查询中介机构中介人员信息\n\n @param manageCom 管理机构\n @return 第三方人员信息\n"}],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" HTTP同步策略实现\n","fields":[],"enumConstants":[],"methods":[{"name":"createFailureRecord","paramTypes":["com.sinosoft.common.sync.event.DataSyncEvent","java.lang.String","com.sinosoft.common.sync.config.SyncConfig.TargetSystemConfig","java.lang.String"],"doc":" 创建失败记录\n"}],"constructors":[]}

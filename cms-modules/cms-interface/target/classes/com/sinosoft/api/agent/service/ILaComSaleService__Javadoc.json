@@ -1,1 +1,0 @@
-{"doc":" 中介机构管理\n\n @author zhangjiaxin\n @date 2023-07-07\n","fields":[],"enumConstants":[],"methods":[{"name":"selectSaleAgent","paramTypes":["java.lang.String"],"doc":" 查询中介机构\n\n @param managecom 管理公司\n @return 结果\n"}],"constructors":[]}

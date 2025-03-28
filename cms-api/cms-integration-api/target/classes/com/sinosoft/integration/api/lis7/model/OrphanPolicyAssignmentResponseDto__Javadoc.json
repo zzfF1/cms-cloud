@@ -1,1 +1,0 @@
-{"doc":" 响应结果类\n 对应系统返回的JSON响应结构\n","fields":[{"name":"response","doc":" 响应结果\n"}],"enumConstants":[],"methods":[],"constructors":[]}

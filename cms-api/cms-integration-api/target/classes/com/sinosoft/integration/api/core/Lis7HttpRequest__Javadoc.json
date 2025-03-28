@@ -1,1 +1,0 @@
-{"doc":" HTTP请求包装类 - 使用泛型支持不同的业务数据结构\n","fields":[{"name":"clientInfo","doc":" 客户端信息\n"},{"name":"inputData","doc":" 业务数据 - 使用泛型\n"}],"enumConstants":[],"methods":[],"constructors":[]}
