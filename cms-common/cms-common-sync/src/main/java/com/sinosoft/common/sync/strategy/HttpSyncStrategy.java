@@ -66,18 +66,26 @@ public class HttpSyncStrategy implements SyncStrategy {
             // 4. 创建批次记录
             fillBatchInfo(batch, event, targetConfig, response, dataList.size());
 
-            // 5. 如果请求失败，创建详情记录
-            if (!response.isSuccess()) {
-                for (int i = 0; i < dataList.size(); i++) {
-                    String primaryKeyValue = (i < primaryKeyValues.size()) ?
-                        primaryKeyValues.get(i) : "unknown-" + i;
+            // 创建详情记录 - 无论成功还是失败都创建
+            for (int i = 0; i < dataList.size(); i++) {
+                String primaryKeyValue = (i < primaryKeyValues.size()) ? primaryKeyValues.get(i) : "unknown-" + i;
 
-                    SysDataSyncDetail detail = createDetail(primaryKeyValue, response.getMessage());
-                    details.add(detail);
+                SysDataSyncDetail detail = new SysDataSyncDetail();
+                detail.setPrimaryKeyValue(primaryKeyValue);
+                // 如果成功，设置成功状态
+                if (response.isSuccess()) {
+                    detail.setStatus(1L); // 成功
+                    detail.setFailReason(null);
+                } else {
+                    detail.setStatus(0L); // 失败
+                    detail.setFailReason(response.getMessage());
                 }
+                detail.setSyncTime(new Date());
+                details.add(detail);
+            }
+            if (!response.isSuccess()) {
                 log.error("通过HTTP批量同步表 {} 的数据失败: {}", tableName, response.getMessage());
             }
-
             log.debug("完成通过HTTP批量同步表 {} 的数据", tableName);
         } catch (Exception e) {
             log.error("通过HTTP批量同步表 {} 的数据失败: {}", event.getTableName(), e.getMessage(), e);

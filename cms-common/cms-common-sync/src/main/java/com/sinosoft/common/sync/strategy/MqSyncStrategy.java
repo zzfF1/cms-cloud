@@ -27,7 +27,7 @@ public class MqSyncStrategy implements SyncStrategy {
     private final MqAdapter mqAdapter;
     private final ObjectMapper objectMapper;
     private final ConfigDtoMappingFactory configDtoMappingFactory;
-    private final ConfigKeyExtractor configKeyExtractor; // 使用新的提取工具
+    private final ConfigKeyExtractor configKeyExtractor;
 
     @Override
     public boolean supports(SyncConfig.TargetSystemConfig targetConfig) {
@@ -73,26 +73,35 @@ public class MqSyncStrategy implements SyncStrategy {
             // 5. 创建批次记录
             fillBatchInfo(batch, event, targetConfig, messageId, dataList.size());
 
-            // 6. 如果发送失败，创建详情记录
-            if (messageId == null) {
-                // 获取主键名并批量提取主键值
-                String primaryKeyName = event.getPrimaryKeyName();
+            // 6. 获取主键名并批量提取主键值
+            String primaryKeyName = event.getPrimaryKeyName();
+            if (primaryKeyName == null) {
+                primaryKeyName = configDtoMappingFactory.getPrimaryKeyByTable(tableName);
                 if (primaryKeyName == null) {
-                    primaryKeyName = configDtoMappingFactory.getPrimaryKeyByTable(tableName);
-                    if (primaryKeyName == null) {
-                        primaryKeyName = tableName + "_id";
-                    }
+                    primaryKeyName = tableName + "_id";
                 }
-                List<String> primaryKeyValues = configKeyExtractor.extractPrimaryKeys(dataList, tableName, primaryKeyName);
+            }
+            List<String> primaryKeyValues = configKeyExtractor.extractPrimaryKeys(dataList, tableName, primaryKeyName);
 
-                for (int i = 0; i < dataList.size(); i++) {
-                    String primaryKeyValue = (i < primaryKeyValues.size()) ?
-                        primaryKeyValues.get(i) : "unknown-" + i;
+            // 7. 创建明细记录 - 无论成功还是失败都创建
+            for (int i = 0; i < dataList.size(); i++) {
+                String primaryKeyValue = (i < primaryKeyValues.size()) ?
+                    primaryKeyValues.get(i) : "unknown-" + i;
 
-                    SysDataSyncDetail detail = createDetail(primaryKeyValue, "MQ消息发送失败");
-                    details.add(detail);
+                SysDataSyncDetail detail = new SysDataSyncDetail();
+                detail.setPrimaryKeyValue(primaryKeyValue);
+
+                // 如果成功，设置成功状态
+                if (messageId != null) {
+                    detail.setStatus(1L); // 成功
+                    detail.setFailReason(null);
+                } else {
+                    detail.setStatus(0L); // 失败
+                    detail.setFailReason("MQ消息发送失败");
                 }
-                log.error("通过MQ批量同步表 {} 的数据失败", tableName);
+
+                detail.setSyncTime(new Date());
+                details.add(detail);
             }
 
             log.debug("完成通过MQ批量同步表 {} 的数据", tableName);

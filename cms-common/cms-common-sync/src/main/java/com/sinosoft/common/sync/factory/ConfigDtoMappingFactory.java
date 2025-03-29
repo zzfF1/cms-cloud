@@ -9,13 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 配置DTO映射工厂 - 基于配置文件
+ * 配置映射工厂 - 无DTO简化版
  */
 @Slf4j
 @Component
@@ -30,30 +29,25 @@ public class ConfigDtoMappingFactory {
     // 类名到Class对象的缓存
     private final Map<String, Class<?>> classCache = new ConcurrentHashMap<>();
 
-    // 类到Builder方法的缓存
-    private final Map<Class<?>, Method> builderMethodCache = new ConcurrentHashMap<>();
-
-    // 构建器类到setter方法的缓存
-    private final Map<Class<?>, Map<String, Method>> setterMethodCache = new ConcurrentHashMap<>();
-
-    // 构建器类到build方法的缓存
-    private final Map<Class<?>, Method> buildMethodCache = new ConcurrentHashMap<>();
-
     @PostConstruct
     public void init() {
         // 初始化缓存
+        mappingCache.clear();
         for (TableMappingConfig.TableMapping mapping : tableMappingConfig.getTableMappings()) {
             mappingCache.put(mapping.getName().toLowerCase(), mapping);
-            log.info("加载表映射配置: {} -> {}", mapping.getName(), mapping.getDtoClass());
+            try {
+                // 预加载Schema类
+                getClass(mapping.getSchemaClass());
+                log.info("加载表映射配置: {} -> {}", mapping.getName(), mapping.getSchemaClass());
+            } catch (Exception e) {
+                log.error("加载表映射配置失败: {}", e.getMessage(), e);
+            }
         }
         log.info("共加载 {} 个表映射配置", mappingCache.size());
     }
 
     /**
-     * 创建请求对象
-     * @param tableName 表名
-     * @param dataList 数据列表
-     * @return 请求对象
+     * 创建请求对象 - 直接使用Map替代DTO
      */
     public Lis7HttpRequest<?> createRequest(String tableName, List<?> dataList) {
         try {
@@ -66,13 +60,18 @@ public class ConfigDtoMappingFactory {
             // 创建客户端信息
             ClientInfo clientInfo = createClientInfo(mapping.getBusinessCode());
 
-            // 创建DTO对象
-            Object dto = createDtoObject(mapping, dataList);
+            // 获取Schema类并转换数据
+            Class<?> schemaClass = getClass(mapping.getSchemaClass());
+            List<?> schemaList = MapstructUtils.convert(dataList, schemaClass);
+
+            // 直接使用Map作为DTO
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put(mapping.getPropertyName(), schemaList);
 
             // 创建请求对象
             Lis7HttpRequest<Object> request = new Lis7HttpRequest<>();
             request.setClientInfo(clientInfo);
-            request.setInputData(dto);
+            request.setInputData(dataMap);
 
             return request;
         } catch (Exception e) {
@@ -90,8 +89,6 @@ public class ConfigDtoMappingFactory {
 
     /**
      * 根据表名获取主键名
-     * @param tableName 表名
-     * @return 主键名
      */
     public String getPrimaryKeyByTable(String tableName) {
         TableMappingConfig.TableMapping mapping = getTableMapping(tableName);
@@ -116,24 +113,7 @@ public class ConfigDtoMappingFactory {
     }
 
     /**
-     * 创建DTO对象
-     */
-    private Object createDtoObject(TableMappingConfig.TableMapping mapping, List<?> dataList) throws Exception {
-        // 获取DTO类
-        Class<?> dtoClass = getClass(mapping.getDtoClass());
-
-        // 获取Schema类
-        Class<?> schemaClass = getClass(mapping.getSchemaClass());
-
-        // 将数据转换为Schema对象
-        List<?> schemaList = MapstructUtils.convert(dataList, schemaClass);
-
-        // 使用反射创建DTO对象并设置属性
-        return createDtoWithReflection(dtoClass, mapping.getPropertyName(), schemaList);
-    }
-
-    /**
-     * 获取类对象
+     * 获取类对象 - 使用缓存
      */
     private Class<?> getClass(String className) {
         return classCache.computeIfAbsent(className, name -> {
@@ -143,50 +123,5 @@ public class ConfigDtoMappingFactory {
                 throw new RuntimeException("未找到类: " + name, e);
             }
         });
-    }
-
-    /**
-     * 使用反射创建DTO对象
-     */
-    private Object createDtoWithReflection(Class<?> dtoClass, String propertyName, List<?> schemaList) throws Exception {
-        // 获取builder方法
-        Method builderMethod = builderMethodCache.computeIfAbsent(dtoClass, cls -> {
-            try {
-                return cls.getMethod("builder");
-            } catch (NoSuchMethodException e) {
-                throw new RuntimeException("未找到类 " + cls.getName() + " 的builder方法", e);
-            }
-        });
-
-        // 调用builder方法获取Builder对象
-        Object builder = builderMethod.invoke(null);
-
-        // 获取Builder类
-        Class<?> builderClass = builder.getClass();
-
-        // 获取setter方法
-        Map<String, Method> setters = setterMethodCache.computeIfAbsent(builderClass, cls -> new HashMap<>());
-        Method setterMethod = setters.computeIfAbsent(propertyName, propName -> {
-            try {
-                return builderClass.getMethod(propName, List.class);
-            } catch (NoSuchMethodException e) {
-                throw new RuntimeException("未找到类 " + builderClass.getName() + " 的方法: " + propName, e);
-            }
-        });
-
-        // 调用setter方法
-        setterMethod.invoke(builder, schemaList);
-
-        // 获取build方法
-        Method buildMethod = buildMethodCache.computeIfAbsent(builderClass, cls -> {
-            try {
-                return cls.getMethod("build");
-            } catch (NoSuchMethodException e) {
-                throw new RuntimeException("未找到类 " + cls.getName() + " 的build方法", e);
-            }
-        });
-
-        // 调用build方法创建DTO对象
-        return buildMethod.invoke(builder);
     }
 }

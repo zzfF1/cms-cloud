@@ -4,7 +4,6 @@ import com.sinosoft.common.sync.enums.OperationType;
 import com.sinosoft.system.api.model.LoginUser;
 import lombok.Builder;
 import lombok.Data;
-import org.apache.poi.ss.formula.functions.T;
 
 import java.io.Serializable;
 import java.util.List;
@@ -44,7 +43,6 @@ public class DataSyncEvent implements Serializable {
      * 操作人
      */
     private LoginUser loginUser;
-
 
     /**
      * 业务编码（可选，用于标识特定业务场景）

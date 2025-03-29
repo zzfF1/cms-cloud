@@ -3,6 +3,7 @@ package com.sinosoft.common.sync.config;
 import com.sinosoft.common.core.utils.StringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@RefreshScope
 public class SyncConfigManager {
 
     private final Environment environment;
@@ -26,50 +28,29 @@ public class SyncConfigManager {
     }
 
     /**
-     * 加载同步配置
+     * 加载同步配置 - 仅简化格式
      */
     private void loadSyncConfigurations() {
-        // 支持两种格式的配置：传统格式和简化格式
         String[] tables = environment.getProperty("sync.tables", "").split(",");
+        configMap.clear(); // 清空缓存以支持重新加载
 
         for (String table : tables) {
             if (StringUtils.isNotEmpty(table)) {
                 table = table.trim();
-
-                // 尝试加载简化格式配置
-                SyncConfig simpleConfig = loadSimpleConfigFormat(table);
-                if (simpleConfig != null) {
-                    configMap.put(table, simpleConfig);
+                SyncConfig config = loadSimpleConfigFormat(table);
+                if (config != null) {
+                    configMap.put(table, config);
                     log.info("已加载表 {} 的简化配置", table);
-                    continue;
+                } else {
+                    log.warn("表 {} 配置加载失败", table);
                 }
-
-                // 如果简化格式不存在，回退到传统格式
-                String prefix = "sync.config." + table;
-                SyncConfig config = new SyncConfig();
-                config.setTableName(table);
-                config.setEnabled(environment.getProperty(prefix + ".enabled", Boolean.class, true));
-                config.setPrimaryKey(environment.getProperty(prefix + ".primary-key", "id"));
-
-                // 加载目标系统
-                String targetSystems = environment.getProperty(prefix + ".target-systems", "");
-                if (StringUtils.isNotEmpty(targetSystems)) {
-                    for (String target : targetSystems.split(",")) {
-                        SyncConfig.TargetSystemConfig targetConfig = loadTargetConfig(prefix, target.trim());
-                        if (targetConfig != null) {
-                            config.getTargetSystems().add(targetConfig);
-                        }
-                    }
-                }
-
-                configMap.put(table, config);
-                log.info("已加载表 {} 的传统配置", table);
             }
         }
+        log.info("共加载 {} 个表配置", configMap.size());
     }
 
     /**
-     * 尝试加载简化格式配置
+     * 加载简化格式配置
      */
     private SyncConfig loadSimpleConfigFormat(String table) {
         String prefix = "sync.table-configs";
@@ -105,9 +86,7 @@ public class SyncConfigManager {
                 targetConfig.setTopic(environment.getProperty(targetPrefix + ".topic"));
                 targetConfig.setQueue(environment.getProperty(targetPrefix + ".queue"));
                 targetConfig.setTag(environment.getProperty(targetPrefix + ".tag"));
-            } else if ("DUBBO".equalsIgnoreCase(targetConfig.getSyncMode())) {
-                targetConfig.setServiceId(environment.getProperty(targetPrefix + ".service-id"));
-            } else if ("HTTP".equalsIgnoreCase(targetConfig.getSyncMode())) {
+            }else if ("HTTP".equalsIgnoreCase(targetConfig.getSyncMode())) {
                 targetConfig.setApiUrl(environment.getProperty(targetPrefix + ".api-url"));
                 targetConfig.setApiMethod(environment.getProperty(targetPrefix + ".api-method", "POST"));
                 targetConfig.setApiToken(environment.getProperty(targetPrefix + ".api-token"));
@@ -155,39 +134,7 @@ public class SyncConfigManager {
     }
 
     /**
-     * 加载目标系统配置
-     */
-    private SyncConfig.TargetSystemConfig loadTargetConfig(String prefix, String target) {
-        String targetPrefix = prefix + ".target." + target;
-
-        SyncConfig.TargetSystemConfig config = new SyncConfig.TargetSystemConfig();
-        config.setSystemCode(target);
-        config.setSystemName(environment.getProperty(targetPrefix + ".name", target));
-        config.setEnabled(environment.getProperty(targetPrefix + ".enabled", Boolean.class, true));
-        config.setSyncMode(environment.getProperty(targetPrefix + ".sync-mode", "MQ"));
-
-        // 根据同步模式加载不同配置
-        String syncMode = config.getSyncMode();
-        if ("MQ".equalsIgnoreCase(syncMode)) {
-            config.setMqType(environment.getProperty(targetPrefix + ".mq-type"));
-            config.setTopic(environment.getProperty(targetPrefix + ".topic"));
-            config.setQueue(environment.getProperty(targetPrefix + ".queue"));
-            config.setTag(environment.getProperty(targetPrefix + ".tag"));
-        } else if ("DUBBO".equalsIgnoreCase(syncMode)) {
-            config.setServiceId(environment.getProperty(targetPrefix + ".service-id"));
-        } else if ("HTTP".equalsIgnoreCase(syncMode)) {
-            config.setApiUrl(environment.getProperty(targetPrefix + ".api-url"));
-            config.setApiMethod(environment.getProperty(targetPrefix + ".api-method", "POST"));
-            config.setApiToken(environment.getProperty(targetPrefix + ".api-token"));
-            config.setApiTimeout(environment.getProperty(targetPrefix + ".api-timeout", Integer.class, 30000));
-        }
-
-        return config;
-    }
-
-    /**
      * 根据实体类获取表名
-     * 直接使用类名小写作为表名，无需配置映射
      */
     public String getTableNameForEntity(Class<?> entityClass) {
         // 1. 从缓存中查找
@@ -201,8 +148,7 @@ public class SyncConfigManager {
 
         // 3. 检查表配置是否存在
         if (!configMap.containsKey(tableName)) {
-            log.error("实体类 {} 对应的表 {} 没有同步配置，将跳过同步处理",
-                entityClass.getName(), tableName);
+            log.error("实体类 {} 对应的表 {} 没有同步配置，将跳过同步处理", entityClass.getName(), tableName);
             return null;
         }
 
