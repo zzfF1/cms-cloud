@@ -15,7 +15,6 @@ import java.util.Date;
  *
  * @author zzf
  */
-
 @Data
 @NoArgsConstructor
 public class SysUserExportVo implements Serializable {
@@ -38,8 +37,14 @@ public class SysUserExportVo implements Serializable {
     /**
      * 用户昵称
      */
-    @ExcelProperty(value = "用户名称")
+    @ExcelProperty(value = "用户昵称")
     private String nickName;
+
+    /**
+     * 真实姓名
+     */
+    @ExcelProperty(value = "真实姓名")
+    private String realName;
 
     /**
      * 用户邮箱
@@ -68,6 +73,69 @@ public class SysUserExportVo implements Serializable {
     private String status;
 
     /**
+     * 部门名称
+     */
+    @ExcelProperty(value = "部门名称")
+    private String deptName;
+
+    /**
+     * 渠道类型
+     */
+    @ExcelProperty(value = "渠道类型", converter = ExcelDictConvert.class)
+    @ExcelDictFormat(dictType = "branchtype")
+    private String branchType;
+
+    /**
+     * 证件号码
+     */
+    @ExcelProperty(value = "证件号码")
+    private String idNo;
+
+    /**
+     * 账号绑定IP
+     */
+    @ExcelProperty(value = "绑定IP")
+    private String bindIp;
+
+    /**
+     * 允许访问时间开始
+     */
+    @ExcelProperty(value = "访问开始时间")
+    private String accessStartTime;
+
+    /**
+     * 允许访问时间结束
+     */
+    @ExcelProperty(value = "访问结束时间")
+    private String accessEndTime;
+
+    /**
+     * 账户类型（0长期用户 1临时用户）
+     */
+    @ExcelProperty(value = "账户类型", converter = ExcelDictConvert.class)
+    @ExcelDictFormat(dictType = "user_acc_type")
+    private Integer accType;
+
+    /**
+     * 账户有效起期
+     */
+    @ExcelProperty(value = "有效起期")
+    private String validStartDate;
+
+    /**
+     * 账户有效止期
+     */
+    @ExcelProperty(value = "有效止期")
+    private String validEndDate;
+
+    /**
+     * 系统内置（Y是 N否）
+     */
+    @ExcelProperty(value = "系统内置", converter = ExcelDictConvert.class)
+    @ExcelDictFormat(dictType = "sys_yes_no")
+    private String sysType;
+
+    /**
      * 最后登录IP
      */
     @ExcelProperty(value = "最后登录IP")
@@ -80,15 +148,14 @@ public class SysUserExportVo implements Serializable {
     private Date loginDate;
 
     /**
-     * 部门名称
+     * 创建时间
      */
-    @ExcelProperty(value = "部门名称")
-    private String deptName;
+    @ExcelProperty(value = "创建时间")
+    private Date createTime;
 
     /**
      * 负责人
      */
     @ExcelProperty(value = "部门负责人")
     private String leaderName;
-
 }

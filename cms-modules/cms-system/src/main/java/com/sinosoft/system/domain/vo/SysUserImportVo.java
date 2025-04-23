@@ -9,16 +9,13 @@ import com.sinosoft.common.excel.convert.ExcelDictConvert;
 import java.io.Serial;
 import java.io.Serializable;
 
-
 /**
  * 用户对象导入VO
  *
  * @author zzf
  */
-
 @Data
 @NoArgsConstructor
-// @Accessors(chain = true) // 导入不允许使用 会找不到set方法
 public class SysUserImportVo implements Serializable {
 
     @Serial
@@ -45,8 +42,14 @@ public class SysUserImportVo implements Serializable {
     /**
      * 用户昵称
      */
-    @ExcelProperty(value = "用户名称")
+    @ExcelProperty(value = "用户昵称")
     private String nickName;
+
+    /**
+     * 真实姓名
+     */
+    @ExcelProperty(value = "真实姓名")
+    private String realName;
 
     /**
      * 用户邮箱
@@ -74,4 +77,53 @@ public class SysUserImportVo implements Serializable {
     @ExcelDictFormat(dictType = "sys_normal_disable")
     private String status;
 
+    /**
+     * 渠道类型
+     */
+    @ExcelProperty(value = "渠道类型", converter = ExcelDictConvert.class)
+    @ExcelDictFormat(dictType = "branchtype")
+    private String branchType;
+
+    /**
+     * 证件号码
+     */
+    @ExcelProperty(value = "证件号码")
+    private String idNo;
+
+    /**
+     * 账号绑定IP
+     */
+    @ExcelProperty(value = "绑定IP")
+    private String bindIp;
+
+    /**
+     * 允许访问时间开始
+     */
+    @ExcelProperty(value = "访问开始时间")
+    private String accessStartTime;
+
+    /**
+     * 允许访问时间结束
+     */
+    @ExcelProperty(value = "访问结束时间")
+    private String accessEndTime;
+
+    /**
+     * 账户类型（0长期用户 1临时用户）
+     */
+    @ExcelProperty(value = "账户类型", converter = ExcelDictConvert.class)
+    @ExcelDictFormat(dictType = "user_acc_type")
+    private Integer accType;
+
+    /**
+     * 账户有效起期
+     */
+    @ExcelProperty(value = "有效起期")
+    private String validStartDate;
+
+    /**
+     * 账户有效止期
+     */
+    @ExcelProperty(value = "有效止期")
+    private String validEndDate;
 }

@@ -67,7 +67,7 @@
         <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
         <el-table-column label="创建时间" align="center" prop="createTime" width="180">
           <template #default="scope">
-            <span>{{ parseTime(scope.row.createTime) }}</span>
+            <span>{{ proxy.parseTime(scope.row.createTime) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width">
@@ -108,8 +108,8 @@
 </template>
 
 <script setup name="Dict" lang="ts">
-import useDictStore from '@/store/modules/dict';
-import { listType, getType, delType, addType, updateType, refreshCache } from '@/api/system/dict/type';
+import { useDictStore } from '@/store/modules/dict';
+import { addType, delType, getType, listType, refreshCache, updateType } from '@/api/system/dict/type';
 import { DictTypeForm, DictTypeQuery, DictTypeVO } from '@/api/system/dict/type/types';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;

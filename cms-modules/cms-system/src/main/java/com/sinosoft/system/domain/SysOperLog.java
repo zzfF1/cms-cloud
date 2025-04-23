@@ -58,6 +58,11 @@ public class SysOperLog implements Serializable {
     private Integer operatorType;
 
     /**
+     * 事件类型
+     */
+    private Integer eventType;
+
+    /**
      * 操作人员
      */
     private String operName;
@@ -111,5 +116,10 @@ public class SysOperLog implements Serializable {
      * 消耗时间
      */
     private Long costTime;
+
+    /**
+     * 岗位
+     */
+    private String postCode;
 
 }

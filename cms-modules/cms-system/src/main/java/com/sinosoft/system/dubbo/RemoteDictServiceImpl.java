@@ -5,7 +5,9 @@ import org.apache.dubbo.config.annotation.DubboService;
 import com.sinosoft.common.core.utils.MapstructUtils;
 import com.sinosoft.system.api.RemoteDictService;
 import com.sinosoft.system.api.domain.vo.RemoteDictDataVo;
+import com.sinosoft.system.api.domain.vo.RemoteDictTypeVo;
 import com.sinosoft.system.domain.vo.SysDictDataVo;
+import com.sinosoft.system.domain.vo.SysDictTypeVo;
 import com.sinosoft.system.service.ISysDictTypeService;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,12 @@ import java.util.List;
 public class RemoteDictServiceImpl implements RemoteDictService {
 
     private final ISysDictTypeService sysDictTypeService;
+
+    @Override
+    public RemoteDictTypeVo selectDictTypeByType(String dictType) {
+        SysDictTypeVo vo = sysDictTypeService.selectDictTypeByType(dictType);
+        return MapstructUtils.convert(vo, RemoteDictTypeVo.class);
+    }
 
     /**
      * 根据字典类型查询字典数据

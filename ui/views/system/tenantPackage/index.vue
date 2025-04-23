@@ -82,7 +82,7 @@
             node-key="id"
             :check-strictly="!form.menuCheckStrictly"
             empty-text="加载中，请稍候"
-            :props="{ label: 'label', children: 'children' }"
+            :props="{ label: 'label', children: 'children' } as any"
           ></el-tree>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -101,14 +101,14 @@
 
 <script setup name="TenantPackage" lang="ts">
 import {
-  listTenantPackage,
-  getTenantPackage,
-  delTenantPackage,
   addTenantPackage,
-  updateTenantPackage,
-  changePackageStatus
+  changePackageStatus,
+  delTenantPackage,
+  getTenantPackage,
+  listTenantPackage,
+  updateTenantPackage
 } from '@/api/system/tenantPackage';
-import { treeselect as menuTreeselect, tenantPackageMenuTreeselect } from '@/api/system/menu';
+import { tenantPackageMenuTreeselect, treeselect as menuTreeselect } from '@/api/system/menu';
 import { TenantPkgForm, TenantPkgQuery, TenantPkgVO } from '@/api/system/tenantPackage/types';
 import { MenuTreeOption } from '@/api/system/menu/types';
 import to from 'await-to-js';

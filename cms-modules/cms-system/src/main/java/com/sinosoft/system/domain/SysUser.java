@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import com.sinosoft.common.core.constant.UserConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.common.tenant.core.TenantEntity;
 
 import java.util.Date;
@@ -104,12 +104,86 @@ public class SysUser extends TenantEntity {
     private String remark;
 
 
+    /**
+     * 最后一次密码修改时间
+     */
+    private Date lastPwdUpdateTime;
+
+    /**
+     * 证件号码（实名制使用）
+     */
+    private String idNo;
+    /**
+     * 允许访问时间开始 24hi:mm:ss
+     */
+    private String accessStartTime;
+
+    /**
+     * 账号绑定IP
+     */
+    private String bindIp;
+
+    /**
+     * 允许访问时间截止 24hi:mm:ss
+     */
+    private String accessEndTime;
+
+    /**
+     * 账户类型
+     */
+    private Integer accType;
+
+    /**
+     * 账户有效起期  yyyy-MM-dd
+     */
+    private String validStartDate;
+
+    /**
+     * 账户有效止期  yyyy-MM-dd
+     */
+    private String validEndDate;
+
+    /**
+     * 账户激活时间
+     */
+    private Date activeTime;
+
+    /**
+     * 账户锁定时间
+     */
+    private Date lockTime;
+
+    /**
+     * 账户休眠时间
+     */
+    private Date dormancyTime;
+
+    /**
+     * 账户注销时间
+     */
+    private Date logoutTime;
+
+    /**
+     * 系统内置 Y-是 N-否
+     */
+    private String sysType;
+
+    /**
+     * 姓名（实名制）
+     */
+    private String realName;
+    /**
+     * 实名完成时间
+     */
+    private Date authTime;
+
+
     public SysUser(Long userId) {
         this.userId = userId;
     }
 
     public boolean isSuperAdmin() {
-        return UserConstants.SUPER_ADMIN_ID.equals(this.userId);
+        return SystemConstants.SUPER_ADMIN_ID.equals(this.userId);
     }
 
 }

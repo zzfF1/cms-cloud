@@ -65,11 +65,6 @@ public class SysClient extends BaseEntity {
     private Long timeout;
 
     /**
-     * 服务处理状态（0服务者 1调用者 ）
-     */
-    private String serviceType;
-
-    /**
      * 客户端配置参数
      */
     private String config;

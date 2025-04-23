@@ -19,6 +19,7 @@ export interface UserQuery extends PageQuery {
   status?: string;
   deptId?: string | number;
   roleId?: string | number;
+  userIds?: string;
 }
 
 /**
@@ -46,6 +47,17 @@ export interface UserVO extends BaseEntity {
   postIds: any;
   roleId: any;
   admin: boolean;
+  branchType?: string; // 渠道类型
+  idNo?: string; // 证件号码
+  bindIp?: string; // 账号绑定IP
+  accessStartTime?: string; // 允许访问时间开始
+  accessEndTime?: string; // 允许访问时间结束
+  accType?: number; // 账户类型
+  validStartDate?: string; // 账户有效起期
+  validEndDate?: string; // 账户有效止期
+  realName?: string; // 真实姓名
+  sysType?: string; // 系统内置
+  manageCom?: string; // 管理机构
 }
 
 /**
@@ -65,6 +77,14 @@ export interface UserForm {
   remark?: string;
   postIds: string[];
   roleIds: string[];
+  branchType?: string; // 渠道类型
+  idNo?: string; // 证件号码
+  bindIp?: string; // 账号绑定IP
+  accessTime?: string[]; // 允许访问时间[开始, 结束]
+  accType?: number; // 账户类型
+  validDate?: string[]; // 账户有效期[起期, 止期]
+  realName?: string; // 真实姓名
+  sysType?: string; // 系统内置 Y/N
 }
 
 export interface UserInfoVO {

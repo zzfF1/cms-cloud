@@ -1,7 +1,7 @@
 package com.sinosoft.system.mapper;
 
 import org.apache.ibatis.annotations.Param;
-import com.sinosoft.common.domain.vo.LcProcessShowVo;
+import com.sinosoft.common.schema.common.domain.vo.LcProcessShowVo;
 import com.sinosoft.common.mybatis.core.mapper.BaseMapperPlus;
 import com.sinosoft.common.schema.common.domain.Ldcom;
 

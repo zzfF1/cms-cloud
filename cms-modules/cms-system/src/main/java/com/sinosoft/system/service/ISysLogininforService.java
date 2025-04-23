@@ -3,6 +3,7 @@ package com.sinosoft.system.service;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.system.domain.bo.SysLogininforBo;
+import com.sinosoft.system.domain.vo.SysLogininfoStatisticVo;
 import com.sinosoft.system.domain.vo.SysLogininforVo;
 
 import java.util.List;
@@ -44,4 +45,13 @@ public interface ISysLogininforService {
      * 清空系统登录日志
      */
     void cleanLogininfor();
+
+
+    /**
+     * 登录日志统计
+     * @param bo
+     * @return
+     */
+    List<SysLogininfoStatisticVo> logininfoStatistic(SysLogininforBo bo);
+
 }

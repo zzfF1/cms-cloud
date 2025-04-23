@@ -27,6 +27,13 @@ public class SysDeptBo extends BaseEntity {
     private Long deptId;
 
     /**
+     * 管理机构代码
+     */
+    @NotBlank(message = "机构代码不能为空")
+    @Size(min = 0, max = 8, message = "机构代码长度不能超过{max}个字符")
+    private String manageCom;
+
+    /**
      * 父部门ID
      */
     private Long parentId;
@@ -72,5 +79,10 @@ public class SysDeptBo extends BaseEntity {
      * 部门状态（0正常 1停用）
      */
     private String status;
+
+    /**
+     * 归属部门id（部门树）
+     */
+    private Long belongDeptId;
 
 }

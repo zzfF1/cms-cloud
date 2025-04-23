@@ -1,5 +1,6 @@
 package com.sinosoft.system.service;
 
+import com.sinosoft.common.dict.vo.CodeNameVo;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.system.domain.SysUserRole;
@@ -197,4 +198,11 @@ public interface ISysRoleService {
 
     void cleanOnlineUserByRole(Long roleId);
 
+    /**
+     * 查询角色编码、名称
+     * @return
+     */
+    List<CodeNameVo> listRoles();
+	
+    void cleanOnlineUser(List<Long> userIds);
 }

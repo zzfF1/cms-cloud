@@ -18,19 +18,52 @@
         from sys_dept ${ew.getCustomSqlSegment}
     </select>
 
+    <select id="selectPageDeptList" resultMap="SysDeptResult">
+        select
+        <if test="ew.getSqlSelect != null">
+            ${ew.getSqlSelect}
+        </if>
+        <if test="ew.getSqlSelect == null">
+            *
+        </if>
+        from sys_dept ${ew.getCustomSqlSegment}
+    </select>
+
     <select id="countDeptById" resultType="Long">
         select count(*) from sys_dept where del_flag = '0' and dept_id = #{deptId}
     </select>
 
-    <select id="selectDeptListByRoleId" resultType="Long">
+    <select id="selectDeptListByRoleId" resultType="java.lang.Long">
         select d.dept_id
         from sys_dept d
-            left join sys_role_dept rd on d.dept_id = rd.dept_id
+        left join sys_role_dept rd on d.dept_id = rd.dept_id
         where rd.role_id = #{roleId}
-            <if test="deptCheckStrictly">
-                and d.dept_id not in (select d.parent_id from sys_dept d inner join sys_role_dept rd on d.dept_id = rd.dept_id and rd.role_id = #{roleId})
-            </if>
+        <if test="deptCheckStrictly">
+            and d.dept_id not in (select d.parent_id from sys_dept d inner join sys_role_dept rd on d.dept_id = rd.dept_id and rd.role_id = #{roleId})
+        </if>
         order by d.parent_id, d.order_num
+    </select>
+
+    <!-- 查询部门列表（集成Ldcom） -->
+    <select id="selectDeptLdcomList" resultType="com.sinosoft.system.domain.vo.SysDeptLdcomVo">
+        select d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.dept_category, d.order_num, d.leader, d.phone,
+               d.email, d.status, d.create_time, d.manage_com,
+               l.outcomcode, l.name, l.shortname, l.address, l.zipcode, l.phone as com_phone, l.fax, l.comgrade,
+               l.regionalismcode, l.upcomcode
+        from sys_dept d
+                 left join ldcom l on d.manage_com = l.comcode
+            ${ew.customSqlSegment}
+    </select>
+
+    <!-- 分页查询部门列表（集成Ldcom） -->
+    <select id="selectPageDeptLdcomList" resultType="com.sinosoft.system.domain.vo.SysDeptLdcomVo">
+        select d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.dept_category, d.order_num, d.leader, d.phone,
+               d.email, d.status, d.create_time, d.manage_com,
+               l.outcomcode, l.name, l.shortname, l.address, l.zipcode, l.phone as com_phone, l.fax, l.comgrade,
+               l.regionalismcode, l.upcomcode
+        from sys_dept d
+                 left join ldcom l on d.manage_com = l.comcode
+            ${ew.customSqlSegment}
     </select>
 
 </mapper>

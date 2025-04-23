@@ -11,6 +11,7 @@ import com.sinosoft.system.domain.SysUser;
 import com.sinosoft.system.domain.vo.SysUserExportVo;
 import com.sinosoft.system.domain.vo.SysUserVo;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -89,4 +90,12 @@ public interface SysUserMapper extends BaseMapperPlus<SysUser, SysUserVo> {
     })
     int updateById(@Param(Constants.ENTITY) SysUser user);
 
+    /**
+     * 更新用户状态
+     * @param userId  用户ID
+     * @param status  状态
+     * @param current 当前时间
+     * @return
+     */
+    void updateUserStatus(@Param("userId") Long userId,@Param("status") String status,@Param("current") Date current);
 }

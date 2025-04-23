@@ -12,7 +12,7 @@
       <el-table-column label="浏览器" align="center" prop="browser" :show-overflow-tooltip="true" />
       <el-table-column label="登录时间" align="center" prop="loginTime" width="180">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.loginTime) }}</span>
+          <span>{{ proxy.parseTime(scope.row.loginTime) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
@@ -26,7 +26,7 @@
   </div>
 </template>
 
-<script name="Online" lang="ts" setup>
+<script setup name="Online" lang="ts">
 import { delOnline } from '@/api/monitor/online';
 import { propTypes } from '@/utils/propTypes';
 

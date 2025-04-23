@@ -1,6 +1,8 @@
 package com.sinosoft.system.controller.system;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.sinosoft.common.log.enums.EventType;
+import com.sinosoft.system.enums.ConfigKeyEnum;
 import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.domain.R;
 import com.sinosoft.common.web.core.BaseController;
@@ -16,6 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.List;
 
 /**
@@ -43,7 +46,7 @@ public class SysConfigController extends BaseController {
     /**
      * 导出参数配置列表
      */
-    @Log(title = "参数管理", businessType = BusinessType.EXPORT)
+    @Log(title = "参数管理", businessType = BusinessType.EXPORT, eventType = EventType.system)
     @SaCheckPermission("system:config:export")
     @PostMapping("/export")
     public void export(SysConfigBo config, HttpServletResponse response) {
@@ -76,9 +79,14 @@ public class SysConfigController extends BaseController {
      * 新增参数配置
      */
     @SaCheckPermission("system:config:add")
-    @Log(title = "参数管理", businessType = BusinessType.INSERT)
-    @PostMapping
+    @Log(title = "参数管理", businessType = BusinessType.INSERT, eventType = EventType.system)
+    @PostMapping("/add")
     public R<Void> add(@Validated @RequestBody SysConfigBo config) {
+        //校验参数值
+        String error = ConfigKeyEnum.doValid(config.getConfigKey(), config.getConfigValue());
+        if (error != null) {
+            return R.fail(error);
+        }
         if (!configService.checkConfigKeyUnique(config)) {
             return R.fail("新增参数'" + config.getConfigName() + "'失败，参数键名已存在");
         }
@@ -90,9 +98,14 @@ public class SysConfigController extends BaseController {
      * 修改参数配置
      */
     @SaCheckPermission("system:config:edit")
-    @Log(title = "参数管理", businessType = BusinessType.UPDATE)
-    @PutMapping
+    @Log(title = "参数管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/edit")
     public R<Void> edit(@Validated @RequestBody SysConfigBo config) {
+        //校验参数值
+        String error = ConfigKeyEnum.doValid(config.getConfigKey(), config.getConfigValue());
+        if (error != null) {
+            return R.fail(error);
+        }
         if (!configService.checkConfigKeyUnique(config)) {
             return R.fail("修改参数'" + config.getConfigName() + "'失败，参数键名已存在");
         }
@@ -104,8 +117,8 @@ public class SysConfigController extends BaseController {
      * 根据参数键名修改参数配置
      */
     @SaCheckPermission("system:config:edit")
-    @Log(title = "参数管理", businessType = BusinessType.UPDATE)
-    @PutMapping("/updateByKey")
+    @Log(title = "参数管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/updateByKey")
     public R<Void> updateByKey(@RequestBody SysConfigBo config) {
         configService.updateConfig(config);
         return R.ok();
@@ -117,8 +130,8 @@ public class SysConfigController extends BaseController {
      * @param configIds 参数ID串
      */
     @SaCheckPermission("system:config:remove")
-    @Log(title = "参数管理", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{configIds}")
+    @Log(title = "参数管理", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{configIds}")
     public R<Void> remove(@PathVariable Long[] configIds) {
         configService.deleteConfigByIds(configIds);
         return R.ok();
@@ -128,8 +141,8 @@ public class SysConfigController extends BaseController {
      * 刷新参数缓存
      */
     @SaCheckPermission("system:config:remove")
-    @Log(title = "参数管理", businessType = BusinessType.CLEAN)
-    @DeleteMapping("/refreshCache")
+    @Log(title = "参数管理", businessType = BusinessType.CLEAN, eventType = EventType.system)
+    @PostMapping("/refreshCache")
     public R<Void> refreshCache() {
         configService.resetConfigCache();
         return R.ok();

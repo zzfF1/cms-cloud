@@ -1,30 +1,38 @@
 package com.sinosoft.system.controller.system;
 
 import cn.hutool.core.lang.tree.Tree;
+import com.sinosoft.common.domain.dto.FieldOptionDTO;
+import com.sinosoft.common.domain.dto.QueryFieldDTO;
+import com.sinosoft.common.schema.common.domain.SysPageConfig;
+import com.sinosoft.common.schema.common.domain.SysPageConfigQuery;
+import com.sinosoft.common.schema.common.domain.vo.*;
+import com.sinosoft.common.service.IBusinessHelpDocsService;
+import com.sinosoft.common.service.ICmsCommonService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.sinosoft.common.core.utils.StringUtils;
 import com.sinosoft.common.core.domain.R;
 import com.sinosoft.common.core.utils.DateUtils;
 import com.sinosoft.common.domain.bo.AgentQueryBo;
 import com.sinosoft.common.domain.bo.BranchGroupQueryBo;
 import com.sinosoft.common.domain.bo.LaComQueryBo;
 import com.sinosoft.common.domain.bo.LdComQueryBo;
-import com.sinosoft.common.domain.vo.LcProcessShowVo;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.common.satoken.utils.LoginHelper;
 import com.sinosoft.common.schema.agent.domain.bo.LaAgentGradeBo;
 import com.sinosoft.common.schema.commission.domain.Lmriskapp;
 import com.sinosoft.common.schema.common.domain.LaQualifyCode;
-import com.sinosoft.common.schema.common.domain.vo.LabelShowVo;
-import com.sinosoft.common.schema.common.domain.vo.SysPageConfigTabVo;
 import com.sinosoft.common.schema.team.domain.vo.BranchGroupShowVo;
 import com.sinosoft.common.web.core.BaseController;
 import com.sinosoft.system.service.ICommonService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 公共接口
@@ -40,7 +48,8 @@ import java.util.List;
 public class CommonController extends BaseController {
 
     private final ICommonService commonService;
-//    private final IBusinessHelpDocsService businessHelpDocsService;
+    private final ICmsCommonService cmsCommonService;
+    private final IBusinessHelpDocsService businessHelpDocsService;
 //    private final ISysAttachmentBusinessService sysAttachmentBusinessService;
 
     /**
@@ -75,7 +84,37 @@ public class CommonController extends BaseController {
      */
     @GetMapping("/pageTabConfig")
     public R<List<SysPageConfigTabVo>> pageTabConfig(String pageCode) {
-        return R.ok(commonService.queryPageTableConfig(pageCode));
+        return R.ok(commonService.queryPageTableConfig(pageCode, LoginHelper.getUserId()));
+    }
+
+    /**
+     * 保存用户表格列配置
+     *
+     * @param params 参数对象
+     * @return 结果
+     */
+    @PostMapping("/saveTableConfig")
+    public R<Boolean> saveUserTableConfig(@RequestBody Map<String, Object> params) {
+        String pageCode = (String) params.get("pageCode");
+        if (StringUtils.isEmpty(pageCode)) {
+            return R.fail("页面编码不能为空");
+        }
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> columns = (List<Map<String, Object>>) params.get("columns");
+        if (columns == null || columns.isEmpty()) {
+            return R.fail("列配置不能为空");
+        }
+        List<UserTableColumnConfigVo> configs = new ArrayList<>();
+        for (Map<String, Object> column : columns) {
+            UserTableColumnConfigVo config = new UserTableColumnConfigVo();
+            config.setPageTableId(Long.valueOf(String.valueOf(column.get("id"))));
+            config.setProp((String) column.get("prop"));
+            config.setWidth(column.get("width") != null ? String.valueOf(column.get("width")) : null);
+            config.setVisible((Boolean) column.get("visible"));
+            configs.add(config);
+        }
+
+        return R.ok(commonService.saveUserTableColumnConfigs(pageCode, configs, LoginHelper.getUserId()));
     }
 
     /**
@@ -98,6 +137,12 @@ public class CommonController extends BaseController {
         return R.ok(dataList);
     }
 
+    /**
+     * 查询代理机构标签
+     *
+     * @param bo 查询条件
+     * @return 代理机构标签
+     */
     @PostMapping("/queryLaComLabel")
     public R<List<LabelShowVo>> queryLaComLabel(LaComQueryBo bo) {
         //设置当前用户管理机构
@@ -138,16 +183,16 @@ public class CommonController extends BaseController {
         return R.ok(dataList);
     }
 
-//    /**
-//     * 查询帮忙文档
-//     *
-//     * @param busCode 业务编码
-//     * @return 帮忙文档
-//     */
-//    @GetMapping("/queryHelpDoc")
-//    public R<HelpDocShowVo> queryHelpDoc(String busCode) {
-//        return R.ok(businessHelpDocsService.queryContent(busCode));
-//    }
+    /**
+     * 查询帮忙文档
+     *
+     * @param busCode 业务编码
+     * @return 帮忙文档
+     */
+    @GetMapping("/queryHelpDoc")
+    public R<HelpDocShowVo> queryHelpDoc(String busCode) {
+        return R.ok(businessHelpDocsService.queryContent(busCode));
+    }
 
     /**
      * 查询管理机构
@@ -182,93 +227,6 @@ public class CommonController extends BaseController {
         return R.ok(dataList);
     }
 
-//    /**
-//     * 上传文件
-//     *
-//     * @param files        文件
-//     * @param busDataType  附件类型
-//     * @param uid          附件唯一标识
-//     * @param attId        附件id
-//     * @param markedUpdate 更新标记
-//     * @param busCode      附件业务代码
-//     * @param dataId       业务数据id
-//     * @param delAttIds    删除附件id
-//     * @return 结果
-//     * @throws IOException 异常
-//     */
-//    @PostMapping(value = "/uploadFile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//    public R<List<AttachFileVo>> upload(@RequestPart(value = "files", required = false) MultipartFile[] files, @RequestParam(value = "busDataType", required = false) String[] busDataType,
-//                                        @RequestParam(value = "uid", required = false) String[] uid, @RequestParam(value = "attId", required = false) String[] attId,
-//                                        @RequestParam(value = "markedUpdate", required = false) String[] markedUpdate, @RequestParam(value = "markedAdd", required = false) String[] markedAdd,
-//                                        @RequestPart("busCode") String busCode, @RequestPart("dataId") String dataId, @RequestPart(value = "delAttIds", required = false) String delAttIds) throws IOException {
-//        List<AttachFileBo> fileList = new ArrayList<>();
-//        //循环上传文件
-//        if (files != null && files.length > 0) {
-//            for (int i = 0; i < files.length; i++) {
-//                AttachFileBo attachFileBo = new AttachFileBo();
-//                attachFileBo.setMarkedUpdate(Boolean.parseBoolean(markedUpdate[i]));
-//                attachFileBo.setMarkedAdd(Boolean.parseBoolean(markedAdd[i]));
-//                if(attachFileBo.isMarkedUpdate()){
-//                    attachFileBo.setAttId(StringUtils.isNotBlank(attId[i]) ? Long.parseLong(attId[i]) : 0L);
-//                }
-//                attachFileBo.setUid(uid[i]);
-//                attachFileBo.setBusCode(busCode);
-//                attachFileBo.setBusDataType(busDataType[i]);
-//                attachFileBo.setBusDataId(dataId);
-//                attachFileBo.setFile(files[i]);
-//                attachFileBo.setMarkedDel(false);
-//                fileList.add(attachFileBo);
-//            }
-//        }
-//        //删除附件
-//        if (StringUtils.isNotBlank(delAttIds)) {
-//            String[] delAttIdArr = delAttIds.split(",");
-//            for (String delAttId : delAttIdArr) {
-//                AttachFileBo attachFileBo = new AttachFileBo();
-//                attachFileBo.setAttId(Long.parseLong(delAttId));
-//                attachFileBo.setBusCode(busCode);
-//                attachFileBo.setBusDataId(dataId);
-//                attachFileBo.setMarkedDel(true);
-//                attachFileBo.setMarkedUpdate(false);
-//                attachFileBo.setMarkedAdd(false);
-//                fileList.add(attachFileBo);
-//            }
-//        }
-//        log.info("附件上传:{}", fileList.stream().toList().toString());
-//        if (CollUtil.isNotEmpty(fileList)) {
-//            List<AttachFileVo> attachFileVoList = sysAttachmentBusinessService.upload(fileList, LoginHelper.getLoginUser());
-//            return R.ok(attachFileVoList);
-//        }
-//        return R.ok();
-//    }
-//
-//    /**
-//     * 附件下载
-//     *
-//     * @param response 响应
-//     * @param attId    附件id
-//     * @param busCode  业务编码
-//     * @throws IOException 异常
-//     */
-//    @Log(title = "附件下载", businessType = BusinessType.DOWNLOAD)
-//    @GetMapping("/download")
-//    public void download(HttpServletResponse response, String attId, String busCode) throws IOException {
-//        sysAttachmentBusinessService.download(Long.valueOf(attId), busCode, response);
-//    }
-//
-//    /**
-//     * 删除附件
-//     *
-//     * @param attIds  附件主键
-//     * @param busCode 业务代码
-//     * @return 结果
-//     */
-//    @Log(title = "附件删除", businessType = BusinessType.DELETE)
-//    @DeleteMapping("/remove/{attIds}")
-//    public R<Void> remove(@NotEmpty(message = "附件主键不能为空") @PathVariable Long[] attIds, @RequestParam(required = true) String busCode) {
-//        return toAjax(sysAttachmentBusinessService.remove(List.of(attIds), busCode, LoginHelper.getLoginUser()));
-//    }
-
     /**
      * 获取服务器日期
      * 格式yyyy-MM-dd
@@ -278,5 +236,164 @@ public class CommonController extends BaseController {
     @GetMapping("/getDate")
     public R<String> getServiceDate() {
         return R.ok(DateUtils.getDate());
+    }
+
+    /**
+     * 获取查询字段配置
+     *
+     * @param pageCode 页面代码
+     * @return 查询字段配置
+     */
+    @GetMapping("/queryFields")
+    public R<List<QueryFieldDTO>> queryFields(String pageCode) {
+        SysPageConfig sysPageConfig = cmsCommonService.selectPageConfigByCode(pageCode);
+        if (sysPageConfig == null) {
+            return R.fail("页面配置不存在");
+        }
+
+        // 获取查询配置
+        List<SysPageConfigQuery> queries = cmsCommonService.selectPageConfigQueryByPageId(sysPageConfig.getId());
+
+        // 转换为前端需要的格式
+        List<QueryFieldDTO> fieldConfigs = queries.stream()
+            .filter(q -> "3".equals(q.getType()))
+            .map(this::convertToFieldConfig)
+            .collect(Collectors.toList());
+
+        return R.ok(fieldConfigs);
+    }
+
+    /**
+     * 获取字段选项数据
+     *
+     * @param fieldType 字段类型
+     * @param fieldId   字段标识
+     * @return 字段选项数据
+     */
+    @GetMapping("/fieldOptions")
+    public R<List<FieldOptionDTO>> fieldOptions(String fieldType, String fieldId) {
+        // 根据字段类型和ID获取选项数据
+        List<FieldOptionDTO> options = new ArrayList<>();
+        return R.ok(options);
+    }
+
+    /**
+     * 将配置对象转换为字段配置DTO
+     */
+    private QueryFieldDTO convertToFieldConfig(SysPageConfigQuery query) {
+        QueryFieldDTO config = new QueryFieldDTO();
+        config.setLabel(query.getRemark());
+        config.setValue(query.getAlias());
+
+        // 使用配置的组件类型，如果为空则根据字段类型推断
+        String componentType = query.getComponentType();
+        if (StringUtils.isEmpty(componentType)) {
+            componentType = getComponentTypeByFieldType(query.getFieldType(), query.getSpecialCode());
+        }
+        config.setType(componentType);  // 这里应该使用 componentType，而不是其他值
+
+        // 设置数据源信息
+        if ("select".equals(componentType) || "multiSelect".equals(componentType)) {
+            config.setDataSource(query.getDataSource());
+            config.setDictType(query.getDictType());  // 这里应该使用 dictType，而不是其他值
+            config.setBeanName(query.getBeanName());
+            config.setDependencyField(query.getDependencyField());
+        }
+        // 设置占位提示文字
+        config.setPlaceholder(query.getPlaceholder());
+        // 设置操作符
+        config.setOperators(getOperatorsByComponentType(componentType));
+        return config;
+    }
+
+    /**
+     * 根据字段类型和特殊代码获取组件类型
+     */
+    private String getComponentType(String fieldType, String specialCode) {
+        if (specialCode != null && !specialCode.isEmpty()) {
+            if (specialCode.equals("BRANCH_ATTR") || specialCode.equals("DATA_MANAGE_LIKE")) {
+                return "popup";
+            }
+        }
+
+        switch (fieldType) {
+            case "STR":
+                return "text";
+            case "INT":
+            case "LONG":
+            case "DOUBLE":
+                return "number";
+            case "DATE":
+                return "date";
+            default:
+                return "text";
+        }
+    }
+
+    /**
+     * 创建选项对象
+     */
+    private FieldOptionDTO createOption(String value, String label) {
+        FieldOptionDTO option = new FieldOptionDTO();
+        option.setLabel(label);
+        option.setValue(value);
+        return option;
+    }
+
+    /**
+     * 根据组件类型获取操作符列表
+     *
+     * @param componentType 组件类型
+     * @return 操作符列表
+     */
+    private List<String> getOperatorsByComponentType(String componentType) {
+        switch (componentType) {
+            case "input":
+            case "text":
+                return List.of("=", "!=", "LIKE", "LIKE_LEFT", "IS_NULL", "IS_NOT_NULL");
+            case "number":
+                return List.of("=", "!=", ">", "<", ">=", "<=", "BETWEEN", "IS_NULL", "IS_NOT_NULL");
+            case "date":
+                return List.of("=", ">", "<", "BETWEEN", "IS_NULL", "IS_NOT_NULL");
+            case "select":
+            case "multiSelect":
+                return List.of("=", "!=", "IN", "IS_NULL", "IS_NOT_NULL");
+            case "popup":
+            case "tree": // 添加tree类型的操作符
+                return List.of("=", "!=", "LIKE_RIGHT", "IS_NULL", "IS_NOT_NULL");
+            default:
+                return List.of("=", "!=");
+        }
+    }
+
+    /**
+     * 根据字段类型和特殊代码获取组件类型
+     *
+     * @param fieldType   字段类型
+     * @param specialCode 特殊代码
+     * @return 组件类型
+     */
+    private String getComponentTypeByFieldType(String fieldType, String specialCode) {
+        if (specialCode != null && !specialCode.isEmpty()) {
+            if (specialCode.equals("BRANCH_ATTR") || specialCode.equals("DATA_MANAGE_LIKE")) {
+                return "popup";
+            }
+            if (specialCode.equals("DICT")) {
+                return "select";
+            }
+        }
+
+        switch (fieldType) {
+            case "STR":
+                return "text";
+            case "INT":
+            case "LONG":
+            case "DOUBLE":
+                return "number";
+            case "DATE":
+                return "date";
+            default:
+                return "text";
+        }
     }
 }

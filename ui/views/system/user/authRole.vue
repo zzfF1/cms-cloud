@@ -39,7 +39,7 @@
           <el-table-column label="权限字符" align="center" prop="roleKey" />
           <el-table-column label="创建时间" align="center" prop="createTime" width="180">
             <template #default="scope">
-              <span>{{ parseTime(scope.row.createTime) }}</span>
+              <span>{{ proxy.parseTime(scope.row.createTime) }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -59,7 +59,6 @@ import { RoleVO } from '@/api/system/role/types';
 import { getAuthRole, updateAuthRole } from '@/api/system/user';
 import { UserForm } from '@/api/system/user/types';
 import { RouteLocationNormalized } from 'vue-router';
-import { parseTime } from '@/utils/ruoyi';
 
 const route = useRoute();
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;

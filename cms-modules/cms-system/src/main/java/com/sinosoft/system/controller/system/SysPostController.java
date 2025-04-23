@@ -2,11 +2,12 @@ package com.sinosoft.system.controller.system;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.hutool.core.util.ObjectUtil;
-import com.sinosoft.common.core.constant.UserConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.common.core.domain.R;
 import com.sinosoft.common.excel.utils.ExcelUtil;
 import com.sinosoft.common.log.annotation.Log;
 import com.sinosoft.common.log.enums.BusinessType;
+import com.sinosoft.common.log.enums.EventType;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.common.web.core.BaseController;
@@ -46,7 +47,7 @@ public class SysPostController extends BaseController {
     /**
      * 导出岗位列表
      */
-    @Log(title = "岗位管理", businessType = BusinessType.EXPORT)
+    @Log(title = "岗位管理", businessType = BusinessType.EXPORT, eventType = EventType.system)
     @SaCheckPermission("system:post:export")
     @PostMapping("/export")
     public void export(SysPostBo post, HttpServletResponse response) {
@@ -69,8 +70,8 @@ public class SysPostController extends BaseController {
      * 新增岗位
      */
     @SaCheckPermission("system:post:add")
-    @Log(title = "岗位管理", businessType = BusinessType.INSERT)
-    @PostMapping
+    @Log(title = "岗位管理", businessType = BusinessType.INSERT, eventType = EventType.system)
+    @PostMapping("/add")
     public R<Void> add(@Validated @RequestBody SysPostBo post) {
         if (!postService.checkPostNameUnique(post)) {
             return R.fail("新增岗位'" + post.getPostName() + "'失败，岗位名称已存在");
@@ -84,14 +85,14 @@ public class SysPostController extends BaseController {
      * 修改岗位
      */
     @SaCheckPermission("system:post:edit")
-    @Log(title = "岗位管理", businessType = BusinessType.UPDATE)
-    @PutMapping
+    @Log(title = "岗位管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/edit")
     public R<Void> edit(@Validated @RequestBody SysPostBo post) {
         if (!postService.checkPostNameUnique(post)) {
             return R.fail("修改岗位'" + post.getPostName() + "'失败，岗位名称已存在");
         } else if (!postService.checkPostCodeUnique(post)) {
             return R.fail("修改岗位'" + post.getPostName() + "'失败，岗位编码已存在");
-        } else if (UserConstants.POST_DISABLE.equals(post.getStatus())
+        } else if (SystemConstants.DISABLE.equals(post.getStatus())
             && postService.countUserPostById(post.getPostId()) > 0) {
             return R.fail("该岗位下存在已分配用户，不能禁用!");
         }
@@ -104,8 +105,8 @@ public class SysPostController extends BaseController {
      * @param postIds 岗位ID串
      */
     @SaCheckPermission("system:post:remove")
-    @Log(title = "岗位管理", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{postIds}")
+    @Log(title = "岗位管理", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{postIds}")
     public R<Void> remove(@PathVariable Long[] postIds) {
         return toAjax(postService.deletePostByIds(postIds));
     }

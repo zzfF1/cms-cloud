@@ -61,7 +61,7 @@
         <el-table-column label="社会信用代码" align="center" prop="licenseNumber" />
         <el-table-column label="过期时间" align="center" prop="expireTime" width="180">
           <template #default="scope">
-            <span>{{ parseTime(scope.row.expireTime, '{y}-{m}-{d}') }}</span>
+            <span>{{ proxy.parseTime(scope.row.expireTime, '{y}-{m}-{d}') }}</span>
           </template>
         </el-table-column>
         <el-table-column label="租户状态" align="center" prop="status">
@@ -145,17 +145,17 @@
 
 <script setup name="Tenant" lang="ts">
 import {
-  listTenant,
-  getTenant,
-  delTenant,
   addTenant,
-  updateTenant,
   changeTenantStatus,
+  delTenant,
+  getTenant,
+  listTenant,
+  syncTenantDict,
   syncTenantPackage,
-  syncTenantDict
+  updateTenant
 } from '@/api/system/tenant';
 import { selectTenantPackage } from '@/api/system/tenantPackage';
-import useUserStore from '@/store/modules/user';
+import { useUserStore } from '@/store/modules/user';
 import { TenantForm, TenantQuery, TenantVO } from '@/api/system/tenant/types';
 import { TenantPkgVO } from '@/api/system/tenantPackage/types';
 

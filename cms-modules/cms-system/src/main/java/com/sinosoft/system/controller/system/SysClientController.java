@@ -1,6 +1,7 @@
 package com.sinosoft.system.controller.system;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.sinosoft.common.log.enums.EventType;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -49,7 +50,7 @@ public class SysClientController extends BaseController {
      * 导出客户端管理列表
      */
     @SaCheckPermission("system:client:export")
-    @Log(title = "客户端管理", businessType = BusinessType.EXPORT)
+    @Log(title = "导出客户端管理列表", businessType = BusinessType.EXPORT, eventType = EventType.system)
     @PostMapping("/export")
     public void export(SysClientBo bo, HttpServletResponse response) {
         List<SysClientVo> list = sysClientService.queryList(bo);
@@ -72,9 +73,9 @@ public class SysClientController extends BaseController {
      * 新增客户端管理
      */
     @SaCheckPermission("system:client:add")
-    @Log(title = "客户端管理", businessType = BusinessType.INSERT)
+    @Log(title = "客户端管理", businessType = BusinessType.INSERT, eventType = EventType.system)
     @RepeatSubmit()
-    @PostMapping()
+    @PostMapping("/add")
     public R<Void> add(@Validated(AddGroup.class) @RequestBody SysClientBo bo) {
         return toAjax(sysClientService.insertByBo(bo));
     }
@@ -83,9 +84,9 @@ public class SysClientController extends BaseController {
      * 修改客户端管理
      */
     @SaCheckPermission("system:client:edit")
-    @Log(title = "客户端管理", businessType = BusinessType.UPDATE)
+    @Log(title = "客户端管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
     @RepeatSubmit()
-    @PutMapping()
+    @PostMapping("/edit")
     public R<Void> edit(@Validated(EditGroup.class) @RequestBody SysClientBo bo) {
         return toAjax(sysClientService.updateByBo(bo));
     }
@@ -94,10 +95,10 @@ public class SysClientController extends BaseController {
      * 状态修改
      */
     @SaCheckPermission("system:client:edit")
-    @Log(title = "客户端管理", businessType = BusinessType.UPDATE)
-    @PutMapping("/changeStatus")
+    @Log(title = "客户端管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/changeStatus")
     public R<Void> changeStatus(@RequestBody SysClientBo bo) {
-        return toAjax(sysClientService.updateUserStatus(bo.getClientId(), bo.getStatus()));
+        return toAjax(sysClientService.updateClientStatus(bo.getClientId(), bo.getStatus()));
     }
 
     /**
@@ -106,8 +107,8 @@ public class SysClientController extends BaseController {
      * @param ids 主键串
      */
     @SaCheckPermission("system:client:remove")
-    @Log(title = "客户端管理", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{ids}")
+    @Log(title = "客户端管理", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{ids}")
     public R<Void> remove(@NotEmpty(message = "主键不能为空")
                           @PathVariable Long[] ids) {
         return toAjax(sysClientService.deleteWithValidByIds(List.of(ids), true));

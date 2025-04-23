@@ -1,6 +1,11 @@
 package com.sinosoft.system.controller.system;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.hutool.core.lang.tree.Tree;
+import com.sinosoft.common.encrypt.annotation.ApiEncrypt;
+import com.sinosoft.common.log.enums.EventType;
+import com.sinosoft.system.domain.bo.SysDeptQuery;
+import com.sinosoft.system.domain.vo.SysUserAllocatedVo;
 import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.domain.R;
 import com.sinosoft.common.web.core.BaseController;
@@ -52,7 +57,7 @@ public class SysRoleController extends BaseController {
     /**
      * 导出角色信息列表
      */
-    @Log(title = "角色管理", businessType = BusinessType.EXPORT)
+    @Log(title = "角色管理", businessType = BusinessType.EXPORT, eventType = EventType.system)
     @SaCheckPermission("system:role:export")
     @PostMapping("/export")
     public void export(SysRoleBo role, HttpServletResponse response) {
@@ -76,8 +81,8 @@ public class SysRoleController extends BaseController {
      * 新增角色
      */
     @SaCheckPermission("system:role:add")
-    @Log(title = "角色管理", businessType = BusinessType.INSERT)
-    @PostMapping
+    @Log(title = "角色管理", businessType = BusinessType.INSERT, eventType = EventType.system)
+    @PostMapping("/add")
     public R<Void> add(@Validated @RequestBody SysRoleBo role) {
         roleService.checkRoleAllowed(role);
         if (!roleService.checkRoleNameUnique(role)) {
@@ -93,8 +98,8 @@ public class SysRoleController extends BaseController {
      * 修改保存角色
      */
     @SaCheckPermission("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.UPDATE)
-    @PutMapping
+    @Log(title = "角色管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/edit")
     public R<Void> edit(@Validated @RequestBody SysRoleBo role) {
         roleService.checkRoleAllowed(role);
         roleService.checkRoleDataScope(role.getRoleId());
@@ -115,8 +120,8 @@ public class SysRoleController extends BaseController {
      * 修改保存数据权限
      */
     @SaCheckPermission("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.UPDATE)
-    @PutMapping("/dataScope")
+    @Log(title = "角色管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/dataScope")
     public R<Void> dataScope(@RequestBody SysRoleBo role) {
         roleService.checkRoleAllowed(role);
         roleService.checkRoleDataScope(role.getRoleId());
@@ -127,8 +132,8 @@ public class SysRoleController extends BaseController {
      * 状态修改
      */
     @SaCheckPermission("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.UPDATE)
-    @PutMapping("/changeStatus")
+    @Log(title = "角色管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/changeStatus")
     public R<Void> changeStatus(@RequestBody SysRoleBo role) {
         roleService.checkRoleAllowed(role);
         roleService.checkRoleDataScope(role.getRoleId());
@@ -141,8 +146,8 @@ public class SysRoleController extends BaseController {
      * @param roleIds 角色ID串
      */
     @SaCheckPermission("system:role:remove")
-    @Log(title = "角色管理", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{roleIds}")
+    @Log(title = "角色管理", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{roleIds}")
     public R<Void> remove(@PathVariable Long[] roleIds) {
         return toAjax(roleService.deleteRoleByIds(roleIds));
     }
@@ -161,18 +166,20 @@ public class SysRoleController extends BaseController {
     /**
      * 查询已分配用户角色列表
      */
+    @ApiEncrypt(response = true)
     @SaCheckPermission("system:role:list")
     @GetMapping("/authUser/allocatedList")
-    public TableDataInfo<SysUserVo> allocatedList(SysUserBo user, PageQuery pageQuery) {
+    public TableDataInfo<SysUserAllocatedVo> allocatedList(SysUserBo user, PageQuery pageQuery) {
         return userService.selectAllocatedList(user, pageQuery);
     }
 
     /**
      * 查询未分配用户角色列表
      */
+    @ApiEncrypt(response = true)
     @SaCheckPermission("system:role:list")
     @GetMapping("/authUser/unallocatedList")
-    public TableDataInfo<SysUserVo> unallocatedList(SysUserBo user, PageQuery pageQuery) {
+    public TableDataInfo<SysUserAllocatedVo> unallocatedList(SysUserBo user, PageQuery pageQuery) {
         return userService.selectUnallocatedList(user, pageQuery);
     }
 
@@ -180,9 +187,12 @@ public class SysRoleController extends BaseController {
      * 取消授权用户
      */
     @SaCheckPermission("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.GRANT)
-    @PutMapping("/authUser/cancel")
+    @Log(title = "角色管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/authUser/cancel")
     public R<Void> cancelAuthUser(@RequestBody SysUserRole userRole) {
+        if(userService.checkInnerUser(userRole.getUserId())){
+            return R.fail("用户ID {} "+userRole.getUserId() + " 是系统内置用户，无法修改");
+        }
         return toAjax(roleService.deleteAuthUser(userRole));
     }
 
@@ -193,9 +203,14 @@ public class SysRoleController extends BaseController {
      * @param userIds 用户ID串
      */
     @SaCheckPermission("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.GRANT)
-    @PutMapping("/authUser/cancelAll")
+    @Log(title = "角色管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/authUser/cancelAll")
     public R<Void> cancelAuthUserAll(Long roleId, Long[] userIds) {
+        for (Long userId : userIds) {
+            if(userService.checkInnerUser(userId)){
+                return R.fail("用户ID {} "+userId + " 是系统内置用户，无法修改");
+            }
+        }
         return toAjax(roleService.deleteAuthUsers(roleId, userIds));
     }
 
@@ -206,9 +221,14 @@ public class SysRoleController extends BaseController {
      * @param userIds 用户ID串
      */
     @SaCheckPermission("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.GRANT)
-    @PutMapping("/authUser/selectAll")
+    @Log(title = "角色管理", businessType = BusinessType.AUTHORIZE, eventType = EventType.system)
+    @PostMapping("/authUser/selectAll")
     public R<Void> selectAuthUserAll(Long roleId, Long[] userIds) {
+        for (Long userId : userIds) {
+            if(userService.checkInnerUser(userId)){
+                return R.fail("用户ID {} "+userId + " 是系统内置用户，无法修改");
+            }
+        }
         roleService.checkRoleDataScope(roleId);
         return toAjax(roleService.insertAuthUsers(roleId, userIds));
     }
@@ -221,10 +241,13 @@ public class SysRoleController extends BaseController {
     @SaCheckPermission("system:role:list")
     @GetMapping(value = "/deptTree/{roleId}")
     public R<DeptTreeSelectVo> roleDeptTreeselect(@PathVariable("roleId") Long roleId) {
-        DeptTreeSelectVo selectVo = new DeptTreeSelectVo();
-        selectVo.setCheckedKeys(deptService.selectDeptListByRoleId(roleId));
-        selectVo.setDepts(deptService.selectDeptTreeList(new SysDeptBo()));
+        DeptTreeSelectVo selectVo = new DeptTreeSelectVo(
+            deptService.selectDeptListByRoleId(roleId),
+            deptService.selectDeptTreeList(new SysDeptQuery()));
         return R.ok(selectVo);
     }
+
+    public record DeptTreeSelectVo(List<Long> checkedKeys, List<Tree<Long>> depts) {}
+
 }
 

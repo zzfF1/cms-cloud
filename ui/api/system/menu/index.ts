@@ -46,7 +46,7 @@ export const tenantPackageMenuTreeselect = (packageId: string | number): AxiosPr
 // 新增菜单
 export const addMenu = (data: MenuForm) => {
   return request({
-    url: '/system/menu',
+    url: '/system/menu/add',
     method: 'post',
     data: data
   });
@@ -55,8 +55,8 @@ export const addMenu = (data: MenuForm) => {
 // 修改菜单
 export const updateMenu = (data: MenuForm) => {
   return request({
-    url: '/system/menu',
-    method: 'put',
+    url: '/system/menu/edit',
+    method: 'post',
     data: data
   });
 };

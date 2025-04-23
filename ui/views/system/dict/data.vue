@@ -66,7 +66,7 @@
         <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
         <el-table-column label="创建时间" align="center" prop="createTime" width="180">
           <template #default="scope">
-            <span>{{ parseTime(scope.row.createTime) }}</span>
+            <span>{{ proxy.parseTime(scope.row.createTime) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width">
@@ -126,9 +126,9 @@
 </template>
 
 <script setup name="Data" lang="ts">
-import useDictStore from '@/store/modules/dict';
-import { optionselect as getDictOptionselect, getType } from '@/api/system/dict/type';
-import { listData, getData, delData, addData, updateData } from '@/api/system/dict/data';
+import { useDictStore } from '@/store/modules/dict';
+import { getType, optionselect as getDictOptionselect } from '@/api/system/dict/type';
+import { addData, delData, getData, listData, updateData } from '@/api/system/dict/data';
 import { DictTypeVO } from '@/api/system/dict/type/types';
 import { DictDataForm, DictDataQuery, DictDataVO } from '@/api/system/dict/data/types';
 import { RouteLocationNormalized } from 'vue-router';

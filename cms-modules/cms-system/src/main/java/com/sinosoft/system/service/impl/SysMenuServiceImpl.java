@@ -7,8 +7,9 @@ import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.sinosoft.system.config.SystemConfig;
 import lombok.RequiredArgsConstructor;
-import com.sinosoft.common.core.constant.UserConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.common.core.utils.MapstructUtils;
 import com.sinosoft.common.core.utils.StreamUtils;
 import com.sinosoft.common.core.utils.StringUtils;
@@ -30,6 +31,7 @@ import com.sinosoft.system.service.ISysMenuService;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 菜单 业务层处理
@@ -44,6 +46,7 @@ public class SysMenuServiceImpl implements ISysMenuService {
     private final SysRoleMapper roleMapper;
     private final SysRoleMenuMapper roleMenuMapper;
     private final SysTenantPackageMapper tenantPackageMapper;
+    private final SystemConfig systemConfig;
 
     /**
      * 根据用户查询系统菜单列表
@@ -85,6 +88,43 @@ public class SysMenuServiceImpl implements ISysMenuService {
             menuList = MapstructUtils.convert(list, SysMenuVo.class);
         }
         return menuList;
+    }
+
+    @Override
+    public void authExclusive(Long roleId, List<SysMenuVo> authList) {
+        if(!systemConfig.getAuthExclusive()){
+            return;
+        }
+        if(roleId == null || CollUtil.isEmpty(authList)){
+            return;
+        }
+        List<Long> authsOfOtherRole = baseMapper.selectMenuListOfOtherRole(roleId);
+        if(CollUtil.isEmpty(authsOfOtherRole)){
+            return;
+        }
+        Set<Long> authsOfOtherRoleSet = new HashSet<>(authsOfOtherRole);
+        Map<Long, Set<Long>> parentMap = authList.stream()
+            .collect(Collectors.groupingBy(SysMenuVo::getParentId, Collectors.mapping(SysMenuVo::getMenuId, Collectors.toSet())));
+        for (Long d : authsOfOtherRole) {
+            if(shouldRemove(d,parentMap,authsOfOtherRoleSet)){
+                authList.removeIf(e->e.getMenuId().equals(d));
+            }
+        }
+    }
+
+    private boolean shouldRemove(Long authId,Map<Long, Set<Long>> parentMap,Set<Long> authsOfOtherRoleSet){
+        Set<Long> childs = parentMap.get(authId);
+        if(CollUtil.isNotEmpty(childs)){
+            //存在子级
+            for (Long child : childs) {
+                if(!shouldRemove(child,parentMap,authsOfOtherRoleSet)){
+                    return false;
+                }
+            }
+            return true;
+        }else{
+            return authsOfOtherRoleSet.contains(authId);
+        }
     }
 
     /**
@@ -196,7 +236,7 @@ public class SysMenuServiceImpl implements ISysMenuService {
             router.setQuery(menu.getQueryParam());
             router.setMeta(new MetaVo(menu.getMenuName(), menu.getIcon(), StringUtils.equals("1", menu.getIsCache()), menu.getPath()));
             List<SysMenu> cMenus = menu.getChildren();
-            if (CollUtil.isNotEmpty(cMenus) && UserConstants.TYPE_DIR.equals(menu.getMenuType())) {
+            if (CollUtil.isNotEmpty(cMenus) && SystemConstants.TYPE_DIR.equals(menu.getMenuType())) {
                 router.setAlwaysShow(true);
                 router.setRedirect("noRedirect");
                 router.setChildren(buildMenus(cMenus));
@@ -220,7 +260,7 @@ public class SysMenuServiceImpl implements ISysMenuService {
                 String routerPath = SysMenu.innerLinkReplaceEach(menu.getPath());
                 String innerLinkName = StringUtils.capitalize(routerPath) + menu.getMenuId();
                 children.setPath(routerPath);
-                children.setComponent(UserConstants.INNER_LINK);
+                children.setComponent(SystemConstants.INNER_LINK);
                 children.setName(innerLinkName);
                 children.setMeta(new MetaVo(menu.getMenuName(), menu.getIcon(), menu.getPath()));
                 childrenList.add(children);
@@ -242,11 +282,14 @@ public class SysMenuServiceImpl implements ISysMenuService {
         if (CollUtil.isEmpty(menus)) {
             return CollUtil.newArrayList();
         }
-        return TreeBuildUtils.build(menus, (menu, tree) ->
-            tree.setId(menu.getMenuId())
+        return TreeBuildUtils.build(menus, (menu, tree) -> {
+            Tree<Long> menuTree = tree.setId(menu.getMenuId())
                 .setParentId(menu.getParentId())
                 .setName(menu.getMenuName())
-                .setWeight(menu.getOrderNum()));
+                .setWeight(menu.getOrderNum());
+            menuTree.put("menuType", menu.getMenuType());
+            menuTree.put("icon", menu.getIcon());
+        });
     }
 
     /**

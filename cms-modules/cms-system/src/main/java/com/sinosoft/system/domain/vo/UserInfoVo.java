@@ -31,5 +31,13 @@ public class UserInfoVo implements Serializable {
      * 角色权限
      */
     private Set<String> roles;
+    /**
+     * 是否强制修改密码
+     */
+    private Boolean pwdFlag = false;
 
+    /**
+     * 账号是否已实名
+     */
+    private Boolean realAuth = true;
 }

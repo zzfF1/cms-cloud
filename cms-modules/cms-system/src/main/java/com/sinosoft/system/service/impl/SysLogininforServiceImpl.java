@@ -2,6 +2,7 @@ package com.sinosoft.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sinosoft.system.domain.vo.SysLogininfoStatisticVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.sinosoft.common.core.utils.MapstructUtils;
@@ -42,8 +43,7 @@ public class SysLogininforServiceImpl implements ISysLogininforService {
             .between(params.get("beginTime") != null && params.get("endTime") != null,
                 SysLogininfor::getLoginTime, params.get("beginTime"), params.get("endTime"));
         if (StringUtils.isBlank(pageQuery.getOrderByColumn())) {
-            pageQuery.setOrderByColumn("info_id");
-            pageQuery.setIsAsc("desc");
+            lqw.orderByDesc(SysLogininfor::getInfoId);
         }
         Page<SysLogininforVo> page = baseMapper.selectVoPage(pageQuery.build(), lqw);
         return TableDataInfo.build(page);
@@ -96,5 +96,10 @@ public class SysLogininforServiceImpl implements ISysLogininforService {
     @Override
     public void cleanLogininfor() {
         baseMapper.delete(new LambdaQueryWrapper<>());
+    }
+
+    @Override
+    public List<SysLogininfoStatisticVo> logininfoStatistic(SysLogininforBo bo) {
+        return baseMapper.logininfoStatistic(bo);
     }
 }

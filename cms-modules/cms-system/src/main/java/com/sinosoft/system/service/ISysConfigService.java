@@ -34,6 +34,13 @@ public interface ISysConfigService {
     String selectConfigByKey(String configKey);
 
     /**
+     * 根据键名查询参数配置信息(适用于未登录时使用)
+     * @param configKey
+     * @return
+     */
+    String selectByKeyTenantid(String configKey,String tenantId);
+
+    /**
      * 获取注册开关
      * @param tenantId 租户id
      * @return true开启，false关闭

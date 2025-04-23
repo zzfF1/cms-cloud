@@ -3,6 +3,7 @@ package com.sinosoft.system.controller.system;
 import cn.dev33.satoken.secure.BCrypt;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.io.FileUtil;
+import com.sinosoft.common.log.enums.EventType;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -52,13 +53,13 @@ public class SysProfileController extends BaseController {
     /**
      * 个人信息
      */
+    @ApiEncrypt(response = true)
     @GetMapping
     public R<ProfileVo> profile() {
         SysUserVo user = userService.selectUserById(LoginHelper.getUserId());
-        ProfileVo profileVo = new ProfileVo();
-        profileVo.setUser(user);
-        profileVo.setRoleGroup(userService.selectUserRoleGroup(user.getUserId()));
-        profileVo.setPostGroup(userService.selectUserPostGroup(user.getUserId()));
+        String roleGroup = userService.selectUserRoleGroup(user.getUserId());
+        String postGroup = userService.selectUserPostGroup(user.getUserId());
+        ProfileVo profileVo = new ProfileVo(user, roleGroup, postGroup);
         return R.ok(profileVo);
     }
 
@@ -66,8 +67,8 @@ public class SysProfileController extends BaseController {
      * 修改用户信息
      */
     @RepeatSubmit
-    @Log(title = "个人信息", businessType = BusinessType.UPDATE)
-    @PutMapping
+    @Log(title = "个人信息", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("updateProfile")
     public R<Void> updateProfile(@Validated @RequestBody SysUserProfileBo profile) {
         SysUserBo user = BeanUtil.toBean(profile, SysUserBo.class);
         user.setUserId(LoginHelper.getUserId());
@@ -92,19 +93,22 @@ public class SysProfileController extends BaseController {
      */
     @RepeatSubmit
     @ApiEncrypt
-    @Log(title = "个人信息", businessType = BusinessType.UPDATE)
-    @PutMapping("/updatePwd")
+    @Log(title = "个人信息", businessType = BusinessType.RESET_PASSWORD, eventType = EventType.system)
+    @PostMapping("/updatePwd")
     public R<Void> updatePwd(@Validated @RequestBody SysUserPasswordBo bo) {
         SysUserVo user = userService.selectUserById(LoginHelper.getUserId());
         String password = user.getPassword();
+        if(bo.getNewPassword().toLowerCase().contains(user.getUserName().toLowerCase())){
+            return R.fail("密码不能包含用户名称字符");
+        }
         if (!BCrypt.checkpw(bo.getOldPassword(), password)) {
             return R.fail("修改密码失败，旧密码错误");
         }
         if (BCrypt.checkpw(bo.getNewPassword(), password)) {
             return R.fail("新密码不能与旧密码相同");
         }
-
-        if (userService.resetUserPwd(user.getUserId(), BCrypt.hashpw(bo.getNewPassword())) > 0) {
+        int rows = DataPermissionHelper.ignore(() -> userService.resetUserPwd(user.getUserId(), BCrypt.hashpw(bo.getNewPassword())));
+        if (rows > 0) {
             return R.ok();
         }
         return R.fail("修改密码异常，请联系管理员");
@@ -117,7 +121,7 @@ public class SysProfileController extends BaseController {
      */
     @RepeatSubmit
     @GlobalTransactional(rollbackFor = Exception.class)
-    @Log(title = "用户头像", businessType = BusinessType.UPDATE)
+    @Log(title = "用户头像", businessType = BusinessType.IMPORT, eventType = EventType.system)
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public R<AvatarVo> avatar(@RequestPart("avatarfile") MultipartFile avatarfile) throws IOException {
         if (!avatarfile.isEmpty()) {
@@ -127,12 +131,15 @@ public class SysProfileController extends BaseController {
             }
             RemoteFile oss = remoteFileService.upload(avatarfile.getName(), avatarfile.getOriginalFilename(), avatarfile.getContentType(), avatarfile.getBytes());
             String avatar = oss.getUrl();
-            if (userService.updateUserAvatar(LoginHelper.getUserId(), oss.getOssId())) {
-                AvatarVo avatarVo = new AvatarVo();
-                avatarVo.setImgUrl(avatar);
-                return R.ok(avatarVo);
+            boolean updateSuccess = DataPermissionHelper.ignore(() -> userService.updateUserAvatar(LoginHelper.getUserId(), oss.getOssId()));
+            if (updateSuccess) {
+                return R.ok(new AvatarVo(avatar));
             }
         }
         return R.fail("上传图片异常，请联系管理员");
     }
+
+    public record AvatarVo(String imgUrl) {}
+
+    public record ProfileVo(SysUserVo user, String roleGroup, String postGroup) {}
 }

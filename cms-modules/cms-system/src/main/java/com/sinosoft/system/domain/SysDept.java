@@ -1,5 +1,6 @@
 package com.sinosoft.system.domain;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -8,6 +9,8 @@ import lombok.EqualsAndHashCode;
 import com.sinosoft.common.tenant.core.TenantEntity;
 
 import java.io.Serial;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -29,6 +32,11 @@ public class SysDept extends TenantEntity {
      */
     @TableId(value = "dept_id")
     private Long deptId;
+
+    /**
+     * 管理机构代码
+     */
+    private String manageCom;
 
     /**
      * 父部门ID
@@ -71,7 +79,7 @@ public class SysDept extends TenantEntity {
     private String status;
 
     /**
-     * 删除标志（0代表存在 2代表删除）
+     * 删除标志（0代表存在 1代表删除）
      */
     @TableLogic
     private String delFlag;
@@ -80,5 +88,11 @@ public class SysDept extends TenantEntity {
      * 祖级列表
      */
     private String ancestors;
+
+    /**
+     * 子菜单
+     */
+    @TableField(exist = false)
+    private List<SysDept> children = new ArrayList<>();
 
 }

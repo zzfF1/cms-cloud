@@ -4,4 +4,19 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sinosoft.system.mapper.SysOperLogMapper">
 
+    <resultMap type="com.sinosoft.system.domain.vo.SysOperLogStatisticVo" id="SysOperLogStatisticResult">
+        <id property="code" column="code"/>
+        <id property="value" column="value"/>
+    </resultMap>
+
+    <select id="operLogStatistic" resultMap="SysOperLogStatisticResult">
+        select a.business_type as "code",count(1) as "value"
+        from sys_oper_log a
+        where a.oper_time between #{params.beginTime} and #{params.endTime}
+        <if test="operName !=null and operName !='' ">
+            and a.oper_name = #{operName}
+        </if>
+        group by a.business_type
+    </select>
+
 </mapper>

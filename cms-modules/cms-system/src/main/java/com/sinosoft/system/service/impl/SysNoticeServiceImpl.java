@@ -1,10 +1,11 @@
 package com.sinosoft.system.service.impl;
 
-import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.utils.MapstructUtils;
+import com.sinosoft.common.core.utils.ObjectUtils;
 import com.sinosoft.common.core.utils.StringUtils;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
@@ -16,7 +17,6 @@ import com.sinosoft.system.domain.vo.SysUserVo;
 import com.sinosoft.system.mapper.SysNoticeMapper;
 import com.sinosoft.system.mapper.SysUserMapper;
 import com.sinosoft.system.service.ISysNoticeService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -70,7 +70,7 @@ public class SysNoticeServiceImpl implements ISysNoticeService {
         lqw.eq(StringUtils.isNotBlank(bo.getNoticeType()), SysNotice::getNoticeType, bo.getNoticeType());
         if (StringUtils.isNotBlank(bo.getCreateByName())) {
             SysUserVo sysUser = userMapper.selectVoOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getUserName, bo.getCreateByName()));
-            lqw.eq(SysNotice::getCreateBy, ObjectUtil.isNotNull(sysUser) ? sysUser.getUserId() : null);
+            lqw.eq(SysNotice::getCreateBy, ObjectUtils.notNullGetter(sysUser, SysUserVo::getUserId));
         }
         lqw.orderByAsc(SysNotice::getNoticeId);
         return lqw;

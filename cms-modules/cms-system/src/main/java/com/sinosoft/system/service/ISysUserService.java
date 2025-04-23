@@ -3,7 +3,9 @@ package com.sinosoft.system.service;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.system.domain.bo.SysUserBo;
+import com.sinosoft.system.domain.vo.SysUserAllocatedVo;
 import com.sinosoft.system.domain.vo.SysUserExportVo;
+import com.sinosoft.system.domain.vo.SysUserQueryVo;
 import com.sinosoft.system.domain.vo.SysUserVo;
 
 import java.util.List;
@@ -16,7 +18,22 @@ import java.util.List;
 public interface ISysUserService {
 
 
-    TableDataInfo<SysUserVo> selectPageUserList(SysUserBo user, PageQuery pageQuery);
+    /**
+     * 用户管理页面-用户分页查询
+     *
+     * @param user      查询条件
+     * @param pageQuery 分页条件
+     * @return 用户分页数据
+     */
+    TableDataInfo<SysUserQueryVo> selectPageUserList(SysUserBo user, PageQuery pageQuery);
+
+    /**
+     * 用户激活页面-用户分页查询
+     * @param user
+     * @param pageQuery
+     * @return
+     */
+    TableDataInfo<SysUserQueryVo> selectPageToActiveUserList(SysUserBo user, PageQuery pageQuery);
 
     /**
      * 根据条件分页查询用户列表
@@ -32,7 +49,7 @@ public interface ISysUserService {
      * @param user 用户信息
      * @return 用户信息集合信息
      */
-    TableDataInfo<SysUserVo> selectAllocatedList(SysUserBo user, PageQuery pageQuery);
+    TableDataInfo<SysUserAllocatedVo> selectAllocatedList(SysUserBo user, PageQuery pageQuery);
 
     /**
      * 根据条件分页查询未分配用户角色列表
@@ -40,7 +57,7 @@ public interface ISysUserService {
      * @param user 用户信息
      * @return 用户信息集合信息
      */
-    TableDataInfo<SysUserVo> selectUnallocatedList(SysUserBo user, PageQuery pageQuery);
+    TableDataInfo<SysUserAllocatedVo> selectUnallocatedList(SysUserBo user, PageQuery pageQuery);
 
     /**
      * 通过用户名查询用户
@@ -268,4 +285,26 @@ public interface ISysUserService {
      */
     List<Long> selectUserIdsByRoleIds(List<Long> roleIds);
 
+
+    /**
+     * 校验是否是内置用户
+     * @param userId
+     * @return true是
+     */
+    boolean checkInnerUser(Long userId);
+
+    /**
+     * 校验用户角色数量 （安全测试要求，一个用户只能分配一个角色）
+     * @param roleNums
+     * @return true是
+     */
+    boolean checkUserRoleNums(int roleNums);
+
+    /**
+     * 账号实名认证
+     * @param userId   账号ID
+     * @param realName 姓名
+     * @param idNo     证件号码
+     */
+    void doAuthReal(Long userId,String realName,String idNo);
 }

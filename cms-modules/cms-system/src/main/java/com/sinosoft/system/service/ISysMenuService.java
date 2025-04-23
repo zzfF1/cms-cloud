@@ -34,6 +34,13 @@ public interface ISysMenuService {
     List<SysMenuVo> selectMenuList(SysMenuBo menu, Long userId);
 
     /**
+     * 权限互斥
+     * @param roleId  角色ID
+     * @param authList 菜单权限（未互斥前）
+     */
+    void authExclusive(Long roleId,List<SysMenuVo> authList);
+
+    /**
      * 根据用户ID查询权限
      *
      * @param userId 用户ID
