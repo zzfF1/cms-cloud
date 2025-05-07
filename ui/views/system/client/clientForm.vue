@@ -58,15 +58,7 @@
       <el-tab-pane label="安全配置" name="security">
         <el-card shadow="always" class="box-card" style="padding-top: 10px">
           <el-form ref="securityFormRef" :model="securityConfig" label-width="160px">
-            <el-form-item label="加密方式" prop="encryptionMode">
-              <el-select v-model="securityConfig.encryptionMode" placeholder="请选择加密方式">
-                <el-option label="SM2" value="SM2"></el-option>
-                <el-option label="SM4" value="SM4"></el-option>
-                <el-option label="AES" value="AES"></el-option>
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="访问密钥(AK)" prop="ak">
+            <el-form-item label="AK" prop="ak">
               <el-input v-model="securityConfig.ak" placeholder="访问密钥将自动生成">
                 <template #append>
                   <el-button @click="generateAk">生成</el-button>
@@ -74,8 +66,8 @@
               </el-input>
             </el-form-item>
 
-            <el-form-item label="安全密钥(SK)" prop="sk">
-              <el-input v-model="securityConfig.sk" type="password" placeholder="安全密钥将自动生成" show-password>
+            <el-form-item label="SK" prop="sk">
+              <el-input v-model="securityConfig.sk" placeholder="安全密钥将自动生成">
                 <template #append>
                   <el-button @click="generateSk">生成</el-button>
                 </template>
@@ -92,8 +84,18 @@
               <el-input v-model="securityConfig.sm2PrivateKey" type="textarea" :rows="3" placeholder="SM2私钥" show-password />
             </el-form-item>
 
-            <el-form-item>
+            <el-form-item v-if="props.editType === 'edit'">
               <el-button type="primary" @click="generateSm2KeyPair" :loading="keyPairLoading">生成SM2密钥对</el-button>
+              <el-tooltip content="为SM2密钥添加额外保护" placement="top">
+                <el-checkbox v-model="isPrivateKeyEncrypted" style="margin-left: 10px">加密私钥</el-checkbox>
+              </el-tooltip>
+            </el-form-item>
+            <el-form-item v-else>
+              <el-alert
+                title="SM2密钥对仅在编辑模式下可生成"
+                type="info"
+                :closable="false">
+              </el-alert>
             </el-form-item>
 
             <el-divider content-position="center">服务配置</el-divider>
@@ -104,6 +106,11 @@
 
             <el-form-item label="端口" prop="port">
               <el-input v-model="securityConfig.port" placeholder="请输入服务端口" />
+            </el-form-item>
+
+            <el-form-item label="启用加密接口">
+              <el-switch v-model="securityConfig.encryptEnabled" />
+              <span class="form-help-text">启用后将对API接口通信进行加密</span>
             </el-form-item>
           </el-form>
         </el-card>
@@ -153,17 +160,9 @@
 </template>
 
 <script setup lang="ts">
-import {
-  getClient,
-  addClient,
-  updateClient,
-  generateSm2KeyPair as getSm2KeyPair,
-  generateAccessKey,
-  generateSecretKey
-} from '@/api/system/client';
-import { ClientForm, ClientVO, ClientConfig, ApiPermission, KeyPair } from '@/api/system/client/types';
-import type { PropType } from 'vue';
-import type { ComponentInternalInstance } from 'vue';
+import { addClient, generateSm2KeyPair as getSm2KeyPair, getClient, updateClient } from '@/api/system/client';
+import { ApiPermission, ClientConfig, ClientForm, ClientVO } from '@/api/system/client/types';
+import type { ComponentInternalInstance, PropType } from 'vue';
 
 const props = defineProps({
   visible: {
@@ -211,12 +210,15 @@ const securityFormRef = ref<ElFormInstance>();
 const securityConfig = ref<ClientConfig>({
   ak: '',
   sk: '',
-  encryptionMode: 'SM2',
   sm2PublicKey: '',
   sm2PrivateKey: '',
   serverPath: '',
-  port: ''
+  port: '',
+  encryptEnabled: false
 });
+
+// 是否加密私钥 (独立于启用加密通信)
+const isPrivateKeyEncrypted = ref(false);
 
 // API权限列表
 const apiPermissions = ref<ApiPermission[]>([]);
@@ -248,62 +250,59 @@ const rules = ref({
 });
 
 /**
- * 生成访问密钥(AK)
+ * 生成十六进制字符串
  */
-const generateAk = async () => {
-  try {
-    const res = await generateAccessKey();
-    securityConfig.value.ak = res.data;
-    proxy?.$modal.msgSuccess('AK生成成功');
-  } catch (error) {
-    console.error('生成AK失败:', error);
-    // 前端备用生成方法
-    const hexString = await generateHexString(64);
-    securityConfig.value.ak = hexString;
-  }
+const generateHexString = (length: number): string => {
+  const bytes = new Uint8Array(Math.ceil(length / 2));
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, length);
 };
 
 /**
- * 生成安全密钥(SK)
+ * 生成访问密钥(AK) - 前端实现
  */
-const generateSk = async () => {
-  try {
-    const res = await generateSecretKey();
-    securityConfig.value.sk = res.data;
-    proxy?.$modal.msgSuccess('SK生成成功');
-  } catch (error) {
-    console.error('生成SK失败:', error);
-    // 前端备用生成方法
-    const hexString = await generateHexString(128);
-    securityConfig.value.sk = hexString;
-  }
+const generateAk = () => {
+  // 生成64位长度的随机16进制字符串
+  const hexString = generateHexString(64);
+  securityConfig.value.ak = hexString;
+  proxy?.$modal.msgSuccess('AK生成成功');
 };
 
 /**
- * 生成SM2密钥对 (调用后端Hutool)
+ * 生成安全密钥(SK) - 前端实现
+ */
+const generateSk = () => {
+  // 生成128位长度的随机16进制字符串
+  const hexString = generateHexString(128);
+  securityConfig.value.sk = hexString;
+  proxy?.$modal.msgSuccess('SK生成成功');
+};
+
+/**
+ * 生成SM2密钥对 (后端实现)
  */
 const generateSm2KeyPair = async () => {
   try {
+    // 检查是否是编辑模式并且已有clientId
+    if (props.editType !== 'edit' || !form.value.clientId) {
+      proxy?.$modal.msgError('只有在编辑模式下才能生成SM2密钥对');
+      return;
+    }
+
     await proxy?.$modal.confirm('确认要生成新的密钥对？这将覆盖当前的密钥');
     keyPairLoading.value = true;
-    const res = await getSm2KeyPair();
+
+    // 使用isPrivateKeyEncrypted来决定是否加密私钥
+    const res = await getSm2KeyPair(form.value.clientId, isPrivateKeyEncrypted.value);
     securityConfig.value.sm2PrivateKey = res.data.privateKey;
     securityConfig.value.sm2PublicKey = res.data.publicKey;
+
     proxy?.$modal.msgSuccess('SM2密钥对生成成功');
   } catch (error) {
     console.error('生成SM2密钥对失败:', error);
   } finally {
     keyPairLoading.value = false;
   }
-};
-
-/**
- * 生成十六进制字符串（备用方法）
- */
-const generateHexString = async (length: number): Promise<string> => {
-  const bytes = new Uint8Array(Math.ceil(length / 2));
-  window.crypto.getRandomValues(bytes);
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, length);
 };
 
 /**
@@ -335,12 +334,13 @@ const resetForm = () => {
   securityConfig.value = {
     ak: '',
     sk: '',
-    encryptionMode: 'SM2',
     sm2PublicKey: '',
     sm2PrivateKey: '',
     serverPath: '',
-    port: ''
+    port: '',
+    encryptEnabled: false
   };
+  isPrivateKeyEncrypted.value = false;
   apiPermissions.value = [];
   clientFormRef.value?.resetFields();
   if (securityFormRef.value) {
@@ -353,6 +353,16 @@ const resetForm = () => {
 const submitForm = () => {
   clientFormRef.value?.validate(async (valid: boolean) => {
     if (valid) {
+      // 验证API权限中的路径不能为空
+      if (apiPermissions.value.length > 0) {
+        const invalidApis = apiPermissions.value.filter(item => !item.api || item.api.trim() === '');
+        if (invalidApis.length > 0) {
+          proxy?.$modal.msgError('API路径不能为空');
+          activeTab.value = 'api'; // 切换到API权限选项卡
+          return;
+        }
+      }
+
       buttonLoading.value = true;
       try {
         // 构建完整的表单数据，直接使用对象类型而非字符串
@@ -422,5 +432,11 @@ watch(
 
 .el-divider {
   margin: 24px 0;
+}
+
+.form-help-text {
+  margin-left: 10px;
+  color: #909399;
+  font-size: 12px;
 }
 </style>

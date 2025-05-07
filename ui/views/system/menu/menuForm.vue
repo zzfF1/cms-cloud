@@ -25,7 +25,7 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col v-if="form.menuType !== 'F'" :span="24">
+          <el-col v-if="form.menuType !== 'F'" :span="12">
             <el-form-item label="菜单图标" prop="icon">
               <!-- 图标选择器 -->
               <icon-select v-model="form.icon" />
@@ -284,10 +284,12 @@ const submitForm = () => {
     if (valid) {
       buttonLoading.value = true;
       try {
-        if (form.value.menuId) {
-          await updateMenu(form.value);
+        const formData = { ...form.value };
+
+        if (formData.menuId) {
+          await updateMenu(formData);
         } else {
-          await addMenu(form.value);
+          await addMenu(formData);
         }
         proxy?.$modal.msgSuccess('操作成功');
         emit('save');
@@ -299,7 +301,7 @@ const submitForm = () => {
   });
 };
 
-// 监听抽屉可见性、编辑类型和行数据变化
+// 修改操作时的数据处理
 watch(
   [() => props.visible, () => props.editType, () => props.rowData],
   async ([visible, type, data]) => {

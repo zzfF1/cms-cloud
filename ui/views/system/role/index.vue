@@ -100,19 +100,10 @@
     </el-card>
 
     <!-- 引入角色表单组件 -->
-    <role-form
-      v-model:visible="formVisible"
-      :edit-type="editType"
-      :row-data="currentRow"
-      @save="handleSave">
-    </role-form>
+    <role-form v-model:visible="formVisible" :edit-type="editType" :row-data="currentRow" @save="handleSave"> </role-form>
 
     <!-- 引入数据权限表单组件 -->
-    <role-data-scope-form
-      v-model:visible="dataScopeVisible"
-      :role-id="currentRoleId"
-      @save="handleSave">
-    </role-data-scope-form>
+    <role-data-scope-form v-model:visible="dataScopeVisible" :role-id="currentRoleId" @save="handleSave"> </role-data-scope-form>
   </div>
 </template>
 
@@ -184,7 +175,7 @@ const resetQuery = () => {
 const handleDelete = async (row?: RoleVO) => {
   const roleids = row?.roleId || ids.value;
   try {
-    await proxy?.$modal.confirm('是否确认删除角色编号为' + roleids + '数据项目');
+    await proxy?.$modal.confirm('是否确认删除角色数据？');
     await delRole(roleids);
     getList();
     proxy?.$modal.msgSuccess('删除成功');
@@ -213,7 +204,7 @@ const handleSelectionChange = (selection: RoleVO[]) => {
 
 /** 角色状态修改 */
 const handleStatusChange = async (row: RoleVO) => {
-  let text = row.status === '0' ? '启用' : '停用';
+  const text = row.status === '0' ? '启用' : '停用';
   try {
     await proxy?.$modal.confirm('确认要"' + text + '""' + row.roleName + '"角色吗?');
     await changeRoleStatus(row.roleId, row.status);

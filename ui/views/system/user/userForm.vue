@@ -4,15 +4,50 @@
     <el-card shadow="always" class="box-card" style="padding-top: 10px">
       <el-form ref="userFormRef" :model="form" :rules="rules" label-width="80px">
         <!-- 基本信息 -->
+        <el-divider content-position="left">
+          <span class="divider-title">基本信息</span>
+        </el-divider>
+
         <el-row>
+          <el-col :span="12">
+            <el-form-item v-if="form.userId == undefined" label="用户名称" prop="userName">
+              <el-input v-model="form.userName" placeholder="请输入用户名称" maxlength="30" />
+            </el-form-item>
+            <el-form-item v-else label="用户名称">
+              <el-input v-model="form.userName" disabled />
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="用户昵称" prop="nickName">
               <el-input v-model="form.nickName" placeholder="请输入用户昵称" maxlength="30" />
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <el-row>
           <el-col :span="12">
-            <el-form-item label="真实姓名" prop="realName">
-              <el-input v-model="form.realName" placeholder="请输入真实姓名" maxlength="255" />
+            <el-form-item v-if="form.userId == undefined" label="用户密码" prop="password">
+              <el-input v-model="form.password" placeholder="请输入用户密码" type="password" maxlength="20" show-password />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="用户性别">
+              <el-select v-model="form.sex" placeholder="请选择">
+                <el-option v-for="dict in sys_user_sex" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="手机号码" prop="phonenumber">
+              <el-input v-model="form.phonenumber" placeholder="请输入手机号码" maxlength="11" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="form.email" placeholder="请输入邮箱" maxlength="50" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -34,74 +69,17 @@
           <el-col :span="12">
             <el-form-item label="渠道类型" prop="branchType">
               <el-select v-model="form.branchType" placeholder="请选择渠道类型">
-                <el-option v-for="dict in branch_type" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
+                <el-option v-for="dict in branchtype" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-row>
-          <el-col :span="12">
-            <el-form-item label="手机号码" prop="phonenumber">
-              <el-input v-model="form.phonenumber" placeholder="请输入手机号码" maxlength="11" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="邮箱" prop="email">
-              <el-input v-model="form.email" placeholder="请输入邮箱" maxlength="50" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="证件号码" prop="idNo">
-              <el-input v-model="form.idNo" placeholder="请输入证件号码" maxlength="50" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="绑定IP" prop="bindIp">
-              <el-input v-model="form.bindIp" placeholder="请输入IP地址" maxlength="50" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row>
-          <el-col :span="12">
-            <el-form-item v-if="form.userId == undefined" label="用户名称" prop="userName">
-              <el-input v-model="form.userName" placeholder="请输入用户名称" maxlength="30" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item v-if="form.userId == undefined" label="用户密码" prop="password">
-              <el-input v-model="form.password" placeholder="请输入用户密码" type="password" maxlength="20" show-password />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="用户性别">
-              <el-select v-model="form.sex" placeholder="请选择">
-                <el-option v-for="dict in sys_user_sex" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
           <el-col :span="12">
             <el-form-item label="账号状态">
               <el-radio-group v-model="form.status">
                 <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="账户类型" prop="accType">
-              <el-radio-group v-model="form.accType">
-                <el-radio :value="0">长期用户</el-radio>
-                <el-radio :value="1">临时用户</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -110,6 +88,64 @@
               <el-radio-group v-model="form.sysType">
                 <el-radio value="Y">是</el-radio>
                 <el-radio value="N">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 实名信息 -->
+        <el-divider content-position="left">
+          <span class="divider-title">实名信息</span>
+          <el-tag v-if="props.editType === 'edit'" type="info" size="small" class="ml-2">实名信息不可修改</el-tag>
+        </el-divider>
+
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="真实姓名" prop="realName">
+              <el-input
+                v-model="form.realName"
+                placeholder="请输入真实姓名"
+                maxlength="255"
+                :disabled="props.editType === 'edit'"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="证件号码" prop="idNo">
+              <el-input
+                v-model="form.idNo"
+                placeholder="请输入证件号码"
+                maxlength="50"
+                :disabled="props.editType === 'edit'"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="实名时间">
+              <el-input v-model="formatAuthTime" disabled />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 安全设置 -->
+        <el-divider content-position="left">
+          <span class="divider-title">安全设置</span>
+        </el-divider>
+
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="绑定IP" prop="bindIp">
+              <el-input v-model="form.bindIp" placeholder="请输入IP地址" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="账户类型" prop="accType">
+              <el-radio-group v-model="form.accType">
+                <el-radio :value="0">长期用户</el-radio>
+                <el-radio :value="1">临时用户</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -145,6 +181,11 @@
           </el-col>
         </el-row>
 
+        <!-- 角色权限 -->
+        <el-divider content-position="left">
+          <span class="divider-title">角色权限</span>
+        </el-divider>
+
         <el-row>
           <el-col :span="12">
             <el-form-item label="岗位">
@@ -173,6 +214,11 @@
             </el-form-item>
           </el-col>
         </el-row>
+
+        <!-- 备注信息 -->
+        <el-divider content-position="left">
+          <span class="divider-title">备注信息</span>
+        </el-divider>
 
         <el-row>
           <el-col :span="24">
@@ -222,8 +268,8 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'save']);
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
-const { sys_normal_disable, sys_user_sex, branch_type } = toRefs<any>(
-  proxy?.useDict('sys_normal_disable', 'sys_user_sex', 'branch_type')
+const { sys_normal_disable, sys_user_sex, branchtype } = toRefs<any>(
+  proxy?.useDict('sys_normal_disable', 'sys_user_sex', 'branchtype')
 );
 
 // 表单相关数据
@@ -253,7 +299,9 @@ const initFormData: UserForm = {
   accType: 0,
   validDate: undefined,
   realName: '',
-  sysType: 'N'
+  sysType: 'N',
+  manageCom: '',
+  authTime:''
 };
 
 // 表单数据
@@ -339,6 +387,12 @@ const visibleProxy = computed({
 
 // 根据编辑类型决定标题
 const title = computed(() => (props.editType === 'add' ? '添加用户' : '修改用户'));
+
+// 格式化实名时间
+const formatAuthTime = computed(() => {
+  if (!form.value.authTime) return '';
+  return proxy?.parseTime(form.value.authTime);
+});
 
 // 按钮loading状态
 const buttonLoading = ref(false);
@@ -448,5 +502,20 @@ onMounted(() => {
 <style scoped>
 :deep(.el-select) {
   width: 100%;
+}
+
+.divider-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #409EFF;
+}
+
+:deep(.el-divider__text) {
+  background-color: transparent;
+  padding: 0 20px;
+}
+
+:deep(.el-divider--horizontal) {
+  margin: 20px 0;
 }
 </style>

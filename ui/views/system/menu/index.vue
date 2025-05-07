@@ -19,13 +19,7 @@
           </template>
 
           <div class="search-container">
-            <el-input
-              v-model="treeSearchText"
-              placeholder="搜索菜单"
-              clearable
-              @keyup.enter="searchTree"
-              @clear="refreshTreeData"
-            >
+            <el-input v-model="treeSearchText" placeholder="搜索菜单" clearable @keyup.enter="searchTree" @clear="refreshTreeData">
               <template #suffix>
                 <el-button :icon="Search" circle @click="searchTree"></el-button>
               </template>
@@ -47,21 +41,18 @@
               <!-- 自定义树节点内容 -->
               <template #default="{ node, data }">
                 <div class="custom-tree-node">
-                  <!-- 图标根据菜单类型显示不同 -->
+                  <!-- 树节点标签修改 -->
                   <div class="node-left">
                     <el-icon v-if="data.menuType === 'M'" class="tree-icon"><Folder /></el-icon>
-                    <el-icon v-else class="tree-icon"><Menu /></el-icon>
+                    <el-icon v-else-if="data.menuType === 'C'" class="tree-icon"><Menu /></el-icon>
+                    <el-icon v-else class="tree-icon"><Operation /></el-icon>
                     <span class="node-label">{{ node.label }}</span>
                   </div>
 
                   <!-- 统计信息 -->
                   <div class="node-statistics">
-                    <el-tag v-if="data.menuCount > 0" size="small" type="success" class="stat-tag">
-                      {{ data.menuCount }}菜单
-                    </el-tag>
-                    <el-tag v-if="data.buttonCount > 0" size="small" type="warning" class="stat-tag">
-                      {{ data.buttonCount }}按钮
-                    </el-tag>
+                    <el-tag v-if="data.menuCount > 0" size="small" type="success" class="stat-tag"> {{ data.menuCount }}菜单 </el-tag>
+                    <el-tag v-if="data.buttonCount > 0" size="small" type="warning" class="stat-tag"> {{ data.buttonCount }}按钮 </el-tag>
                   </div>
                 </div>
               </template>
@@ -77,21 +68,11 @@
             <div class="table-header">
               <div class="header-title">
                 <span>{{ currentNodeName || '根目录' }}</span>
-                <el-tag size="small" type="info" class="ml-2">共 {{ total }} 条</el-tag>
+                <el-tag size="small" type="info" class="ml-2">共 {{ tableData.length }} 条</el-tag>
               </div>
               <div class="header-actions">
-                <el-button
-                  v-hasPermi="['system:menu:add']"
-                  type="primary"
-                  plain
-                  icon="Plus"
-                  @click="handleAdd(currentNode)"
-                >
-                  新增
-                </el-button>
-                <el-button icon="Search" plain @click="showSearch = !showSearch">
-                  {{ showSearch ? '隐藏' : '显示' }}搜索
-                </el-button>
+                <el-button v-hasPermi="['system:menu:add']" type="primary" plain icon="Plus" @click="handleAdd(currentNode)"> 新增 </el-button>
+                <el-button icon="Search" plain @click="showSearch = !showSearch"> {{ showSearch ? '隐藏' : '显示' }}搜索 </el-button>
                 <el-button icon="Refresh" @click="refreshTableData">刷新</el-button>
               </div>
             </div>
@@ -138,16 +119,14 @@
               </el-table-column>
               <el-table-column prop="menuType" label="类型" align="center" width="80">
                 <template #default="scope">
-                  <el-tag
-                    :type="scope.row.menuType === 'M' ? 'primary' : scope.row.menuType === 'C' ? 'success' : 'warning'"
-                  >
+                  <el-tag :type="scope.row.menuType === 'M' ? 'primary' : scope.row.menuType === 'C' ? 'success' : 'warning'">
                     {{ scope.row.menuType === 'M' ? '目录' : scope.row.menuType === 'C' ? '菜单' : '按钮' }}
                   </el-tag>
                 </template>
               </el-table-column>
               <el-table-column prop="orderNum" label="排序" width="80" align="center" />
               <el-table-column prop="perms" label="权限标识" :show-overflow-tooltip="true" width="150" />
-              <el-table-column prop="component" label="组件路径" :show-overflow-tooltip="true" width="180" />
+              <el-table-column v-if="!isSmallScreen" prop="component" label="组件路径" :show-overflow-tooltip="true" width="180" />
               <el-table-column prop="status" label="状态" width="80" align="center">
                 <template #default="scope">
                   <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
@@ -180,16 +159,6 @@
                 </div>
               </template>
             </el-table>
-            <el-pagination
-              v-if="total > 0"
-              v-model:current-page="queryParams.pageNum"
-              v-model:page-size="queryParams.pageSize"
-              :page-sizes="[10, 20, 50, 100]"
-              layout="total, sizes, prev, pager, next, jumper"
-              :total="total"
-              @size-change="handleSizeChange"
-              @current-change="handleCurrentChange"
-            />
           </div>
         </el-card>
       </el-col>
@@ -216,7 +185,7 @@ const currentRow = ref<MenuVO | null>(null);
 
 // 左侧树控制
 const treeSearchText = ref('');
-const treeData = ref<MenuVO & { menuCount: number; buttonCount: number }[]>([]);
+const treeData = ref<MenuVO[]>([]);
 const treeLoading = ref(false);
 const currentNode = ref<MenuVO | null>(null);
 const currentNodeName = ref('根目录');
@@ -229,7 +198,6 @@ const defaultProps = {
 // 右侧表格控制
 const tableData = ref<MenuVO[]>([]);
 const tableLoading = ref(false);
-const total = ref(0);
 const multipleSelection = ref<MenuVO[]>([]);
 const showSearch = ref(true);
 
@@ -237,12 +205,13 @@ const showSearch = ref(true);
 const queryFormRef = ref<ElFormInstance>();
 const menuTreeRef = ref<ElTreeInstance>();
 
+// 是否小屏幕
+const isSmallScreen = ref(false);
+
 // 查询参数
-const queryParams = reactive<MenuQuery & { pageNum: number; pageSize: number }>({
+const queryParams = reactive<MenuQuery>({
   menuName: undefined,
-  status: undefined,
-  pageNum: 1,
-  pageSize: 10
+  status: undefined
 });
 
 /**
@@ -254,11 +223,18 @@ const toggleExpandAll = () => {
     // 获取所有节点
     const allNodes = menuTreeRef.value?.store.nodesMap;
     if (allNodes) {
-      Object.values(allNodes).forEach(node => {
+      Object.values(allNodes).forEach((node) => {
         node.expanded = isExpandAll.value;
       });
     }
   });
+};
+
+/**
+ * 检测屏幕尺寸
+ */
+const checkScreenSize = () => {
+  isSmallScreen.value = window.innerHeight < 768 || window.innerWidth < 1366;
 };
 
 /**
@@ -285,7 +261,7 @@ const loadTreeData = async () => {
  * 为菜单树添加统计信息
  */
 const addMenuStatistics = (data: MenuVO[]): (MenuVO & { menuCount: number; buttonCount: number })[] => {
-  return data.map(item => {
+  return data.map((item) => {
     // 默认统计值
     let menuCount = 0;
     let buttonCount = 0;
@@ -295,7 +271,7 @@ const addMenuStatistics = (data: MenuVO[]): (MenuVO & { menuCount: number; butto
       const enhancedChildren = addMenuStatistics(item.children);
 
       // 统计直接子菜单中的菜单和按钮数量
-      item.children.forEach(child => {
+      item.children.forEach((child) => {
         if (child.menuType === 'C') menuCount++;
         if (child.menuType === 'F') buttonCount++;
       });
@@ -316,44 +292,62 @@ const addMenuStatistics = (data: MenuVO[]): (MenuVO & { menuCount: number; butto
 /**
  * 过滤树形数据，只保留目录和菜单类型
  */
-const filterTreeData = (data: (MenuVO & { menuCount: number; buttonCount: number })[]) => {
+const filterTreeData = (data: MenuVO[]) => {
   return data
-    .filter(item => item.menuType !== 'F')
-    .map(item => ({
+    .filter((item) => item.menuType !== 'F')
+    .map((item) => ({
       ...item,
       children: item.children ? filterTreeData(item.children) : []
     }));
 };
 
 /**
- * 根据父ID查询菜单列表（包含分页）
+ * 加载表格数据 - 显示当前节点和直接子节点
  */
-const listMenuByParentId = async (parentId: string | number, params: MenuQuery & { pageNum: number; pageSize: number }) => {
-  // 如果后端没有直接提供按父ID查询的API，这里先用模拟实现
-  const res = await listMenu({
-    ...params,
-    parentId: parentId.toString()
-  });
+const loadTableData = async () => {
+  tableLoading.value = true;
+  try {
+    // 设置查询参数
+    const params = {
+      ...queryParams,
+      parentId: currentNode.value?.menuId || '0',
+      includeCurrentNode: true // 添加包含当前节点的标志
+    };
 
-  // 模拟对后端返回数据的处理
-  const allData = res.data;
-  const filteredData = allData.filter(item => {
-    const matchParent = item.parentId.toString() === parentId.toString();
-    const matchName = !params.menuName || item.menuName.includes(params.menuName);
-    const matchStatus = !params.status || item.status === params.status;
-    return matchParent && matchName && matchStatus;
-  });
+    // 使用普通列表API
+    const res = await listMenu(params);
 
-  // 计算分页
-  const total = filteredData.length;
-  const start = (params.pageNum - 1) * params.pageSize;
-  const end = Math.min(start + params.pageSize, total);
-  const pageData = filteredData.slice(start, end);
+    if (res.data && res.code === 200) {
+      // 如果有当前选中节点，添加到表格数据的开头
+      if (currentNode.value) {
+        // 查找当前节点的详细信息
+        const currentNodeData = res.data.find((item) => item.menuId === currentNode.value?.menuId);
 
-  return {
-    rows: pageData,
-    total
-  };
+        // 过滤出子节点
+        const childNodes = res.data.filter((item) => item.parentId === currentNode.value?.menuId);
+
+        // 如果找到当前节点，将其放在列表开头
+        if (currentNodeData) {
+          tableData.value = [currentNodeData, ...childNodes];
+        } else {
+          tableData.value = childNodes;
+        }
+      } else {
+        // 根目录情况，只显示顶级菜单
+        tableData.value = res.data.filter((item) => item.parentId === '0' || item.parentId === 0);
+      }
+    } else {
+      // 处理请求失败
+      proxy?.$modal.msgError((res.data && res.msg) || '获取数据失败');
+      tableData.value = [];
+    }
+  } catch (error) {
+    console.error('加载菜单数据失败', error);
+    proxy?.$modal.msgError('加载菜单数据失败');
+    tableData.value = [];
+  } finally {
+    tableLoading.value = false;
+  }
 };
 
 /**
@@ -377,24 +371,8 @@ const refreshTreeData = () => {
 const handleNodeClick = (data: MenuVO) => {
   currentNode.value = data;
   currentNodeName.value = data.menuName;
-  // 重置分页并加载表格数据
-  queryParams.pageNum = 1;
+  // 加载表格数据
   loadTableData();
-};
-
-/**
- * 加载表格数据
- */
-const loadTableData = async () => {
-  tableLoading.value = true;
-  try {
-    const parentId = currentNode.value?.menuId || '0';
-    const res = await listMenuByParentId(parentId, queryParams);
-    tableData.value = res.rows;
-    total.value = res.total;
-  } finally {
-    tableLoading.value = false;
-  }
 };
 
 /**
@@ -408,7 +386,6 @@ const refreshTableData = () => {
  * 搜索按钮操作
  */
 const handleQuery = () => {
-  queryParams.pageNum = 1;
   loadTableData();
 };
 
@@ -418,22 +395,6 @@ const handleQuery = () => {
 const resetQuery = () => {
   queryFormRef.value?.resetFields();
   handleQuery();
-};
-
-/**
- * 分页大小变化
- */
-const handleSizeChange = (val: number) => {
-  queryParams.pageSize = val;
-  loadTableData();
-};
-
-/**
- * 页码变化
- */
-const handleCurrentChange = (val: number) => {
-  queryParams.pageNum = val;
-  loadTableData();
 };
 
 /**
@@ -483,8 +444,16 @@ const handleDelete = async (row: MenuVO) => {
 
 // 初始化
 onMounted(() => {
+  checkScreenSize();
+  window.addEventListener('resize', checkScreenSize);
+
   loadTreeData();
   loadTableData();
+});
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize);
 });
 </script>
 
@@ -515,7 +484,7 @@ onMounted(() => {
   flex: 1;
   overflow: auto;
   padding: 0;
-  min-height: 200px; /* 确保最小高度 */
+  min-height: 150px; /* 降低最小高度 */
 
   /* 强制显示滚动条，不依赖内容高度 */
   position: relative;
@@ -528,14 +497,19 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  /* 关键：设置最小高度 */
-  min-height: calc(100vh - 280px);
+  /* 关键：设置更灵活的高度计算 */
+  height: auto;
+  min-height: 200px;
+  max-height: calc(100% - 40px);
   position: relative;
+  overflow: hidden;
 }
 
 .fill-height-table {
-  flex: 1;
   width: 100%;
+  /* 设置表格高度，让长内容时出现滚动条 */
+  max-height: calc(100% - 40px);
+  overflow: auto;
 }
 
 /* 空数据时填充整个表格区域 */
@@ -544,11 +518,12 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   height: 100%;
-  min-height: 300px;
+  min-height: 200px;
 }
 
 /* 其他样式保持不变 */
-.card-header, .table-header {
+.card-header,
+.table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -609,12 +584,6 @@ onMounted(() => {
   border-bottom: 1px solid #ebeef5;
 }
 
-.pagination-container {
-  padding: 10px 15px;
-  text-align: right;
-  border-top: 1px solid #ebeef5;
-}
-
 /* 特别处理el-card的body部分 */
 :deep(.el-card__body) {
   flex: 1;
@@ -624,29 +593,27 @@ onMounted(() => {
   flex-direction: column;
 }
 
-/* 确保表格自身和表体都正确占据空间 */
-:deep(.el-table) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
+/* 小屏幕适配 */
+@media screen and (max-height: 768px) {
+  .menu-management-container {
+    height: calc(100vh - 80px); /* 减少容器整体高度 */
+  }
 
-:deep(.el-table__body-wrapper) {
-  flex: 1;
-  overflow-y: auto;
-}
+  .search-form-container {
+    padding: 8px; /* 减小搜索区域的内边距 */
+  }
 
-/* 强制表格占据空间 */
-:deep(.el-table__empty-block) {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 300px;
+  .full-height-table-container {
+    min-height: 150px; /* 减小最小高度 */
+  }
+
+  .empty-data {
+    min-height: 150px;
+  }
+
+  .stat-tag {
+    display: none; /* 隐藏统计标签 */
+  }
 }
 
 /* 响应式调整 */

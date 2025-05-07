@@ -2,7 +2,7 @@
   <div class="p-2">
     <el-row :gutter="20">
       <!-- 部门树 -->
-      <el-col :lg="4" :xs="24" style="">
+      <el-col :lg="7" :xs="24" style="">
         <el-card shadow="hover">
           <el-input v-model="deptName" placeholder="请输入部门名称" prefix-icon="Search" clearable />
           <el-tree
@@ -19,7 +19,7 @@
           />
         </el-card>
       </el-col>
-      <el-col :lg="20" :xs="24">
+      <el-col :lg="17" :xs="24">
         <transition :enter-active-class="proxy?.animate.searchAnimate.enter" :leave-active-class="proxy?.animate.searchAnimate.leave">
           <div v-show="showSearch" class="mb-[10px]">
             <el-card shadow="hover">
@@ -139,7 +139,13 @@
     </el-row>
 
     <!-- 引入用户表单和导入组件 -->
-    <user-form v-model:visible="userFormVisible" :edit-type="editType" :row-data="currentRow" @save="handleSave"> </user-form>
+    <user-form
+      v-model:visible="userFormVisible"
+      :edit-type="editType"
+      :row-data="currentRow"
+      :enabled-dept-tree="enabledDeptOptions"
+      @save="handleSave">
+    </user-form>
 
     <import-data
       v-model:visible="importVisible"

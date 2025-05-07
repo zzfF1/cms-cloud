@@ -4,11 +4,17 @@
       <div v-show="showSearch" class="mb-[10px]">
         <el-card shadow="hover">
           <el-form ref="queryFormRef" :model="queryParams" :inline="true">
-            <el-form-item label="部门名称" prop="deptName">
-              <el-input v-model="queryParams.deptName" placeholder="请输入部门名称" clearable @keyup.enter="handleQuery" />
+            <el-form-item label="机构名称" prop="deptName">
+              <el-input v-model="queryParams.deptName" placeholder="请输入机构名称" clearable @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="类别编码" prop="deptCategory">
-              <el-input v-model="queryParams.deptCategory" placeholder="请输入类别编码" clearable style="width: 240px" @keyup.enter="handleQuery" />
+            <el-form-item label="机构级别" prop="comgrade">
+              <el-select v-model="queryParams.comgrade" placeholder="请选择机构级别" clearable>
+                <el-option label="总公司" value="0" />
+                <el-option label="省级分公司" value="1" />
+                <el-option label="地市级中支公司" value="2" />
+                <el-option label="县支公司" value="3" />
+                <el-option label="营销服务部" value="4" />
+              </el-select>
             </el-form-item>
             <el-form-item label="状态" prop="status">
               <el-select v-model="queryParams.status" placeholder="部门状态" clearable>
@@ -45,16 +51,27 @@
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
         :default-expand-all="isExpandAll"
       >
-        <el-table-column prop="deptName" label="部门名称" width="260"></el-table-column>
+        <el-table-column prop="deptName" label="机构名称" width="260"></el-table-column>
         <el-table-column prop="manageCom" label="机构代码" width="120"></el-table-column>
-        <el-table-column prop="deptCategory" align="center" label="类别编码" width="200"></el-table-column>
-        <el-table-column prop="orderNum" align="center" label="排序" width="200"></el-table-column>
+        <el-table-column prop="shortname" align="center" label="机构简称" width="150"></el-table-column>
+        <el-table-column prop="comgrade" align="center" label="机构级别" width="130">
+          <template #default="scope">
+            <span v-if="scope.row.comgrade === '0'">总公司</span>
+            <span v-else-if="scope.row.comgrade === '1'">省级分公司</span>
+            <span v-else-if="scope.row.comgrade === '2'">地市级中支公司</span>
+            <span v-else-if="scope.row.comgrade === '3'">县支公司</span>
+            <span v-else-if="scope.row.comgrade === '4'">营销服务部</span>
+            <span v-else>{{ scope.row.comgrade }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="leaderName" align="center" label="负责人" width="120"></el-table-column>
+        <el-table-column prop="orderNum" align="center" label="排序" width="80"></el-table-column>
         <el-table-column prop="status" align="center" label="状态" width="100">
           <template #default="scope">
             <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" align="center" prop="createTime" width="200">
+        <el-table-column label="创建时间" align="center" prop="createTime" width="180">
           <template #default="scope">
             <span>{{ proxy.parseTime(scope.row.createTime) }}</span>
           </template>
@@ -111,7 +128,7 @@ const queryParams = reactive<DeptQuery>({
   pageNum: 1,
   pageSize: 10,
   deptName: undefined,
-  deptCategory: undefined,
+  comgrade: undefined,
   status: undefined
 });
 

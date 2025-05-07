@@ -295,10 +295,11 @@ const submitForm = () => {
       buttonLoading.value = true;
       if (form.value.ossConfigId) {
         await updateOssConfig(form.value).finally(() => (buttonLoading.value = false));
+        proxy?.$modal.msgSuccess('修改成功');
       } else {
         await addOssConfig(form.value).finally(() => (buttonLoading.value = false));
+        proxy?.$modal.msgSuccess('新增成功');
       }
-      proxy?.$modal.msgSuccess('新增成功');
       dialog.visible = false;
       await getList();
     }

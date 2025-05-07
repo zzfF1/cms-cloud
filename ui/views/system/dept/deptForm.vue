@@ -3,126 +3,110 @@
   <el-drawer v-model="visibleProxy" :title="title" size="55%" append-to-body :close-on-click-modal="false" @closed="resetForm">
     <el-card shadow="always" class="box-card" style="padding-top: 10px">
       <el-form ref="deptFormRef" :model="form" :rules="rules" label-width="100px">
-        <el-tabs v-model="activeTab">
-          <!-- 基本信息标签页 -->
-          <el-tab-pane label="基本信息" name="basic">
-            <el-row>
-              <el-col v-if="form.parentId !== 0" :span="24">
-                <el-form-item label="上级部门" prop="parentId">
-                  <el-tree-select
-                    v-model="form.parentId"
-                    :data="deptOptions"
-                    :props="{ value: 'deptId', label: 'deptName', children: 'children' }"
-                    value-key="deptId"
-                    placeholder="选择上级部门"
-                    check-strictly
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="部门名称" prop="deptName">
-                  <el-input v-model="form.deptName" placeholder="请输入部门名称" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="机构代码" prop="manageCom">
-                  <el-input v-model="form.manageCom" placeholder="请输入机构代码" maxlength="8" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="类别编码" prop="deptCategory">
-                  <el-input v-model="form.deptCategory" placeholder="请输入类别编码" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="显示排序" prop="orderNum">
-                  <el-input-number v-model="form.orderNum" controls-position="right" :min="0" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="负责人" prop="leader">
-                  <el-select v-model="form.leader" placeholder="请选择负责人">
-                    <el-option v-for="item in deptUserList" :key="item.userId" :label="item.userName" :value="item.userId" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="联系电话" prop="phone">
-                  <el-input v-model="form.phone" placeholder="请输入联系电话" maxlength="11" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="邮箱" prop="email">
-                  <el-input v-model="form.email" placeholder="请输入邮箱" maxlength="50" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="部门状态">
-                  <el-radio-group v-model="form.status">
-                    <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label }}</el-radio>
-                  </el-radio-group>
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </el-tab-pane>
+        <!-- 基本信息 -->
+        <el-divider content-position="left">基本信息</el-divider>
+        <el-row>
+          <el-col v-if="form.parentId !== 0" :span="24">
+            <el-form-item label="上级部门" prop="parentId">
+              <el-tree-select
+                v-model="form.parentId"
+                :data="deptOptions"
+                :props="{ value: 'deptId', label: 'deptName', children: 'children' }"
+                value-key="deptId"
+                placeholder="选择上级部门"
+                check-strictly
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="机构代码" prop="manageCom">
+              <el-input v-model="form.manageCom" placeholder="请输入机构代码" maxlength="8" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="机构名称" prop="deptName">
+              <el-input v-model="form.deptName" placeholder="请输入机构名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="机构简称" prop="shortname">
+              <el-input v-model="form.shortname" placeholder="请输入机构简称" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="机构级别" prop="comgrade">
+              <el-select v-model="form.comgrade" placeholder="请选择机构级别">
+                <el-option label="总公司" value="0" />
+                <el-option label="省级分公司" value="1" />
+                <el-option label="地市级中支公司" value="2" />
+                <el-option label="县支公司" value="3" />
+                <el-option label="营销服务部" value="4" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="显示排序" prop="orderNum">
+              <el-input-number v-model="form.orderNum" controls-position="right" :min="0" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="部门状态">
+              <el-radio-group v-model="form.status">
+                <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label }}</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-          <!-- 机构信息标签页 -->
-          <el-tab-pane label="机构信息" name="org">
-            <el-row>
-              <el-col :span="12">
-                <el-form-item label="对外机构码" prop="outcomcode">
-                  <el-input v-model="form.outcomcode" placeholder="请输入对外机构代码" maxlength="10" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="机构名称" prop="name">
-                  <el-input v-model="form.name" placeholder="请输入机构名称" maxlength="100" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="机构简称" prop="shortname">
-                  <el-input v-model="form.shortname" placeholder="请输入机构简称" maxlength="50" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="24">
-                <el-form-item label="机构地址" prop="address">
-                  <el-input v-model="form.address" placeholder="请输入机构地址" maxlength="200" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="机构邮编" prop="zipcode">
-                  <el-input v-model="form.zipcode" placeholder="请输入机构邮编" maxlength="10" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="机构电话" prop="comPhone">
-                  <el-input v-model="form.comPhone" placeholder="请输入机构电话" maxlength="50" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="机构传真" prop="fax">
-                  <el-input v-model="form.fax" placeholder="请输入机构传真" maxlength="50" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="机构级别" prop="comgrade">
-                  <el-select v-model="form.comgrade" placeholder="请选择机构级别">
-                    <el-option label="总公司" value="0" />
-                    <el-option label="省级分公司" value="1" />
-                    <el-option label="地市级中支公司" value="2" />
-                    <el-option label="县支公司" value="3" />
-                    <el-option label="营销服务部" value="4" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="行政区划码" prop="regionalismcode">
-                  <el-input v-model="form.regionalismcode" placeholder="请输入行政区划代码" maxlength="20" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </el-tab-pane>
-        </el-tabs>
+        <!-- 机构信息 -->
+        <el-divider content-position="left">机构信息</el-divider>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="对外机构码" prop="outcomcode">
+              <el-input v-model="form.outcomcode" placeholder="请输入对外机构代码" maxlength="10" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="行政区划码" prop="regionalismcode">
+              <el-input v-model="form.regionalismcode" placeholder="请输入行政区划代码" maxlength="20" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="机构地址" prop="address">
+              <el-input v-model="form.address" placeholder="请输入机构地址" maxlength="200" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="机构邮编" prop="zipcode">
+              <el-input v-model="form.zipcode" placeholder="请输入机构邮编" maxlength="10" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="负责人" prop="leader">
+              <el-input v-model="form.leader" placeholder="请输入负责人姓名" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="联系电话" prop="phone">
+              <el-input v-model="form.phone" placeholder="请输入联系电话" maxlength="11" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="机构电话" prop="comPhone">
+              <el-input v-model="form.comPhone" placeholder="请输入机构电话" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="form.email" placeholder="请输入邮箱" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="机构传真" prop="fax">
+              <el-input v-model="form.fax" placeholder="请输入机构传真" maxlength="50" />
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
     </el-card>
     <template #footer>
@@ -135,10 +119,8 @@
 </template>
 
 <script setup lang="ts">
-import { getDept, addDept, updateDept, listDept, listDeptExcludeChild, getDeptLdcom, addDeptLdcom, updateDeptLdcom } from '@/api/system/dept';
+import { addDeptLdcom, getDeptLdcom, listDept, listDeptExcludeChild, updateDeptLdcom } from '@/api/system/dept';
 import { DeptForm, DeptVO } from '@/api/system/dept/types';
-import { UserVO } from '@/api/system/user/types';
-import { listUserByDeptId } from '@/api/system/user';
 
 interface DeptOptionsType {
   deptId: number | string;
@@ -172,26 +154,14 @@ const visibleProxy = computed({
   set: (val) => emit('update:visible', val)
 });
 
-// 当前活动标签页
-const activeTab = ref('basic');
-
 // 根据编辑类型决定标题
 const title = computed(() => (props.editType === 'add' ? '添加部门' : '修改部门'));
-
 // 按钮loading
 const buttonLoading = ref(false);
-
 // 表单ref
 const deptFormRef = ref<ElFormInstance>();
-
 // 部门树选项
 const deptOptions = ref<DeptOptionsType[]>([]);
-
-// 部门用户列表
-const deptUserList = ref<UserVO[]>([]);
-
-// 是否使用集成Ldcom API
-const useLdcomApi = ref(true);
 
 // 初始化表单数据
 const initFormData: DeptForm = {
@@ -199,7 +169,6 @@ const initFormData: DeptForm = {
   parentId: undefined,
   manageCom: '',
   deptName: undefined,
-  deptCategory: undefined,
   orderNum: 0,
   leader: undefined,
   phone: undefined,
@@ -224,9 +193,11 @@ const form = ref<DeptForm>({ ...initFormData });
 // 表单校验规则
 const rules = ref({
   parentId: [{ required: true, message: '上级部门不能为空', trigger: 'blur' }],
-  deptName: [{ required: true, message: '部门名称不能为空', trigger: 'blur' }],
+  deptName: [{ required: true, message: '机构名称不能为空', trigger: 'blur' }],
   manageCom: [{ required: true, message: '机构代码不能为空', trigger: 'blur' }],
   orderNum: [{ required: true, message: '显示排序不能为空', trigger: 'blur' }],
+  comgrade: [{ required: true, message: '机构级别不能为空', trigger: 'change' }],
+  leader: [{ max: 50, message: '负责人姓名长度不能超过50个字符', trigger: 'blur' }],
   email: [{ type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }],
   phone: [{ pattern: /^1[3|4|5|6|7|8|9][0-9]\d{8}$/, message: '请输入正确的手机号码', trigger: 'blur' }],
 
@@ -250,15 +221,12 @@ const cancel = () => {
 const resetForm = () => {
   form.value = { ...initFormData };
   deptFormRef.value?.resetFields();
-  activeTab.value = 'basic';
 };
 
-/** 查询当前部门的所有用户 */
+/** 查询当前部门的所有用户 - 不再需要，保留方法以兼容现有代码 */
 async function getDeptAllUser(deptId: any) {
-  if (deptId !== null && deptId !== '' && deptId !== undefined) {
-    const res = await listUserByDeptId(deptId);
-    deptUserList.value = res.data;
-  }
+  // 由于负责人改为直接输入，不再需要查询用户列表
+  return;
 }
 
 /** 提交按钮 */
@@ -267,20 +235,14 @@ const submitForm = () => {
     if (valid) {
       buttonLoading.value = true;
       try {
+        // 如果用户填写了机构名称但没有填写name字段，自动复制过去
+        if (form.value.deptName && !form.value.name) {
+          form.value.name = form.value.deptName;
+        }
         if (form.value.deptId) {
-          // 修改操作
-          if (useLdcomApi.value) {
-            await updateDeptLdcom(form.value);
-          } else {
-            await updateDept(form.value);
-          }
+          await updateDeptLdcom(form.value);
         } else {
-          // 新增操作
-          if (useLdcomApi.value) {
-            await addDeptLdcom(form.value);
-          } else {
-            await addDept(form.value);
-          }
+          await addDeptLdcom(form.value);
         }
         proxy?.$modal.msgSuccess('操作成功');
         emit('save');
@@ -311,17 +273,8 @@ watch(
         }
       } else if (type === 'edit' && data) {
         // 修改操作
-        // 查询当前部门所有用户
-        await getDeptAllUser(data.deptId);
-
-        // 查询部门详情
-        if (useLdcomApi.value) {
-          const res = await getDeptLdcom(data.deptId);
-          Object.assign(form.value, res.data);
-        } else {
-          const res = await getDept(data.deptId);
-          Object.assign(form.value, res.data);
-        }
+        const res = await getDeptLdcom(data.deptId);
+        Object.assign(form.value, res.data);
 
         const response = await listDeptExcludeChild(data.deptId);
         const treeData = proxy?.handleTree<DeptOptionsType>(response.data, 'deptId');
@@ -350,7 +303,12 @@ watch(
 :deep(.el-tree-select) {
   width: 100%;
 }
-:deep(.el-tabs__nav) {
-  margin-bottom: 20px;
+:deep(.el-divider__text) {
+  font-size: 16px;
+  font-weight: bold;
+  color: #409EFF;
+}
+:deep(.el-divider--horizontal) {
+  margin: 20px 0;
 }
 </style>
