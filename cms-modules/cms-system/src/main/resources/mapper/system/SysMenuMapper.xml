@@ -67,4 +67,10 @@
         where m.status = '0' and rm.role_id = #{roleId}
     </select>
 
+    <select id="selectMenuListOfOtherRole" resultType="Long">
+        select distinct a.menu_id from sys_menu a,sys_role_menu b
+        where b.menu_id = a.menu_id and b.role_id != #{roleId}
+			 and not exists(select 1 from sys_role_menu lb where lb.menu_id = b.menu_id and lb.role_id = #{roleId} )
+    </select>
+
 </mapper>

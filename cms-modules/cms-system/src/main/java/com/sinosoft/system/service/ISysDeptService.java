@@ -1,7 +1,12 @@
 package com.sinosoft.system.service;
 
 import cn.hutool.core.lang.tree.Tree;
+import com.sinosoft.common.mybatis.core.page.PageQuery;
+import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.system.domain.bo.SysDeptBo;
+import com.sinosoft.system.domain.bo.SysDeptLdcomBo;
+import com.sinosoft.system.domain.bo.SysDeptQuery;
+import com.sinosoft.system.domain.vo.SysDeptLdcomVo;
 import com.sinosoft.system.domain.vo.SysDeptVo;
 
 import java.util.List;
@@ -12,13 +17,23 @@ import java.util.List;
  * @author zzf
  */
 public interface ISysDeptService {
+
+    /**
+     * 分页查询部门管理数据
+     *
+     * @param dept      部门信息
+     * @param pageQuery 分页对象
+     * @return 部门信息集合
+     */
+    TableDataInfo<SysDeptVo> selectPageDeptList(SysDeptQuery dept, PageQuery pageQuery);
+
     /**
      * 查询部门管理数据
      *
      * @param dept 部门信息
      * @return 部门信息集合
      */
-    List<SysDeptVo> selectDeptList(SysDeptBo dept);
+    List<SysDeptVo> selectDeptList(SysDeptQuery dept);
 
     /**
      * 查询部门树结构信息
@@ -26,7 +41,7 @@ public interface ISysDeptService {
      * @param dept 部门信息
      * @return 部门树信息集合
      */
-    List<Tree<Long>> selectDeptTreeList(SysDeptBo dept);
+    List<Tree<Long>> selectDeptTreeList(SysDeptQuery dept);
 
     /**
      * 构建前端所需要下拉树结构
@@ -131,4 +146,52 @@ public interface ISysDeptService {
      * @return 结果
      */
     int deleteDeptById(Long deptId);
+
+    /**
+     * 查询部门(简单查询)
+     *
+     * @return 部门列表
+     */
+    List<SysDeptVo> selectDeptsSimple();
+
+    /**
+     * 分页查询部门管理数据（集成Ldcom）
+     *
+     * @param dept 部门信息
+     * @param pageQuery 分页对象
+     * @return 部门信息集合
+     */
+    TableDataInfo<SysDeptLdcomVo> selectPageDeptLdcomList(SysDeptQuery dept, PageQuery pageQuery);
+
+    /**
+     * 查询部门管理数据（集成Ldcom）
+     *
+     * @param dept 部门信息
+     * @return 部门信息集合
+     */
+    List<SysDeptLdcomVo> selectDeptLdcomList(SysDeptQuery dept);
+
+    /**
+     * 根据部门ID查询信息（集成Ldcom）
+     *
+     * @param deptId 部门ID
+     * @return 部门信息
+     */
+    SysDeptLdcomVo selectDeptLdcomById(Long deptId);
+
+    /**
+     * 新增保存部门信息（集成Ldcom）
+     *
+     * @param bo 部门信息
+     * @return 结果
+     */
+    int insertDeptLdcom(SysDeptLdcomBo bo);
+
+    /**
+     * 修改保存部门信息（集成Ldcom）
+     *
+     * @param bo 部门信息
+     * @return 结果
+     */
+    int updateDeptLdcom(SysDeptLdcomBo bo);
 }

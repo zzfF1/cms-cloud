@@ -3,6 +3,7 @@ package com.sinosoft.system.mapper;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sinosoft.common.dict.vo.CodeNameVo;
 import org.apache.ibatis.annotations.Param;
 import com.sinosoft.common.mybatis.annotation.DataColumn;
 import com.sinosoft.common.mybatis.annotation.DataPermission;
@@ -32,5 +33,12 @@ public interface SysPostMapper extends BaseMapperPlus<SysPost, SysPostVo> {
      * @return 结果
      */
     List<SysPostVo> selectPostsByUserId(Long userId);
+
+    /**
+     * 获取岗位编码、名称（）
+     *
+     * @return
+     */
+    List<CodeNameVo> listDistinctPostCodeName();
 
 }

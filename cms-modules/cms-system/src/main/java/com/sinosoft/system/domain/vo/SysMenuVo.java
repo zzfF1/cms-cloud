@@ -112,5 +112,8 @@ public class SysMenuVo implements Serializable {
      * 子菜单
      */
     private List<SysMenuVo> children = new ArrayList<>();
-
+    /**
+     * 菜单所属渠道
+     */
+    private String branchType;
 }

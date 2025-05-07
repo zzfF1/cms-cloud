@@ -1,11 +1,31 @@
 package com.sinosoft.system.dubbo;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.sinosoft.common.core.constant.CacheConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
+import com.sinosoft.common.core.domain.R;
+import com.sinosoft.common.core.enums.AuthCodeType;
+import com.sinosoft.common.core.utils.StreamUtils;
+import com.sinosoft.common.redis.utils.RedisUtils;
+import com.sinosoft.resource.api.RemoteMailService;
+import com.sinosoft.resource.api.RemoteSmsService;
+import com.sinosoft.system.api.model.PostDTO;
+import com.sinosoft.system.domain.SysUserPost;
+import com.sinosoft.system.domain.SysUserRole;
+import com.sinosoft.system.domain.vo.SysPostVo;
+import com.sinosoft.system.mapper.SysPostMapper;
+import com.sinosoft.system.mapper.SysUserPostMapper;
+import com.sinosoft.system.mapper.SysUserRoleMapper;
 import com.sinosoft.system.service.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import com.sinosoft.common.core.enums.UserStatus;
 import com.sinosoft.common.core.exception.ServiceException;
@@ -29,13 +49,17 @@ import com.sinosoft.system.domain.vo.SysUserVo;
 import com.sinosoft.system.mapper.SysUserMapper;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 用户服务
  *
  * @author zzf
  */
+@Slf4j
 @RequiredArgsConstructor
 @Service
 @DubboService
@@ -46,7 +70,14 @@ public class RemoteUserServiceImpl implements RemoteUserService {
     private final ISysConfigService configService;
     private final ISysRoleService roleService;
     private final ISysDeptService deptService;
+    private final ISysPostService postService;
     private final SysUserMapper userMapper;
+    private final SysUserRoleMapper userRoleMapper;
+    private final SysUserPostMapper userPostMapper;
+    @DubboReference
+    private final RemoteMailService remoteMailService;
+    @DubboReference
+    private final RemoteSmsService remoteSmsService;
 
     /**
      * 通过用户名查询用户信息
@@ -250,22 +281,31 @@ public class RemoteUserServiceImpl implements RemoteUserService {
      */
     private LoginUser buildLoginUser(SysUserVo userVo) {
         LoginUser loginUser = new LoginUser();
+        Long userId = userVo.getUserId();
         loginUser.setTenantId(userVo.getTenantId());
-        loginUser.setUserId(userVo.getUserId());
+        loginUser.setUserId(userId);
         loginUser.setDeptId(userVo.getDeptId());
         loginUser.setUsername(userVo.getUserName());
         loginUser.setNickname(userVo.getNickName());
         loginUser.setPassword(userVo.getPassword());
         loginUser.setUserType(userVo.getUserType());
-        loginUser.setMenuPermission(permissionService.getMenuPermission(userVo.getUserId()));
-        loginUser.setRolePermission(permissionService.getRolePermission(userVo.getUserId()));
+        loginUser.setMenuPermission(permissionService.getMenuPermission(userId));
+        loginUser.setRolePermission(permissionService.getRolePermission(userId));
         if (ObjectUtil.isNotNull(userVo.getDeptId())) {
             Opt<SysDeptVo> deptOpt = Opt.of(userVo.getDeptId()).map(deptService::selectDeptById);
             loginUser.setDeptName(deptOpt.map(SysDeptVo::getDeptName).orElse(StringUtils.EMPTY));
             loginUser.setDeptCategory(deptOpt.map(SysDeptVo::getDeptCategory).orElse(StringUtils.EMPTY));
         }
-        List<SysRoleVo> roles = roleService.selectRolesByUserId(userVo.getUserId());
+        List<SysRoleVo> roles = roleService.selectRolesByUserId(userId);
+        List<SysPostVo> posts = postService.selectPostsByUserId(userId);
         loginUser.setRoles(BeanUtil.copyToList(roles, RoleDTO.class));
+        loginUser.setPosts(BeanUtil.copyToList(posts, PostDTO.class));
+        loginUser.setAccType(userVo.getAccType());
+        loginUser.setAccessStartTime(userVo.getAccessStartTime());
+        loginUser.setAccessEndTime(userVo.getAccessEndTime());
+        loginUser.setValidStartDate(userVo.getValidStartDate());
+        loginUser.setValidEndDate(userVo.getValidEndDate());
+        loginUser.setAuthTime(userVo.getAuthTime());
         return loginUser;
     }
 
@@ -293,8 +333,14 @@ public class RemoteUserServiceImpl implements RemoteUserService {
      */
     @Override
     public List<RemoteUserVo> selectListByIds(List<Long> userIds) {
-        List<SysUserVo> sysUserVos = userService.selectUserByIds(userIds, null);
-        return MapstructUtils.convert(sysUserVos, RemoteUserVo.class);
+        if (CollUtil.isEmpty(userIds)) {
+            return new ArrayList<>();
+        }
+        List<SysUserVo> list = userMapper.selectVoList(new LambdaQueryWrapper<SysUser>()
+            .select(SysUser::getUserId, SysUser::getUserName, SysUser::getNickName, SysUser::getEmail, SysUser::getPhonenumber)
+            .eq(SysUser::getStatus, SystemConstants.NORMAL)
+            .in(SysUser::getUserId, userIds));
+        return MapstructUtils.convert(list, RemoteUserVo.class);
     }
 
     /**
@@ -305,7 +351,110 @@ public class RemoteUserServiceImpl implements RemoteUserService {
      */
     @Override
     public List<Long> selectUserIdsByRoleIds(List<Long> roleIds) {
+        if (CollUtil.isEmpty(roleIds)) {
+            return new ArrayList<>();
+        }
         return userService.selectUserIdsByRoleIds(roleIds);
+    }
+
+    /**
+     * 通过角色ID查询用户
+     *
+     * @param roleIds 角色ids
+     * @return 用户
+     */
+    @Override
+    public List<RemoteUserVo> selectUsersByRoleIds(List<Long> roleIds) {
+        if (CollUtil.isEmpty(roleIds)) {
+            return List.of();
+        }
+
+        // 通过角色ID获取用户角色信息
+        List<SysUserRole> userRoles = userRoleMapper.selectList(
+            new LambdaQueryWrapper<SysUserRole>().in(SysUserRole::getRoleId, roleIds));
+
+        // 获取用户ID列表
+        Set<Long> userIds = StreamUtils.toSet(userRoles, SysUserRole::getUserId);
+
+        return selectListByIds(new ArrayList<>(userIds));
+    }
+
+    /**
+     * 通过部门ID查询用户
+     *
+     * @param deptIds 部门ids
+     * @return 用户
+     */
+    @Override
+    public List<RemoteUserVo> selectUsersByDeptIds(List<Long> deptIds) {
+        if (CollUtil.isEmpty(deptIds)) {
+            return List.of();
+        }
+        List<SysUserVo> list = userMapper.selectVoList(new LambdaQueryWrapper<SysUser>()
+            .select(SysUser::getUserId, SysUser::getUserName, SysUser::getNickName, SysUser::getEmail, SysUser::getPhonenumber)
+            .eq(SysUser::getStatus, SystemConstants.NORMAL)
+            .in(SysUser::getDeptId, deptIds));
+        return BeanUtil.copyToList(list, RemoteUserVo.class);
+    }
+
+    /**
+     * 通过岗位ID查询用户
+     *
+     * @param postIds 岗位ids
+     * @return 用户
+     */
+    @Override
+    public List<RemoteUserVo> selectUsersByPostIds(List<Long> postIds) {
+        if (CollUtil.isEmpty(postIds)) {
+            return List.of();
+        }
+
+        // 通过岗位ID获取用户岗位信息
+        List<SysUserPost> userPosts = userPostMapper.selectList(
+            new LambdaQueryWrapper<SysUserPost>().in(SysUserPost::getPostId, postIds));
+
+        // 获取用户ID列表
+        Set<Long> userIds = StreamUtils.toSet(userPosts, SysUserPost::getUserId);
+
+        return selectListByIds(new ArrayList<>(userIds));
+    }
+
+    /**
+     * 发送动态认证码
+     *
+     * @param userId       用户id
+     * @param authCodeType 认证码类型
+     * @return 结果
+     * @see AuthCodeType
+     */
+    public Boolean sendAuthCode(Long userId, Integer authCodeType) {
+        try {
+            //todo 对返回信息国际化
+            SysUserVo sysUserVo = userMapper.selectVoById(userId);
+            String number = RandomUtil.randomNumbers(6);
+            String msg = "【销售管理服务平台】尊敬的用户您好，本次验证码为" + number;
+            if (AuthCodeType.email.ordinal() == authCodeType) {
+                if (StringUtils.isBlank(sysUserVo.getEmail())) {
+                    throw new ServiceException("账号未配置邮箱");
+                }
+                remoteMailService.send(sysUserVo.getEmail(), "【销售管理服务平台】登录认证", msg);
+            } else if (AuthCodeType.phone.ordinal() == authCodeType) {
+                if (StringUtils.isBlank(sysUserVo.getPhonenumber())) {
+                    throw new ServiceException("账号未配置手机");
+                }
+                remoteSmsService.sendMessage(sysUserVo.getPhonenumber(), msg);
+            } else {
+                throw new ServiceException("认证方式错误");
+            }
+            //todo 验证码限制有效时长
+            String cacheKey = CacheConstants.AUTH_CODE_KEY + StpUtil.getTokenValue();
+            RedisUtils.setCacheObject(cacheKey, number, Duration.ofMinutes(1));
+            return true;
+        } catch (Exception e) {
+            log.error("认证码发送失败 {}", e);
+            return false;
+        }
+
     }
 
 }

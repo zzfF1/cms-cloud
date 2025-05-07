@@ -2,6 +2,7 @@ package com.sinosoft.system.controller.system;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.hutool.core.util.ObjectUtil;
+import com.sinosoft.common.log.enums.EventType;
 import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.domain.R;
 import com.sinosoft.common.web.core.BaseController;
@@ -14,6 +15,7 @@ import com.sinosoft.system.domain.bo.SysDictDataBo;
 import com.sinosoft.system.domain.vo.SysDictDataVo;
 import com.sinosoft.system.service.ISysDictDataService;
 import com.sinosoft.system.service.ISysDictTypeService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +32,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/dict/data")
+@Slf4j
 public class SysDictDataController extends BaseController {
 
     private final ISysDictDataService dictDataService;
@@ -84,8 +87,8 @@ public class SysDictDataController extends BaseController {
      * 新增字典类型
      */
     @SaCheckPermission("system:dict:add")
-    @Log(title = "字典数据", businessType = BusinessType.INSERT)
-    @PostMapping
+    @Log(title = "字典数据", businessType = BusinessType.INSERT, eventType = EventType.system)
+    @PostMapping("/add")
     public R<Void> add(@Validated @RequestBody SysDictDataBo dict) {
         if (!dictDataService.checkDictDataUnique(dict)) {
             return R.fail("新增字典数据'" + dict.getDictValue() + "'失败，字典键值已存在");
@@ -98,8 +101,8 @@ public class SysDictDataController extends BaseController {
      * 修改保存字典类型
      */
     @SaCheckPermission("system:dict:edit")
-    @Log(title = "字典数据", businessType = BusinessType.UPDATE)
-    @PutMapping
+    @Log(title = "字典数据", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/edit")
     public R<Void> edit(@Validated @RequestBody SysDictDataBo dict) {
         if (!dictDataService.checkDictDataUnique(dict)) {
             return R.fail("修改字典数据'" + dict.getDictValue() + "'失败，字典键值已存在");
@@ -114,8 +117,8 @@ public class SysDictDataController extends BaseController {
      * @param dictCodes 字典code串
      */
     @SaCheckPermission("system:dict:remove")
-    @Log(title = "字典类型", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{dictCodes}")
+    @Log(title = "字典类型", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{dictCodes}")
     public R<Void> remove(@PathVariable Long[] dictCodes) {
         dictDataService.deleteDictDataByIds(dictCodes);
         return R.ok();

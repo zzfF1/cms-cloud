@@ -1,9 +1,14 @@
 package com.sinosoft.system.service;
 
+import com.sinosoft.common.core.constant.CacheNames;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.system.domain.bo.SysClientBo;
+import com.sinosoft.system.domain.bo.SysClientFormBo;
+import com.sinosoft.system.domain.vo.KeyPairVo;
+import com.sinosoft.system.domain.vo.SysClientDetailVo;
 import com.sinosoft.system.domain.vo.SysClientVo;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.util.Collection;
 import java.util.List;
@@ -18,7 +23,7 @@ public interface ISysClientService {
     /**
      * 查询客户端管理
      */
-    SysClientVo queryById(Long id);
+    SysClientDetailVo queryById(Long id);
 
     /**
      * 查询客户端信息基于客户端id
@@ -38,21 +43,29 @@ public interface ISysClientService {
     /**
      * 新增客户端管理
      */
-    Boolean insertByBo(SysClientBo bo);
+    Boolean insertByBo(SysClientFormBo bo);
 
     /**
      * 修改客户端管理
      */
-    Boolean updateByBo(SysClientBo bo);
+    Boolean updateByBo(SysClientFormBo bo);
 
     /**
      * 修改状态
      */
-    int updateUserStatus(String clientId, String status);
+    int updateClientStatus(String clientId, String status);
 
     /**
      * 校验并批量删除客户端管理信息
      */
     Boolean deleteWithValidByIds(Collection<Long> ids, Boolean isValid);
 
+    /**
+     * 生成sm2密钥并保存
+     *
+     * @param clientId 客户端ID
+     * @param encrypt  是否加密
+     * @return
+     */
+    KeyPairVo generateAndSaveSm2KeyPair(String clientId, boolean encrypt);
 }

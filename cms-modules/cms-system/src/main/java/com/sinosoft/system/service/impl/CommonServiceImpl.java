@@ -2,25 +2,30 @@ package com.sinosoft.system.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.tree.Tree;
+import cn.hutool.core.lang.tree.TreeNodeConfig;
 import cn.hutool.core.lang.tree.TreeUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sinosoft.common.core.utils.DateUtils;
 import com.sinosoft.common.core.utils.TreeBuildUtils;
+import com.sinosoft.common.schema.common.domain.*;
+import com.sinosoft.common.schema.common.domain.vo.UserTableColumnConfigVo;
+import com.sinosoft.common.schema.common.mapper.SysUserTableConfigMapper;
+import com.sinosoft.common.service.IBaseImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.sinosoft.common.core.constant.CacheNames;
 import com.sinosoft.common.core.exception.ServiceException;
 import com.sinosoft.common.core.service.IBaseCommonTranslation;
 import com.sinosoft.common.core.utils.StringUtils;
-import com.sinosoft.common.domain.LcDefine;
 import com.sinosoft.common.domain.bo.AgentQueryBo;
 import com.sinosoft.common.domain.bo.BranchGroupQueryBo;
 import com.sinosoft.common.domain.bo.LaComQueryBo;
 import com.sinosoft.common.domain.bo.LdComQueryBo;
-import com.sinosoft.common.domain.vo.LcProcessShowVo;
+import com.sinosoft.common.schema.common.domain.vo.LcProcessShowVo;
 import com.sinosoft.common.mapper.LcDefineMapper;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
@@ -31,9 +36,6 @@ import com.sinosoft.common.schema.agent.mapper.LaagentMapper;
 import com.sinosoft.common.schema.agent.mapper.LaagentgradeMapper;
 import com.sinosoft.common.schema.commission.domain.Lmriskapp;
 import com.sinosoft.common.schema.commission.mapper.LmriskappMapper;
-import com.sinosoft.common.schema.common.domain.LaQualifyCode;
-import com.sinosoft.common.schema.common.domain.Ldcom;
-import com.sinosoft.common.schema.common.domain.SysPageConfig;
 import com.sinosoft.common.schema.common.domain.vo.LabelShowVo;
 import com.sinosoft.common.schema.common.domain.vo.SysPageConfigTabVo;
 import com.sinosoft.common.schema.common.mapper.LaQualifyCodeMapper;
@@ -50,6 +52,7 @@ import com.sinosoft.system.mapper.CommonMapper;
 import com.sinosoft.system.service.ICommonService;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -63,7 +66,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation {
+public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation, IBaseImpl {
 
     private final CommonMapper commonMapper;
     private final LdcomMapper ldComMapper;
@@ -76,6 +79,7 @@ public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation
     private final LaagentgradeMapper laAgentGradeMapper;
     private final LmriskappMapper lmRiskAppMapper;
     private final ICmsCommonService cmsCommonService;
+    private final SysUserTableConfigMapper sysUserTableConfigMapper;
 
     @Override
     public TableDataInfo<BranchGroupShowVo> queryBranchPageList(BranchGroupQueryBo bo, PageQuery pageQuery) {
@@ -157,8 +161,8 @@ public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation
         LambdaQueryWrapper<Lacom> lqw = Wrappers.lambdaQuery();
         lqw.select(Lacom::getAgentcom, Lacom::getName, Lacom::getBranchtype, Lacom::getManagecom, Lacom::getActype);
         lqw.likeRight(StringUtils.isNotBlank(queryBo.getAgentCom()), Lacom::getAgentcom, queryBo.getAgentCom());
-        lqw.likeRight(StringUtils.isNotBlank(queryBo.getManageCom()), Lacom::getManagecom, queryBo.getManageCom());
-        lqw.likeRight(StringUtils.isNotBlank(queryBo.getBranchType()), Lacom::getBranchtype, queryBo.getBranchType());
+        lqw.eq(StringUtils.isNotBlank(queryBo.getManageCom()), Lacom::getManagecom, queryBo.getManageCom());
+        lqw.eq(StringUtils.isNotBlank(queryBo.getBranchType()), Lacom::getBranchtype, queryBo.getBranchType());
         if (!LoginHelper.isSuperAdmin()) {
             LoginUser loginUser = LoginHelper.getLoginUser();
             lqw.likeRight(Lacom::getManagecom, Objects.requireNonNull(loginUser).getDeptId());
@@ -299,7 +303,23 @@ public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation
             lqw.apply(" length(comcode) <= 6 ");
         }
         List<Ldcom> ldComList = ldComMapper.selectList(lqw);
-        return buildDeptTreeSelect(ldComList);
+        return buildManageTreeSelect(ldComList);
+    }
+
+    @Override
+    public List<Tree<String>> selectComTreeList(LaComQueryBo queryBo) {
+        LambdaQueryWrapper<Lacom> lqw = Wrappers.lambdaQuery();
+        lqw.select(Lacom::getAgentcom, Lacom::getName, Lacom::getBranchtype, Lacom::getManagecom, Lacom::getUpagentcom, Lacom::getState);
+        lqw.likeRight(StringUtils.isNotBlank(queryBo.getAgentCom()), Lacom::getAgentcom, queryBo.getAgentCom());
+        lqw.eq(StringUtils.isNotBlank(queryBo.getManageCom()), Lacom::getManagecom, queryBo.getManageCom());
+        lqw.eq(StringUtils.isNotBlank(queryBo.getBranchType()), Lacom::getBranchtype, queryBo.getBranchType());
+        if (!LoginHelper.isSuperAdmin()) {
+            LoginUser loginUser = LoginHelper.getLoginUser();
+            lqw.likeRight(Lacom::getManagecom, Objects.requireNonNull(loginUser).getDeptId());
+        }
+        lqw.orderByAsc(Lacom::getAgentcom);
+        List<Lacom> dataList = laComMapper.selectList(lqw);
+        return buildComTreeSelect(dataList);
     }
 
     /**
@@ -308,7 +328,6 @@ public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation
      * @return
      */
     @Override
-    ///@DS("slave")
     public List<LabelShowVo> queryRiskCode(Lmriskapp lmriskapp) {
         QueryWrapper<Lmriskapp> queryWrapper = Wrappers.query();
         queryWrapper.eq(StringUtils.isNotBlank(lmriskapp.getRiskprop()), "riskprop", lmriskapp.getRiskprop());
@@ -320,6 +339,35 @@ public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation
             labelShowVo.setValue(Lmriskapp.getRiskcode());
             return labelShowVo;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Tree<String>> selectRiskTreeList() {
+        LambdaQueryWrapper<Lmriskapp> lqw = Wrappers.lambdaQuery();
+        lqw.select(Lmriskapp::getRiskcode,Lmriskapp::getRiskname);
+        lqw.orderByAsc(Lmriskapp::getRiskcode);
+        List<Lmriskapp> lmriskapps = lmRiskAppMapper.selectList(lqw);
+        return buildRiskTreeSelect(lmriskapps);
+    }
+
+    /**
+     * 构建险种树
+     *
+     * @param lmriskapps 险种数据
+     * @return 险种树
+     */
+    public List<Tree<String>> buildRiskTreeSelect(List<Lmriskapp> lmriskapps) {
+        if (CollUtil.isEmpty(lmriskapps)) {
+            return CollUtil.newArrayList();
+        }
+        // 直接使用 TreeUtil.build 方法，传入 null 作为根节点ID
+        List<Tree<String>> treeList = TreeUtil.build(lmriskapps, "", TreeBuildUtils.DEFAULT_CONFIG, (risk, tree) -> {
+            tree.setId(risk.getRiskcode());
+            tree.setParentId("");
+            tree.setName(risk.getRiskname());
+            tree.putExtra("bh", risk.getRiskcode());
+        });
+        return treeList;
     }
 
 
@@ -383,7 +431,13 @@ public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation
         return labelShowList;
     }
 
-    public List<Tree<String>> buildDeptTreeSelect(List<Ldcom> ldComs) {
+    /**
+     * 构建部门树
+     *
+     * @param ldComs 管理机构数据
+     * @return 管理机构树
+     */
+    public List<Tree<String>> buildManageTreeSelect(List<Ldcom> ldComs) {
         if (CollUtil.isEmpty(ldComs)) {
             return CollUtil.newArrayList();
         }
@@ -393,9 +447,35 @@ public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation
             tree.setParentId(com.getUpcomcode());
             tree.setName(com.getShortname());
             tree.putExtra("manageCom", com.getComcode());
+            tree.putExtra("bh", com.getComcode());
         });
         return treeList;
+    }
 
+    /**
+     * 构建代理机构树
+     *
+     * @param lacoms 代理机构集合
+     * @return 代理机构树
+     */
+    public List<Tree<String>> buildComTreeSelect(List<Lacom> lacoms) {
+        if (CollUtil.isEmpty(lacoms)) {
+            return CollUtil.newArrayList();
+        }
+        TreeNodeConfig nodeConfig = new TreeNodeConfig();
+        nodeConfig.setIdKey("agentcom");
+        nodeConfig.setParentIdKey("upagentcom");
+        nodeConfig.setNameKey("name");
+
+        // 直接使用 TreeUtil.build 方法，传入 null 作为根节点ID
+        List<Tree<String>> treeList = TreeUtil.build(lacoms, "", nodeConfig, (com, tree) -> {
+            tree.setId(com.getAgentcom());
+            tree.setParentId(com.getUpagentcom());
+            tree.setName(com.getName());
+            tree.putExtra("managecom", com.getManagecom());
+            tree.putExtra("state", com.getState());
+        });
+        return treeList;
     }
 
     /**
@@ -404,12 +484,70 @@ public class CommonServiceImpl implements ICommonService, IBaseCommonTranslation
      * @param pageCode 界面编码
      */
     @Override
-    public List<SysPageConfigTabVo> queryPageTableConfig(String pageCode) {
+    public List<SysPageConfigTabVo> queryPageTableConfig(String pageCode, Long userId) {
         SysPageConfig sysPageConfig = cmsCommonService.selectPageConfigByCode(pageCode);
         if (sysPageConfig == null) {
             log.warn("[{}]界面配置不存在", pageCode);
             throw new ServiceException("[" + pageCode + "]界面配置不存在");
         }
-        return cmsCommonService.selectPageConfigTabByPageId(sysPageConfig.getId());
+        return cmsCommonService.selectPageConfigTabWithUserConfig(sysPageConfig.getId(), userId, pageCode);
+    }
+
+    /**
+     * 保存用户表格列配置
+     *
+     * @param pageCode 页面编码
+     * @param columnConfigs 列配置列表
+     * @return 结果
+     */
+    @Override
+    public boolean saveUserTableColumnConfigs(String pageCode, List<UserTableColumnConfigVo> columnConfigs,Long userId) {
+        if (StringUtils.isEmpty(pageCode) || columnConfigs == null || columnConfigs.isEmpty()) {
+            return false;
+        }
+        // 首先删除已有的配置
+        LambdaQueryWrapper<SysUserTableConfig> delWrapper = Wrappers.lambdaQuery();
+        delWrapper.eq(SysUserTableConfig::getUserId, userId);
+        delWrapper.eq(SysUserTableConfig::getPageCode, pageCode);
+        sysUserTableConfigMapper.delete(delWrapper);
+        // 批量插入新配置
+        List<SysUserTableConfig> configList = new ArrayList<>();
+        for (UserTableColumnConfigVo config : columnConfigs) {
+            if (config.getPageTableId() == null) {
+                continue;
+            }
+            SysUserTableConfig tableConfig = new SysUserTableConfig();
+            tableConfig.setUserId(userId);
+            tableConfig.setPageCode(pageCode);
+            tableConfig.setPageTableId(config.getPageTableId());
+            tableConfig.setWidth(config.getWidth());
+            tableConfig.setVisible(Boolean.TRUE.equals(config.getVisible()) ? "1" : "0");
+            // 设置审计字段
+            this.setInsertValue(tableConfig,String.valueOf(userId));
+            configList.add(tableConfig);
+        }
+
+        if (!configList.isEmpty()) {
+            return sysUserTableConfigMapper.insertBatch(configList);
+        }
+        return true;
+    }
+
+    /**
+     * 重置用户表格列配置
+     *
+     * @param pageCode 页面编码
+     * @return 结果
+     */
+    @Override
+    public boolean resetUserTableColumnConfigs(String pageCode,Long userId) {
+        if (StringUtils.isEmpty(pageCode)) {
+            return false;
+        }
+        // 删除用户配置
+        LambdaQueryWrapper<SysUserTableConfig> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(SysUserTableConfig::getUserId, userId);
+        wrapper.eq(SysUserTableConfig::getPageCode, pageCode);
+        return sysUserTableConfigMapper.delete(wrapper) >= 0;
     }
 }

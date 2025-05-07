@@ -12,6 +12,8 @@ import com.sinosoft.common.core.constant.RegexConstants;
 import com.sinosoft.common.mybatis.core.domain.BaseEntity;
 import com.sinosoft.system.domain.SysMenu;
 
+import java.util.List;
+
 /**
  * 菜单权限业务对象 sys_menu
  *
@@ -107,5 +109,14 @@ public class SysMenuBo extends BaseEntity {
      */
     private String remark;
 
+    /**
+     * 菜单所属渠道
+     */
+    @NotBlank(message = "所属渠道不能为空")
+    private String branchType;
 
+    /**
+     * 包含当前节点 (true:返回当前节点及其子节点，false:只返回子节点)
+     */
+    private Boolean includeCurrentNode;
 }

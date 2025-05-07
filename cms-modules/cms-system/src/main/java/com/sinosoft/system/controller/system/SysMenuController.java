@@ -4,9 +4,11 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.annotation.SaMode;
 import cn.hutool.core.lang.tree.Tree;
+import com.sinosoft.common.log.enums.EventType;
+import com.sinosoft.system.domain.vo.*;
 import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.constant.TenantConstants;
-import com.sinosoft.common.core.constant.UserConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.common.core.domain.R;
 import com.sinosoft.common.core.utils.StringUtils;
 import com.sinosoft.common.web.core.BaseController;
@@ -15,9 +17,6 @@ import com.sinosoft.common.log.enums.BusinessType;
 import com.sinosoft.common.satoken.utils.LoginHelper;
 import com.sinosoft.system.domain.SysMenu;
 import com.sinosoft.system.domain.bo.SysMenuBo;
-import com.sinosoft.system.domain.vo.MenuTreeSelectVo;
-import com.sinosoft.system.domain.vo.RouterVo;
-import com.sinosoft.system.domain.vo.SysMenuVo;
 import com.sinosoft.system.service.ISysMenuService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -52,8 +51,8 @@ public class SysMenuController extends BaseController {
      * 获取菜单列表
      */
     @SaCheckRole(value = {
-            TenantConstants.SUPER_ADMIN_ROLE_KEY,
-            TenantConstants.TENANT_ADMIN_ROLE_KEY
+        TenantConstants.SUPER_ADMIN_ROLE_KEY,
+        TenantConstants.TENANT_ADMIN_ROLE_KEY
     }, mode = SaMode.OR)
     @SaCheckPermission("system:menu:list")
     @GetMapping("/list")
@@ -68,8 +67,8 @@ public class SysMenuController extends BaseController {
      * @param menuId 菜单ID
      */
     @SaCheckRole(value = {
-            TenantConstants.SUPER_ADMIN_ROLE_KEY,
-            TenantConstants.TENANT_ADMIN_ROLE_KEY
+        TenantConstants.SUPER_ADMIN_ROLE_KEY,
+        TenantConstants.TENANT_ADMIN_ROLE_KEY
     }, mode = SaMode.OR)
     @SaCheckPermission("system:menu:query")
     @GetMapping(value = "/{menuId}")
@@ -96,9 +95,9 @@ public class SysMenuController extends BaseController {
     @GetMapping(value = "/roleMenuTreeselect/{roleId}")
     public R<MenuTreeSelectVo> roleMenuTreeselect(@PathVariable("roleId") Long roleId) {
         List<SysMenuVo> menus = menuService.selectMenuList(LoginHelper.getUserId());
-        MenuTreeSelectVo selectVo = new MenuTreeSelectVo();
-        selectVo.setCheckedKeys(menuService.selectMenuListByRoleId(roleId));
-        selectVo.setMenus(menuService.buildMenuTreeSelect(menus));
+        MenuTreeSelectVo selectVo = new MenuTreeSelectVo(
+            menuService.selectMenuListByRoleId(roleId),
+            menuService.buildMenuTreeSelect(menus));
         return R.ok(selectVo);
     }
 
@@ -112,9 +111,9 @@ public class SysMenuController extends BaseController {
     @GetMapping(value = "/tenantPackageMenuTreeselect/{packageId}")
     public R<MenuTreeSelectVo> tenantPackageMenuTreeselect(@PathVariable("packageId") Long packageId) {
         List<SysMenuVo> menus = menuService.selectMenuList(LoginHelper.getUserId());
-        MenuTreeSelectVo selectVo = new MenuTreeSelectVo();
-        selectVo.setCheckedKeys(menuService.selectMenuListByPackageId(packageId));
-        selectVo.setMenus(menuService.buildMenuTreeSelect(menus));
+        MenuTreeSelectVo selectVo = new MenuTreeSelectVo(
+            menuService.selectMenuListByPackageId(packageId),
+            menuService.buildMenuTreeSelect(menus));
         return R.ok(selectVo);
     }
 
@@ -123,12 +122,14 @@ public class SysMenuController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:menu:add")
-    @Log(title = "菜单管理", businessType = BusinessType.INSERT)
-    @PostMapping
+    @Log(title = "菜单管理", businessType = BusinessType.INSERT, eventType = EventType.system)
+    @PostMapping("/add")
     public R<Void> add(@Validated @RequestBody SysMenuBo menu) {
         if (!menuService.checkMenuNameUnique(menu)) {
             return R.fail("新增菜单'" + menu.getMenuName() + "'失败，菜单名称已存在");
-        } else if (UserConstants.YES_FRAME.equals(menu.getIsFrame()) && !StringUtils.ishttp(menu.getPath())) {
+        } else if (!menuService.checkMenuOrderNumUnique(menu)) {
+            return R.fail("新增菜单'" + menu.getMenuName() + "'失败，同级菜单中排序号已存在");
+        } else if (SystemConstants.YES_FRAME.equals(menu.getIsFrame()) && !StringUtils.ishttp(menu.getPath())) {
             return R.fail("新增菜单'" + menu.getMenuName() + "'失败，地址必须以http(s)://开头");
         }
         return toAjax(menuService.insertMenu(menu));
@@ -139,15 +140,18 @@ public class SysMenuController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:menu:edit")
-    @Log(title = "菜单管理", businessType = BusinessType.UPDATE)
-    @PutMapping
+    @Log(title = "菜单管理", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/edit")
     public R<Void> edit(@Validated @RequestBody SysMenuBo menu) {
         if (!menuService.checkMenuNameUnique(menu)) {
             return R.fail("修改菜单'" + menu.getMenuName() + "'失败，菜单名称已存在");
-        } else if (UserConstants.YES_FRAME.equals(menu.getIsFrame()) && !StringUtils.ishttp(menu.getPath())) {
+        } else if (SystemConstants.YES_FRAME.equals(menu.getIsFrame()) && !StringUtils.ishttp(menu.getPath())) {
             return R.fail("修改菜单'" + menu.getMenuName() + "'失败，地址必须以http(s)://开头");
         } else if (menu.getMenuId().equals(menu.getParentId())) {
             return R.fail("修改菜单'" + menu.getMenuName() + "'失败，上级菜单不能选择自己");
+        }
+        if (!menuService.checkMenuOrderNumUnique(menu)) {
+            return R.fail("修改菜单'" + menu.getMenuName() + "'失败，同级菜单中排序号已存在");
         }
         return toAjax(menuService.updateMenu(menu));
     }
@@ -159,8 +163,8 @@ public class SysMenuController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:menu:remove")
-    @Log(title = "菜单管理", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{menuId}")
+    @Log(title = "菜单管理", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{menuId}")
     public R<Void> remove(@PathVariable("menuId") Long menuId) {
         if (menuService.hasChildByMenuId(menuId)) {
             return R.warn("存在子菜单,不允许删除");
@@ -170,5 +174,7 @@ public class SysMenuController extends BaseController {
         }
         return toAjax(menuService.deleteMenuById(menuId));
     }
+
+    public record MenuTreeSelectVo(List<Long> checkedKeys, List<Tree<Long>> menus) {}
 
 }

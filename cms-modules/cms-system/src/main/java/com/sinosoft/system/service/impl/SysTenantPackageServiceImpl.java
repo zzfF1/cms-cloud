@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
-import com.sinosoft.common.core.constant.TenantConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.common.core.exception.ServiceException;
 import com.sinosoft.common.core.utils.MapstructUtils;
 import com.sinosoft.common.core.utils.StringUtils;
@@ -59,7 +59,7 @@ public class SysTenantPackageServiceImpl implements ISysTenantPackageService {
     @Override
     public List<SysTenantPackageVo> selectList() {
         return baseMapper.selectVoList(new LambdaQueryWrapper<SysTenantPackage>()
-                .eq(SysTenantPackage::getStatus, TenantConstants.NORMAL));
+                .eq(SysTenantPackage::getStatus, SystemConstants.NORMAL));
     }
 
     /**

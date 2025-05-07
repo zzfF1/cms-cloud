@@ -5,13 +5,14 @@ import com.sinosoft.common.domain.bo.AgentQueryBo;
 import com.sinosoft.common.domain.bo.BranchGroupQueryBo;
 import com.sinosoft.common.domain.bo.LaComQueryBo;
 import com.sinosoft.common.domain.bo.LdComQueryBo;
-import com.sinosoft.common.domain.vo.LcProcessShowVo;
+import com.sinosoft.common.schema.common.domain.vo.LcProcessShowVo;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.common.schema.commission.domain.Lmriskapp;
 import com.sinosoft.common.schema.common.domain.LaQualifyCode;
 import com.sinosoft.common.schema.common.domain.vo.LabelShowVo;
 import com.sinosoft.common.schema.common.domain.vo.SysPageConfigTabVo;
+import com.sinosoft.common.schema.common.domain.vo.UserTableColumnConfigVo;
 import com.sinosoft.common.schema.team.domain.vo.BranchGroupShowVo;
 
 import java.util.List;
@@ -88,11 +89,26 @@ public interface ICommonService {
     List<Tree<String>> selectManageTreeList(LdComQueryBo queryBo);
 
     /**
+     * 查询代理机构树
+     *
+     * @param queryBo 查询条件
+     * @return 代理机构树
+     */
+    List<Tree<String>> selectComTreeList(LaComQueryBo queryBo);
+
+    /**
      * 查询险种编码
      *
      * @return 险种编码树
      */
     List<LabelShowVo> queryRiskCode(Lmriskapp lmriskapp);
+
+    /**
+     * 查询险种机构树
+     *
+     * @return 险种树
+     */
+    List<Tree<String>> selectRiskTreeList();
 
     /**
      * 查询职级
@@ -111,7 +127,27 @@ public interface ICommonService {
      * 查询页面表格配置
      *
      * @param pageCode 页面编码
+     * @param userId 用户id
      * @return 表格配置
      */
-    List<SysPageConfigTabVo> queryPageTableConfig(String pageCode);
+    List<SysPageConfigTabVo> queryPageTableConfig(String pageCode,Long userId);
+
+    /**
+     * 保存用户表格列配置
+     *
+     * @param pageCode 页面编码
+     * @param columnConfigs 列配置列表
+     * @param userId 用户id
+     * @return 结果
+     */
+    boolean saveUserTableColumnConfigs(String pageCode, List<UserTableColumnConfigVo> columnConfigs,Long userId);
+
+    /**
+     * 重置用户表格列配置
+     *
+     * @param pageCode 页面编码
+     * @param userId 用户ID
+     * @return 结果
+     */
+    boolean resetUserTableColumnConfigs(String pageCode,Long userId);
 }

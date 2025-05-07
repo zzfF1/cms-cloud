@@ -3,6 +3,7 @@ package com.sinosoft.system.controller.system;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import com.baomidou.lock.annotation.Lock4j;
+import com.sinosoft.common.log.enums.EventType;
 import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.constant.TenantConstants;
 import com.sinosoft.common.core.domain.R;
@@ -60,7 +61,7 @@ public class SysTenantController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenant:export")
-    @Log(title = "租户", businessType = BusinessType.EXPORT)
+    @Log(title = "租户", businessType = BusinessType.EXPORT, eventType = EventType.system)
     @PostMapping("/export")
     public void export(SysTenantBo bo, HttpServletResponse response) {
         List<SysTenantVo> list = tenantService.queryList(bo);
@@ -86,10 +87,10 @@ public class SysTenantController extends BaseController {
     @ApiEncrypt
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenant:add")
-    @Log(title = "租户", businessType = BusinessType.INSERT)
+    @Log(title = "租户", businessType = BusinessType.INSERT, eventType = EventType.system)
     @Lock4j
     @RepeatSubmit()
-    @PostMapping()
+    @PostMapping("/add")
     public R<Void> add(@Validated(AddGroup.class) @RequestBody SysTenantBo bo) {
         if (!tenantService.checkCompanyNameUnique(bo)) {
             return R.fail("新增租户'" + bo.getCompanyName() + "'失败，企业名称已存在");
@@ -102,9 +103,9 @@ public class SysTenantController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenant:edit")
-    @Log(title = "租户", businessType = BusinessType.UPDATE)
+    @Log(title = "租户", businessType = BusinessType.UPDATE, eventType = EventType.system)
     @RepeatSubmit()
-    @PutMapping()
+    @PostMapping("/edit")
     public R<Void> edit(@Validated(EditGroup.class) @RequestBody SysTenantBo bo) {
         tenantService.checkTenantAllowed(bo.getTenantId());
         if (!tenantService.checkCompanyNameUnique(bo)) {
@@ -118,8 +119,8 @@ public class SysTenantController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenant:edit")
-    @Log(title = "租户", businessType = BusinessType.UPDATE)
-    @PutMapping("/changeStatus")
+    @Log(title = "租户", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/changeStatus")
     public R<Void> changeStatus(@RequestBody SysTenantBo bo) {
         tenantService.checkTenantAllowed(bo.getTenantId());
         return toAjax(tenantService.updateTenantStatus(bo));
@@ -132,8 +133,8 @@ public class SysTenantController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenant:remove")
-    @Log(title = "租户", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{ids}")
+    @Log(title = "租户", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{ids}")
     public R<Void> remove(@NotEmpty(message = "主键不能为空")
                           @PathVariable Long[] ids) {
         return toAjax(tenantService.deleteWithValidByIds(Arrays.asList(ids), true));
@@ -155,6 +156,7 @@ public class SysTenantController extends BaseController {
      * 清除动态租户
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
+    @Log(title = "租户", businessType = BusinessType.CLEAN, eventType = EventType.system)
     @GetMapping("/dynamic/clear")
     public R<Void> dynamicClear() {
         TenantHelper.clearDynamic();
@@ -170,7 +172,7 @@ public class SysTenantController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenant:edit")
-    @Log(title = "租户", businessType = BusinessType.UPDATE)
+    @Log(title = "租户", businessType = BusinessType.UPDATE, eventType = EventType.system)
     @GetMapping("/syncTenantPackage")
     public R<Void> syncTenantPackage(@NotBlank(message = "租户ID不能为空") String tenantId,
                                      @NotNull(message = "套餐ID不能为空") Long packageId) {
@@ -181,7 +183,7 @@ public class SysTenantController extends BaseController {
      * 同步租户字典
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
-    @Log(title = "同步租户字典", businessType = BusinessType.INSERT)
+    @Log(title = "租户", businessType = BusinessType.INSERT, eventType = EventType.system)
     @GetMapping("/syncTenantDict")
     public R<Void> syncTenantDict() {
         if (!TenantHelper.isEnable()) {

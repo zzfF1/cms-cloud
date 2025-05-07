@@ -76,6 +76,13 @@ public class SysOperLogVo implements Serializable {
     private Integer operatorType;
 
     /**
+     * 事件类型
+     */
+    @ExcelProperty(value = "事件类型", converter = ExcelDictConvert.class)
+    @ExcelDictFormat(readConverterExp = "0=系统级,1=业务级")
+    private Integer eventType;
+
+    /**
      * 操作人员
      */
     @ExcelProperty(value = "操作人员")

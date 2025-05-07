@@ -3,7 +3,7 @@ package com.sinosoft.system.mapper;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
-import com.sinosoft.common.core.constant.UserConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.system.domain.SysMenu;
 import com.sinosoft.common.mybatis.core.mapper.BaseMapperPlus;
 import com.sinosoft.system.domain.vo.SysMenuVo;
@@ -49,8 +49,8 @@ public interface SysMenuMapper extends BaseMapperPlus<SysMenu, SysMenuVo> {
      */
     default List<SysMenu> selectMenuTreeAll() {
         LambdaQueryWrapper<SysMenu> lqw = new LambdaQueryWrapper<SysMenu>()
-            .in(SysMenu::getMenuType, UserConstants.TYPE_DIR, UserConstants.TYPE_MENU)
-            .eq(SysMenu::getStatus, UserConstants.MENU_NORMAL)
+            .in(SysMenu::getMenuType, SystemConstants.TYPE_DIR, SystemConstants.TYPE_MENU)
+            .eq(SysMenu::getStatus, SystemConstants.NORMAL)
             .orderByAsc(SysMenu::getParentId)
             .orderByAsc(SysMenu::getOrderNum);
         return this.selectList(lqw);
@@ -72,5 +72,12 @@ public interface SysMenuMapper extends BaseMapperPlus<SysMenu, SysMenuVo> {
      * @return 选中菜单列表
      */
     List<Long> selectMenuListByRoleId(@Param("roleId") Long roleId, @Param("menuCheckStrictly") boolean menuCheckStrictly);
+
+    /**
+     * 查询其他角色的权限
+     * @param roleId 排除该角色
+     * @return
+     */
+    List<Long> selectMenuListOfOtherRole(@Param("roleId") Long roleId);
 
 }

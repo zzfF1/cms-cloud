@@ -6,9 +6,10 @@ import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sinosoft.common.core.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.constant.CacheNames;
-import com.sinosoft.common.core.constant.UserConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.common.core.exception.ServiceException;
 import com.sinosoft.common.core.utils.MapstructUtils;
 import com.sinosoft.common.core.utils.StringUtils;
@@ -70,10 +71,13 @@ public class SysConfigServiceImpl implements ISysConfigService {
     public String selectConfigByKey(String configKey) {
         SysConfig retConfig = baseMapper.selectOne(new LambdaQueryWrapper<SysConfig>()
             .eq(SysConfig::getConfigKey, configKey));
-        if (ObjectUtil.isNotNull(retConfig)) {
-            return retConfig.getConfigValue();
-        }
-        return StringUtils.EMPTY;
+        return ObjectUtils.notNullGetter(retConfig, SysConfig::getConfigValue, StringUtils.EMPTY);
+    }
+
+    @Cacheable(cacheNames = CacheNames.SYS_CONFIG, key = "#configKey")
+    @Override
+    public String selectByKeyTenantid(String configKey,String tenantId) {
+        return selectConfigByKey(configKey);
     }
 
     /**
@@ -171,7 +175,7 @@ public class SysConfigServiceImpl implements ISysConfigService {
     public void deleteConfigByIds(Long[] configIds) {
         for (Long configId : configIds) {
             SysConfig config = baseMapper.selectById(configId);
-            if (StringUtils.equals(UserConstants.YES, config.getConfigType())) {
+            if (StringUtils.equals(SystemConstants.YES, config.getConfigType())) {
                 throw new ServiceException(String.format("内置参数【%1$s】不能删除 ", config.getConfigKey()));
             }
             CacheUtils.evict(CacheNames.SYS_CONFIG, config.getConfigKey());
@@ -195,7 +199,7 @@ public class SysConfigServiceImpl implements ISysConfigService {
      */
     @Override
     public boolean checkConfigKeyUnique(SysConfigBo config) {
-        long configId = ObjectUtil.isNull(config.getConfigId()) ? -1L : config.getConfigId();
+        long configId = ObjectUtils.notNull(config.getConfigId(), -1L);
         SysConfig info = baseMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, config.getConfigKey()));
         if (ObjectUtil.isNotNull(info) && info.getConfigId() != configId) {
             return false;

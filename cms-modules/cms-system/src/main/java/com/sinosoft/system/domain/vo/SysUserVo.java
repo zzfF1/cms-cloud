@@ -89,7 +89,8 @@ public class SysUserVo implements Serializable {
     private String password;
 
     /**
-     * 帐号状态（0正常 1停用）
+     * 帐号状态
+     * @see com.sinosoft.common.core.enums.UserStatus
      */
     private String status;
 
@@ -139,4 +140,55 @@ public class SysUserVo implements Serializable {
      */
     private Long roleId;
 
+
+    /**
+     * 最后一次密码修改时间
+     */
+    private Date lastPwdUpdateTime;
+
+    /**
+     * 账户类型
+     */
+    private Integer accType;
+
+    /**
+     * 账号绑定IP
+     */
+    private String bindIp;
+
+    /**
+     * 系统内置 Y-是 N-否
+     */
+    private String sysType;
+
+    private String accessStartTime;
+
+    private String accessEndTime;
+
+    private String validStartDate;
+
+    private String validEndDate;
+
+    /**
+     * 允许访问时间 24hi:mm:ss
+     */
+//    @AutoMappings({
+//        @AutoMapping(target = "accessStartTime",source = "accessTime", expression = "java(cn.hutool.core.collection.CollUtil.get(source.getAccessTime(),0))"),
+//        @AutoMapping(target = "accessEndTime",source = "accessTime", expression = "java(cn.hutool.core.collection.CollUtil.get(source.getAccessTime(),1))")
+//    })
+    private List<String> accessTime;
+
+    /**
+     * 账户有效期  yyyy-MM-dd
+     */
+    private List<String> validDate;
+
+    /**
+     * 姓名（实名制）
+     */
+    private String realName;
+    /**
+     * 实名完成时间
+     */
+    private Date authTime;
 }

@@ -1,6 +1,8 @@
 package com.sinosoft.system.service;
 
 import cn.hutool.core.lang.tree.Tree;
+import com.sinosoft.common.mybatis.core.page.PageQuery;
+import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.system.domain.SysMenu;
 import com.sinosoft.system.domain.bo.SysMenuBo;
 import com.sinosoft.system.domain.vo.RouterVo;
@@ -32,6 +34,13 @@ public interface ISysMenuService {
      * @return 菜单列表
      */
     List<SysMenuVo> selectMenuList(SysMenuBo menu, Long userId);
+
+    /**
+     * 权限互斥
+     * @param roleId  角色ID
+     * @param authList 菜单权限（未互斥前）
+     */
+    void authExclusive(Long roleId,List<SysMenuVo> authList);
 
     /**
      * 根据用户ID查询权限
@@ -144,4 +153,13 @@ public interface ISysMenuService {
      * @return 结果
      */
     boolean checkMenuNameUnique(SysMenuBo menu);
+
+    /**
+     * 检查同级菜单中排序号是否唯一
+     *
+     * @param menu 菜单信息
+     * @return 结果 true=唯一 false=不唯一
+     */
+    boolean checkMenuOrderNumUnique(SysMenuBo menu);
+
 }

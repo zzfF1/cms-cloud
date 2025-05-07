@@ -65,6 +65,11 @@ public class SysOperLogBo {
     private Integer operatorType;
 
     /**
+     * 事件类型
+     */
+    private Integer eventType;
+
+    /**
      * 操作人员
      */
     private String operName;
@@ -118,6 +123,11 @@ public class SysOperLogBo {
      * 消耗时间
      */
     private Long costTime;
+
+    /**
+     * 岗位
+     */
+    private String postCode;
 
     /**
      * 请求参数

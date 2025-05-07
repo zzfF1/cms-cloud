@@ -4,7 +4,7 @@
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sinosoft.system.mapper.CommonMapper">
 
-    <select id="queryProcess" resultType="com.sinosoft.common.domain.vo.LcProcessShowVo">
+    <select id="queryProcess" resultType="com.sinosoft.common.schema.common.domain.vo.LcProcessShowVo">
         select last_flag,
                cz_type,
                (select name from lc_define b where b.id = a.lc_id)             lc_name,

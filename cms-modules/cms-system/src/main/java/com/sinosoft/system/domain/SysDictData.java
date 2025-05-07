@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import com.sinosoft.common.core.constant.UserConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.common.tenant.core.TenantEntity;
 
 /**
@@ -65,7 +65,7 @@ public class SysDictData extends TenantEntity {
     private String remark;
 
     public boolean getDefault() {
-        return UserConstants.YES.equals(this.isDefault);
+        return SystemConstants.YES.equals(this.isDefault);
     }
 
 }

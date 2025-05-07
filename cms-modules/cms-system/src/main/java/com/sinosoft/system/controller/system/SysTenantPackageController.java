@@ -2,6 +2,7 @@ package com.sinosoft.system.controller.system;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaCheckRole;
+import com.sinosoft.common.log.enums.EventType;
 import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.constant.TenantConstants;
 import com.sinosoft.common.core.domain.R;
@@ -66,7 +67,7 @@ public class SysTenantPackageController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenantPackage:export")
-    @Log(title = "租户套餐", businessType = BusinessType.EXPORT)
+    @Log(title = "租户套餐", businessType = BusinessType.EXPORT, eventType = EventType.system)
     @PostMapping("/export")
     public void export(SysTenantPackageBo bo, HttpServletResponse response) {
         List<SysTenantPackageVo> list = tenantPackageService.queryList(bo);
@@ -91,9 +92,9 @@ public class SysTenantPackageController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenantPackage:add")
-    @Log(title = "租户套餐", businessType = BusinessType.INSERT)
+    @Log(title = "租户套餐", businessType = BusinessType.INSERT, eventType = EventType.system)
     @RepeatSubmit()
-    @PostMapping()
+    @PostMapping("/add")
     public R<Void> add(@Validated(AddGroup.class) @RequestBody SysTenantPackageBo bo) {
         if (!tenantPackageService.checkPackageNameUnique(bo)) {
             return R.fail("新增套餐'" + bo.getPackageName() + "'失败，套餐名称已存在");
@@ -106,9 +107,9 @@ public class SysTenantPackageController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenantPackage:edit")
-    @Log(title = "租户套餐", businessType = BusinessType.UPDATE)
+    @Log(title = "租户套餐", businessType = BusinessType.UPDATE, eventType = EventType.system)
     @RepeatSubmit()
-    @PutMapping()
+    @PostMapping("/edit")
     public R<Void> edit(@Validated(EditGroup.class) @RequestBody SysTenantPackageBo bo) {
         if (!tenantPackageService.checkPackageNameUnique(bo)) {
             return R.fail("修改套餐'" + bo.getPackageName() + "'失败，套餐名称已存在");
@@ -121,8 +122,8 @@ public class SysTenantPackageController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenantPackage:edit")
-    @Log(title = "租户套餐", businessType = BusinessType.UPDATE)
-    @PutMapping("/changeStatus")
+    @Log(title = "租户套餐", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/changeStatus")
     public R<Void> changeStatus(@RequestBody SysTenantPackageBo bo) {
         return toAjax(tenantPackageService.updatePackageStatus(bo));
     }
@@ -134,8 +135,8 @@ public class SysTenantPackageController extends BaseController {
      */
     @SaCheckRole(TenantConstants.SUPER_ADMIN_ROLE_KEY)
     @SaCheckPermission("system:tenantPackage:remove")
-    @Log(title = "租户套餐", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{packageIds}")
+    @Log(title = "租户套餐", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{packageIds}")
     public R<Void> remove(@NotEmpty(message = "主键不能为空")
                           @PathVariable Long[] packageIds) {
         return toAjax(tenantPackageService.deleteWithValidByIds(Arrays.asList(packageIds), true));

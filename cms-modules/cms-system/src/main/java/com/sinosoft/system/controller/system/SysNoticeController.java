@@ -1,6 +1,7 @@
 package com.sinosoft.system.controller.system;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.sinosoft.common.log.enums.EventType;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboReference;
 import com.sinosoft.common.core.domain.R;
@@ -58,8 +59,8 @@ public class SysNoticeController extends BaseController {
      * 新增通知公告
      */
     @SaCheckPermission("system:notice:add")
-    @Log(title = "通知公告", businessType = BusinessType.INSERT)
-    @PostMapping
+    @Log(title = "通知公告", businessType = BusinessType.INSERT, eventType = EventType.system)
+    @PostMapping("/add")
     public R<Void> add(@Validated @RequestBody SysNoticeBo notice) {
         int rows = noticeService.insertNotice(notice);
         if (rows <= 0) {
@@ -74,8 +75,8 @@ public class SysNoticeController extends BaseController {
      * 修改通知公告
      */
     @SaCheckPermission("system:notice:edit")
-    @Log(title = "通知公告", businessType = BusinessType.UPDATE)
-    @PutMapping
+    @Log(title = "通知公告", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/edit")
     public R<Void> edit(@Validated @RequestBody SysNoticeBo notice) {
         return toAjax(noticeService.updateNotice(notice));
     }
@@ -86,8 +87,8 @@ public class SysNoticeController extends BaseController {
      * @param noticeIds 公告ID串
      */
     @SaCheckPermission("system:notice:remove")
-    @Log(title = "通知公告", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{noticeIds}")
+    @Log(title = "通知公告", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{noticeIds}")
     public R<Void> remove(@PathVariable Long[] noticeIds) {
         return toAjax(noticeService.deleteNoticeByIds(noticeIds));
     }

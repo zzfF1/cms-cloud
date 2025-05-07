@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
-import com.sinosoft.common.core.constant.UserConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.common.core.exception.ServiceException;
 import com.sinosoft.common.core.utils.MapstructUtils;
 import com.sinosoft.common.core.utils.StreamUtils;
@@ -60,6 +60,17 @@ public class SysPostServiceImpl implements ISysPostService {
     }
 
     /**
+     * 查询用户所属岗位组
+     *
+     * @param userId 用户ID
+     * @return 岗位ID
+     */
+    @Override
+    public List<SysPostVo> selectPostsByUserId(Long userId) {
+        return baseMapper.selectPostsByUserId(userId);
+    }
+
+    /**
      * 根据查询条件构建查询包装器
      *
      * @param bo 查询条件对象
@@ -78,12 +89,8 @@ public class SysPostServiceImpl implements ISysPostService {
         } else if (ObjectUtil.isNotNull(bo.getBelongDeptId())) {
             //部门树搜索
             wrapper.and(x -> {
-                List<Long> deptIds = deptMapper.selectList(new LambdaQueryWrapper<SysDept>()
-                        .select(SysDept::getDeptId)
-                        .apply(DataBaseHelper.findInSet(bo.getBelongDeptId(), "ancestors")))
-                    .stream()
-                    .map(SysDept::getDeptId)
-                    .collect(Collectors.toList());
+                List<SysDept> deptList = deptMapper.selectListByParentId(bo.getBelongDeptId());
+                List<Long> deptIds = StreamUtils.toList(deptList, SysDept::getDeptId);
                 deptIds.add(bo.getBelongDeptId());
                 x.in(SysPost::getDeptId, deptIds);
             });
@@ -134,7 +141,7 @@ public class SysPostServiceImpl implements ISysPostService {
     public List<SysPostVo> selectPostByIds(List<Long> postIds) {
         return baseMapper.selectVoList(new LambdaQueryWrapper<SysPost>()
             .select(SysPost::getPostId, SysPost::getPostName, SysPost::getPostCode)
-            .eq(SysPost::getStatus, UserConstants.POST_NORMAL)
+            .eq(SysPost::getStatus, SystemConstants.NORMAL)
             .in(CollUtil.isNotEmpty(postIds), SysPost::getPostId, postIds));
     }
 
@@ -148,6 +155,7 @@ public class SysPostServiceImpl implements ISysPostService {
     public boolean checkPostNameUnique(SysPostBo post) {
         boolean exist = baseMapper.exists(new LambdaQueryWrapper<SysPost>()
             .eq(SysPost::getPostName, post.getPostName())
+            .eq(SysPost::getDeptId, post.getDeptId())
             .ne(ObjectUtil.isNotNull(post.getPostId()), SysPost::getPostId, post.getPostId()));
         return !exist;
     }

@@ -1,6 +1,7 @@
 package com.sinosoft.system.controller.system;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.sinosoft.common.log.enums.EventType;
 import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.domain.R;
 import com.sinosoft.common.web.core.BaseController;
@@ -43,7 +44,7 @@ public class SysDictTypeController extends BaseController {
     /**
      * 导出字典类型列表
      */
-    @Log(title = "字典类型", businessType = BusinessType.EXPORT)
+    @Log(title = "字典类型", businessType = BusinessType.EXPORT, eventType = EventType.system)
     @SaCheckPermission("system:dict:export")
     @PostMapping("/export")
     public void export(SysDictTypeBo dictType, HttpServletResponse response) {
@@ -66,8 +67,8 @@ public class SysDictTypeController extends BaseController {
      * 新增字典类型
      */
     @SaCheckPermission("system:dict:add")
-    @Log(title = "字典类型", businessType = BusinessType.INSERT)
-    @PostMapping
+    @Log(title = "字典类型", businessType = BusinessType.INSERT, eventType = EventType.system)
+    @PostMapping("/add")
     public R<Void> add(@Validated @RequestBody SysDictTypeBo dict) {
         if (!dictTypeService.checkDictTypeUnique(dict)) {
             return R.fail("新增字典'" + dict.getDictName() + "'失败，字典类型已存在");
@@ -80,8 +81,8 @@ public class SysDictTypeController extends BaseController {
      * 修改字典类型
      */
     @SaCheckPermission("system:dict:edit")
-    @Log(title = "字典类型", businessType = BusinessType.UPDATE)
-    @PutMapping
+    @Log(title = "字典类型", businessType = BusinessType.UPDATE, eventType = EventType.system)
+    @PostMapping("/edit")
     public R<Void> edit(@Validated @RequestBody SysDictTypeBo dict) {
         if (!dictTypeService.checkDictTypeUnique(dict)) {
             return R.fail("修改字典'" + dict.getDictName() + "'失败，字典类型已存在");
@@ -96,8 +97,8 @@ public class SysDictTypeController extends BaseController {
      * @param dictIds 字典ID串
      */
     @SaCheckPermission("system:dict:remove")
-    @Log(title = "字典类型", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{dictIds}")
+    @Log(title = "字典类型", businessType = BusinessType.DELETE, eventType = EventType.system)
+    @PostMapping("/remove/{dictIds}")
     public R<Void> remove(@PathVariable Long[] dictIds) {
         dictTypeService.deleteDictTypeByIds(dictIds);
         return R.ok();
@@ -107,8 +108,8 @@ public class SysDictTypeController extends BaseController {
      * 刷新字典缓存
      */
     @SaCheckPermission("system:dict:remove")
-    @Log(title = "字典类型", businessType = BusinessType.CLEAN)
-    @DeleteMapping("/refreshCache")
+    @Log(title = "字典类型", businessType = BusinessType.CLEAN, eventType = EventType.system)
+    @PostMapping("/refreshCache")
     public R<Void> refreshCache() {
         dictTypeService.resetDictCache();
         return R.ok();

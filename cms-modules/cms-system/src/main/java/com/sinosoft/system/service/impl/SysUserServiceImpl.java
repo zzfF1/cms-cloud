@@ -8,37 +8,37 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sinosoft.common.core.constant.CacheConstants;
+import com.sinosoft.common.core.constant.Constants;
+import com.sinosoft.common.core.enums.UserStatus;
+import com.sinosoft.common.core.enums.UserType;
+import com.sinosoft.common.core.utils.*;
+import com.sinosoft.common.redis.utils.RedisUtils;
+import com.sinosoft.system.config.SystemConfig;
 import com.sinosoft.system.domain.*;
+import com.sinosoft.system.domain.vo.*;
 import com.sinosoft.system.mapper.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.sinosoft.common.core.constant.CacheNames;
-import com.sinosoft.common.core.constant.UserConstants;
+import com.sinosoft.common.core.constant.SystemConstants;
 import com.sinosoft.common.core.exception.ServiceException;
-import com.sinosoft.common.core.utils.MapstructUtils;
-import com.sinosoft.common.core.utils.SpringUtils;
-import com.sinosoft.common.core.utils.StreamUtils;
-import com.sinosoft.common.core.utils.StringUtils;
 import com.sinosoft.common.mybatis.core.page.PageQuery;
 import com.sinosoft.common.mybatis.core.page.TableDataInfo;
 import com.sinosoft.common.mybatis.helper.DataBaseHelper;
 import com.sinosoft.common.satoken.utils.LoginHelper;
 import com.sinosoft.system.domain.bo.SysUserBo;
-import com.sinosoft.system.domain.vo.SysPostVo;
-import com.sinosoft.system.domain.vo.SysRoleVo;
-import com.sinosoft.system.domain.vo.SysUserExportVo;
-import com.sinosoft.system.domain.vo.SysUserVo;
 import com.sinosoft.system.service.ISysUserService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 用户 业务层处理
@@ -56,11 +56,38 @@ public class SysUserServiceImpl implements ISysUserService {
     private final SysPostMapper postMapper;
     private final SysUserRoleMapper userRoleMapper;
     private final SysUserPostMapper userPostMapper;
+    private final SystemConfig systemConfig;
 
     @Override
-    public TableDataInfo<SysUserVo> selectPageUserList(SysUserBo user, PageQuery pageQuery) {
-        Page<SysUserVo> page = baseMapper.selectPageUserList(pageQuery.build(), this.buildQueryWrapper(user));
-        return TableDataInfo.build(page);
+    public TableDataInfo<SysUserQueryVo> selectPageUserList(SysUserBo user, PageQuery pageQuery) {
+        QueryWrapper<SysUser> wrapper = this.buildQueryWrapper(user);
+        //用户管理页面不展示待激活状态的用户
+        wrapper.ne("u.status", UserStatus.TO_ACTIVATED.getCode());
+        //连续密码输入错误被锁定
+        Collection<String> keys = RedisUtils.keys(CacheConstants.PWD_ERR_CNT_KEY + "*");
+        IPage<SysUserQueryVo> convert = baseMapper.selectPageUserList(pageQuery.build(), wrapper).convert(d -> {
+            SysUserQueryVo vo = MapstructUtils.convert(d, SysUserQueryVo.class);
+            if (CollUtil.isNotEmpty(keys)) {
+                keys.forEach(key -> {
+                    if (key.endsWith(CacheConstants.PWD_ERR_CNT_KEY + vo.getUserName())) {
+                        vo.setLock(Constants.YES);
+                    }
+                });
+            }
+            return vo;
+        });
+        return TableDataInfo.build(convert);
+    }
+
+    @Override
+    public TableDataInfo<SysUserQueryVo> selectPageToActiveUserList(SysUserBo user, PageQuery pageQuery) {
+        QueryWrapper<SysUser> wrapper = this.buildQueryWrapper(user);
+        //用户激活页面只展示待激活状态的用户
+        wrapper.in("u.status", List.of(UserStatus.TO_ACTIVATED.getCode(), UserStatus.DISABLE.getCode(), UserStatus.DORMANCY.getCode()));
+        IPage<SysUserQueryVo> convert = baseMapper.selectPageUserList(pageQuery.build(), wrapper).convert(d -> {
+            return MapstructUtils.convert(d, SysUserQueryVo.class);
+        });
+        return TableDataInfo.build(convert);
     }
 
     /**
@@ -74,13 +101,16 @@ public class SysUserServiceImpl implements ISysUserService {
         return baseMapper.selectUserExportList(this.buildQueryWrapper(user));
     }
 
-    private Wrapper<SysUser> buildQueryWrapper(SysUserBo user) {
+    private QueryWrapper<SysUser> buildQueryWrapper(SysUserBo user) {
         Map<String, Object> params = user.getParams();
         QueryWrapper<SysUser> wrapper = Wrappers.query();
-        wrapper.eq("u.del_flag", UserConstants.USER_NORMAL)
+        //过滤掉超级管理员账号
+        wrapper.ne("u.user_id", SystemConstants.SUPER_ADMIN_ID)
+//            .eq("u.del_flag", SystemConstants.USER_NORMAL)
             .eq(ObjectUtil.isNotNull(user.getUserId()), "u.user_id", user.getUserId())
             .like(StringUtils.isNotBlank(user.getUserName()), "u.user_name", user.getUserName())
             .eq(StringUtils.isNotBlank(user.getStatus()), "u.status", user.getStatus())
+            .eq(user.getAccType() != null, "u.acc_type", user.getAccType())
             .like(StringUtils.isNotBlank(user.getPhonenumber()), "u.phonenumber", user.getPhonenumber())
             .between(params.get("beginTime") != null && params.get("endTime") != null,
                 "u.create_time", params.get("beginTime"), params.get("endTime"))
@@ -105,16 +135,18 @@ public class SysUserServiceImpl implements ISysUserService {
      * @return 用户信息集合信息
      */
     @Override
-    public TableDataInfo<SysUserVo> selectAllocatedList(SysUserBo user, PageQuery pageQuery) {
+    public TableDataInfo<SysUserAllocatedVo> selectAllocatedList(SysUserBo user, PageQuery pageQuery) {
         QueryWrapper<SysUser> wrapper = Wrappers.query();
-        wrapper.eq("u.del_flag", UserConstants.USER_NORMAL)
+        wrapper.eq("u.del_flag", SystemConstants.NORMAL)
             .eq(ObjectUtil.isNotNull(user.getRoleId()), "r.role_id", user.getRoleId())
             .like(StringUtils.isNotBlank(user.getUserName()), "u.user_name", user.getUserName())
             .eq(StringUtils.isNotBlank(user.getStatus()), "u.status", user.getStatus())
             .like(StringUtils.isNotBlank(user.getPhonenumber()), "u.phonenumber", user.getPhonenumber())
             .orderByAsc("u.user_id");
-        Page<SysUserVo> page = baseMapper.selectAllocatedList(pageQuery.build(), wrapper);
-        return TableDataInfo.build(page);
+        IPage<SysUserAllocatedVo> convert = baseMapper.selectAllocatedList(pageQuery.build(), wrapper).convert(d -> {
+            return MapstructUtils.convert(d, SysUserAllocatedVo.class);
+        });
+        return TableDataInfo.build(convert);
     }
 
     /**
@@ -124,17 +156,19 @@ public class SysUserServiceImpl implements ISysUserService {
      * @return 用户信息集合信息
      */
     @Override
-    public TableDataInfo<SysUserVo> selectUnallocatedList(SysUserBo user, PageQuery pageQuery) {
+    public TableDataInfo<SysUserAllocatedVo> selectUnallocatedList(SysUserBo user, PageQuery pageQuery) {
         List<Long> userIds = userRoleMapper.selectUserIdsByRoleId(user.getRoleId());
         QueryWrapper<SysUser> wrapper = Wrappers.query();
-        wrapper.eq("u.del_flag", UserConstants.USER_NORMAL)
+        wrapper.eq("u.del_flag", SystemConstants.NORMAL)
             .and(w -> w.ne("r.role_id", user.getRoleId()).or().isNull("r.role_id"))
             .notIn(CollUtil.isNotEmpty(userIds), "u.user_id", userIds)
             .like(StringUtils.isNotBlank(user.getUserName()), "u.user_name", user.getUserName())
             .like(StringUtils.isNotBlank(user.getPhonenumber()), "u.phonenumber", user.getPhonenumber())
             .orderByAsc("u.user_id");
-        Page<SysUserVo> page = baseMapper.selectUnallocatedList(pageQuery.build(), wrapper);
-        return TableDataInfo.build(page);
+        IPage<SysUserAllocatedVo> convert = baseMapper.selectUnallocatedList(pageQuery.build(), wrapper).convert(d -> {
+            return MapstructUtils.convert(d, SysUserAllocatedVo.class);
+        });
+        return TableDataInfo.build(convert);
     }
 
     /**
@@ -167,9 +201,19 @@ public class SysUserServiceImpl implements ISysUserService {
      */
     @Override
     public SysUserVo selectUserById(Long userId) {
-        SysUserVo user = baseMapper.selectVoById(userId);
+        SysUser sysUser = baseMapper.selectById(userId);
+        if (ObjectUtil.isNull(sysUser)) {
+            return null;
+        }
+        SysUserVo user = MapstructUtils.convert(sysUser, SysUserVo.class);
         if (ObjectUtil.isNull(user)) {
             return user;
+        }
+        if (StringUtils.isNotBlank(sysUser.getAccessStartTime())) {
+            user.setAccessTime(List.of(sysUser.getAccessStartTime(), sysUser.getAccessEndTime()));
+        }
+        if (StringUtils.isNotBlank(sysUser.getValidStartDate())) {
+            user.setValidDate(List.of(sysUser.getValidStartDate(), sysUser.getValidEndDate()));
         }
         user.setRoles(roleMapper.selectRolesByUserId(user.getUserId()));
         return user;
@@ -185,7 +229,7 @@ public class SysUserServiceImpl implements ISysUserService {
     @Override
     public List<SysUserVo> selectUserByIds(List<Long> userIds, Long deptId) {
         return baseMapper.selectUserList(new LambdaQueryWrapper<SysUser>()
-            .select(SysUser::getUserId, SysUser::getUserName, SysUser::getNickName, SysUser::getEmail, SysUser::getPhonenumber)            .eq(SysUser::getStatus, UserConstants.USER_NORMAL)
+            .select(SysUser::getUserId, SysUser::getUserName, SysUser::getNickName, SysUser::getEmail, SysUser::getPhonenumber)            .eq(SysUser::getStatus, SystemConstants.NORMAL)
             .eq(ObjectUtil.isNotNull(deptId), SysUser::getDeptId, deptId)
             .in(CollUtil.isNotEmpty(userIds), SysUser::getUserId, userIds));
     }
@@ -300,6 +344,9 @@ public class SysUserServiceImpl implements ISysUserService {
     @Transactional(rollbackFor = Exception.class)
     public int insertUser(SysUserBo user) {
         SysUser sysUser = MapstructUtils.convert(user, SysUser.class);
+        if (StringUtils.isBlank(sysUser.getUserType())) {
+            sysUser.setUserType(UserType.SYS_USER.getUserType());
+        }
         // 新增用户信息
         int rows = baseMapper.insert(sysUser);
         user.setUserId(sysUser.getUserId());
@@ -335,6 +382,9 @@ public class SysUserServiceImpl implements ISysUserService {
     @CacheEvict(cacheNames = CacheNames.SYS_NICKNAME, key = "#user.userId")
     @Transactional(rollbackFor = Exception.class)
     public int updateUser(SysUserBo user) {
+        if (checkInnerUser(user.getUserId())) {
+            throw new ServiceException("系统内置用户，不可修改");
+        }
         // 新增用户与角色管理
         insertUserRole(user, true);
         // 新增用户与岗位管理
@@ -369,6 +419,9 @@ public class SysUserServiceImpl implements ISysUserService {
      */
     @Override
     public int updateUserStatus(Long userId, String status) {
+        if (checkInnerUser(userId)) {
+            throw new ServiceException("系统内置用户，不可修改");
+        }
         return baseMapper.update(null,
             new LambdaUpdateWrapper<SysUser>()
                 .set(SysUser::getStatus, status)
@@ -420,6 +473,7 @@ public class SysUserServiceImpl implements ISysUserService {
         return baseMapper.update(null,
             new LambdaUpdateWrapper<SysUser>()
                 .set(SysUser::getPassword, password)
+                .set(SysUser::getLastPwdUpdateTime, new Date())
                 .eq(SysUser::getUserId, userId));
     }
 
@@ -468,7 +522,7 @@ public class SysUserServiceImpl implements ISysUserService {
         if (ArrayUtil.isNotEmpty(roleIds)) {
             List<Long> roleList = new ArrayList<>(List.of(roleIds));
             if (!LoginHelper.isSuperAdmin(userId)) {
-                roleList.remove(UserConstants.SUPER_ADMIN_ID);
+                roleList.remove(SystemConstants.SUPER_ADMIN_ID);
             }
             // 判断是否具有此角色的操作权限
             List<SysRoleVo> roles = roleMapper.selectRoleList(
@@ -522,6 +576,9 @@ public class SysUserServiceImpl implements ISysUserService {
     @Transactional(rollbackFor = Exception.class)
     public int deleteUserByIds(Long[] userIds) {
         for (Long userId : userIds) {
+            if (checkInnerUser(userId)) {
+                throw new ServiceException("系统内置用户，不可删除");
+            }
             checkUserAllowed(userId);
             checkUserDataScope(userId);
         }
@@ -531,7 +588,8 @@ public class SysUserServiceImpl implements ISysUserService {
         // 删除用户与岗位表
         userPostMapper.delete(new LambdaQueryWrapper<SysUserPost>().in(SysUserPost::getUserId, ids));
         // 防止更新失败导致的数据删除
-        int flag = baseMapper.deleteByIds(ids);
+        //安全测试要求：删除的用户为已注销用户，应显示在用户列表中
+        int flag = baseMapper.update(new UpdateWrapper<SysUser>().in("user_id", userIds).set("status", UserStatus.CANCEL.getCode()));
         if (flag < 1) {
             throw new ServiceException("删除用户失败!");
         }
@@ -570,7 +628,7 @@ public class SysUserServiceImpl implements ISysUserService {
     public String selectUserNameById(Long userId) {
         SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
             .select(SysUser::getUserName).eq(SysUser::getUserId, userId));
-        return ObjectUtil.isNull(sysUser) ? null : sysUser.getUserName();
+        return ObjectUtils.notNullGetter(sysUser, SysUser::getUserName);
     }
 
     /**
@@ -584,7 +642,7 @@ public class SysUserServiceImpl implements ISysUserService {
     public String selectNicknameById(Long userId) {
         SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
             .select(SysUser::getNickName).eq(SysUser::getUserId, userId));
-        return ObjectUtil.isNull(sysUser) ? null : sysUser.getNickName();
+        return ObjectUtils.notNullGetter(sysUser, SysUser::getNickName);
     }
 
     @Override
@@ -609,7 +667,7 @@ public class SysUserServiceImpl implements ISysUserService {
     public String selectPhonenumberById(Long userId) {
         SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
             .select(SysUser::getPhonenumber).eq(SysUser::getUserId, userId));
-        return ObjectUtil.isNull(sysUser) ? null : sysUser.getPhonenumber();
+        return ObjectUtils.notNullGetter(sysUser, SysUser::getPhonenumber);
     }
 
     /**
@@ -622,7 +680,41 @@ public class SysUserServiceImpl implements ISysUserService {
     public String selectEmailById(Long userId) {
         SysUser sysUser = baseMapper.selectOne(new LambdaQueryWrapper<SysUser>()
             .select(SysUser::getEmail).eq(SysUser::getUserId, userId));
-        return ObjectUtil.isNull(sysUser) ? null : sysUser.getEmail();
+        return ObjectUtils.notNullGetter(sysUser, SysUser::getEmail);
     }
 
+    @Override
+    public boolean checkInnerUser(Long userId) {
+        QueryWrapper<SysUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.select("sys_type");
+        return SystemConstants.YES.equals(baseMapper.selectOne(wrapper).getSysType());
+    }
+
+    @Override
+    public boolean checkUserRoleNums(int roleNums) {
+        //安全测试要求，用户只能分配1个角色
+        if (systemConfig.getOnlyRole() && roleNums > 1) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    @Override
+    public void doAuthReal(Long userId, String realName, String idNo) {
+        //todo 国际化
+        QueryWrapper<SysUser> query = new QueryWrapper<>();
+        query.eq("id_no", idNo);
+        query.ne("user_id", userId);
+        if (baseMapper.selectCount(query) > 0) {
+            throw new ServiceException("实名认证失败，证件号码已存在");
+        }
+        UpdateWrapper<SysUser> wrapper = new UpdateWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.set("real_name", realName);
+        wrapper.set("id_no", idNo);
+        wrapper.set("auth_time", new Date());
+        baseMapper.update(wrapper);
+    }
 }

@@ -99,79 +99,125 @@ create table sys_tenant_package (
 -- 1、部门表
 -- ----------------------------
 drop table if exists sys_dept;
-create table sys_dept (
-    dept_id           bigint(20)      not null                   comment '部门id',
-    tenant_id         varchar(20)     default '000000'           comment '租户编号',
-    parent_id         bigint(20)      default 0                  comment '父部门id',
-    ancestors         varchar(500)    default ''                 comment '祖级列表',
-    dept_name         varchar(30)     default ''                 comment '部门名称',
-    dept_category     varchar(100)    default null               comment '部门类别编码',
-    order_num         int(4)          default 0                  comment '显示顺序',
-    leader            bigint(20)      default null               comment '负责人',
-    phone             varchar(11)     default null               comment '联系电话',
-    email             varchar(50)     default null               comment '邮箱',
-    status            char(1)         default '0'                comment '部门状态（0正常 1停用）',
-    del_flag          char(1)         default '0'                comment '删除标志（0代表存在 2代表删除）',
-    create_dept       bigint(20)      default null               comment '创建部门',
-    create_by         bigint(20)      default null               comment '创建者',
-    create_time       datetime                                   comment '创建时间',
-    update_by         bigint(20)      default null               comment '更新者',
-    update_time       datetime                                   comment '更新时间',
+create table sys_dept
+(
+    dept_id       bigint(20) not null comment '部门id',
+    manage_com    VARCHAR(10) COMMENT '管理机构',
+    tenant_id     varchar(20)  default '000000' comment '租户编号',
+    parent_id     bigint(20)   default 0 comment '父部门id',
+    ancestors     varchar(500) default '' comment '祖级列表',
+    dept_name     varchar(30)  default '' comment '部门名称',
+    dept_category varchar(100) default null comment '部门类别编码',
+    order_num     int(4)       default 0 comment '显示顺序',
+    leader        bigint(20)   default null comment '负责人',
+    phone         varchar(11)  default null comment '联系电话',
+    email         varchar(50)  default null comment '邮箱',
+    status        char(1)      default '0' comment '部门状态（0正常 1停用）',
+    del_flag      char(1)      default '0' comment '删除标志（0代表存在 2代表删除）',
+    create_dept   bigint(20)   default null comment '创建部门',
+    create_by     bigint(20)   default null comment '创建者',
+    create_time   datetime comment '创建时间',
+    update_by     bigint(20)   default null comment '更新者',
+    update_time   datetime comment '更新时间',
     primary key (dept_id)
-) engine=innodb comment = '部门表';
+) engine = innodb comment = '部门表';
 
 -- ----------------------------
 -- 初始化-部门表数据
 -- ----------------------------
 
 
-insert into sys_dept values(100, '000000', 0,   '0',          'XXX科技',   null,0, null, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-insert into sys_dept values(101, '000000', 100, '0,100',      '深圳总公司', null,1, null, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-insert into sys_dept values(102, '000000', 100, '0,100',      '长沙分公司', null,2, null, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-insert into sys_dept values(103, '000000', 101, '0,100,101',  '研发部门',   null,1, 1, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-insert into sys_dept values(104, '000000', 101, '0,100,101',  '市场部门',   null,2, null, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-insert into sys_dept values(105, '000000', 101, '0,100,101',  '测试部门',   null,3, null, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-insert into sys_dept values(106, '000000', 101, '0,100,101',  '财务部门',   null,4, null, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-insert into sys_dept values(107, '000000', 101, '0,100,101',  '运维部门',   null,5, null, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-insert into sys_dept values(108, '000000', 102, '0,100,102',  '市场部门',   null,1, null, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-insert into sys_dept values(109, '000000', 102, '0,100,102',  '财务部门',   null,2, null, '15888888888', 'xxx@qq.com', '0', '0', 103, 1, sysdate(), null, null);
-
+insert into sys_dept values(100, '86','000000', 0,   '0',          '总公司',   null,0, null, '15888888888', 'xxx@qq.com', '0', '0', 100, 1, sysdate(), null, null);
+insert into sys_dept values(101, '8611','000000', 100, '0,100',      '北京分公司', null,1, null, '15888888888', 'xxx@qq.com', '0', '0', 100, 1, sysdate(), null, null);
+insert into sys_dept values(102, '861101','000000', 101, '0,100,101',      '北京分公司', null,1, null, '15888888888', 'xxx@qq.com', '0', '0', 100, 1, sysdate(), null, null);
+insert into sys_dept values(103, '86110101','000000', 102, '0,100,101,102',      '北京分公司营业本部', null,1, null, '15888888888', 'xxx@qq.com', '0', '0', 100, 1, sysdate(), null, null);
 
 -- ----------------------------
 -- 2、用户信息表
 -- ----------------------------
 drop table if exists sys_user;
-create table sys_user (
-    user_id           bigint(20)      not null                   comment '用户ID',
-    tenant_id         varchar(20)     default '000000'           comment '租户编号',
-    dept_id           bigint(20)      default null               comment '部门ID',
-    user_name         varchar(30)     not null                   comment '用户账号',
-    nick_name         varchar(30)     not null                   comment '用户昵称',
-    user_type         varchar(10)     default 'sys_user'         comment '用户类型（sys_user系统用户）',
-    email             varchar(50)     default ''                 comment '用户邮箱',
-    phonenumber       varchar(11)     default ''                 comment '手机号码',
-    sex               char(1)         default '0'                comment '用户性别（0男 1女 2未知）',
-    avatar            bigint(20)                                 comment '头像地址',
-    password          varchar(100)    default ''                 comment '密码',
-    status            char(1)         default '0'                comment '帐号状态（0正常 1停用）',
-    del_flag          char(1)         default '0'                comment '删除标志（0代表存在 2代表删除）',
-    login_ip          varchar(128)    default ''                 comment '最后登录IP',
-    login_date        datetime                                   comment '最后登录时间',
-    create_dept       bigint(20)      default null               comment '创建部门',
-    create_by         bigint(20)      default null               comment '创建者',
-    create_time       datetime                                   comment '创建时间',
-    update_by         bigint(20)      default null               comment '更新者',
-    update_time       datetime                                   comment '更新时间',
-    remark            varchar(500)    default null               comment '备注',
+create table sys_user
+(
+    user_id              bigint(20)   not null comment '用户ID',
+    tenant_id            varchar(20)  default '000000' comment '租户编号',
+    dept_id              bigint(20)   default null comment '部门ID',
+    manage_com           VARCHAR(10)   COMMENT '管理机构',
+    user_name            varchar(30)  not null comment '用户账号',
+    nick_name            varchar(30)  not null comment '用户昵称',
+    user_type            varchar(10)  default 'sys_user' comment '用户类型（sys_user系统用户）',
+    email                varchar(50)  default '' comment '用户邮箱',
+    phonenumber          varchar(11)  default '' comment '手机号码',
+    sex                  char(1)      default '0' comment '用户性别（0男 1女 2未知）',
+    avatar               bigint(20) comment '头像地址',
+    password             varchar(100) default '' comment '密码',
+    status               char(1)      default '0' comment '帐号状态（0正常 1停用）',
+    del_flag             char(1)      default '0' comment '删除标志（0代表存在 2代表删除）',
+    `branch_type`    varchar(2)   DEFAULT '' comment '渠道 0-系统 1-个险 2-团险 3-银行 5-电商 6-经代 9-续期 10-财务',
+    login_ip             varchar(128) default '' comment '最后登录IP',
+    login_date           datetime comment '最后登录时间',
+    last_pwd_update_time DATETIME     null comment '最后一次密码修改时间',
+    id_no                VARCHAR(50)  null comment '证件号码',
+    bind_ip              VARCHAR(50)  null comment '账号绑定IP',
+    access_start_time    VARCHAR(10)  null comment '允许访问时间开始',
+    access_end_time      VARCHAR(10)  null comment '允许访问时间截止',
+    acc_type             INT(10)      null comment '账户类型 0-长期用户 1-临时用户',
+    valid_start_date     VARCHAR(10)  null comment '账户有效起期',
+    valid_end_date       VARCHAR(10)  null comment '账户有效止期',
+    active_time          DATETIME     null comment '账户激活时间',
+    lock_time            DATETIME     null comment '账户锁定时间',
+    dormancy_time        DATETIME     null comment '账户休眠时间',
+    logout_time          DATETIME     null comment '账户注销时间',
+    sys_type             VARCHAR(1)   null comment '系统内置 Y-是 N-否',
+    real_name            VARCHAR(255) null comment '姓名（实名制）',
+    auth_time            DATETIME     null comment '实名制时间',
+    create_dept          bigint(20)   default null comment '创建部门',
+    create_by            bigint(20)   default null comment '创建者',
+    create_time          datetime comment '创建时间',
+    update_by            bigint(20)   default null comment '更新者',
+    update_time          datetime comment '更新时间',
+    remark               varchar(500) default null comment '备注',
     primary key (user_id)
-) engine=innodb comment = '用户信息表';
+) engine = innodb comment = '用户信息表';
 
 -- ----------------------------
 -- 初始化-用户信息表数据
 -- ----------------------------
-insert into sys_user values(1, '000000', 103, 'admin', '疯狂的狮子Li', 'sys_user', 'crazyLionLi@163.com', '15888888888', '1', null, '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', sysdate(), 103, 1, sysdate(), null, null, '管理员');
-insert into sys_user values(3, '000000', 108, 'test', '本部门及以下 密码666666', 'sys_user', '', '', '0', null, '$2a$10$b8yUzN0C71sbz.PhNOCgJe.Tu1yWC3RNrTyjSQ8p1W0.aaUXUJ.Ne', '0', '0', '127.0.0.1', sysdate(), 103, 1, sysdate(), 3, sysdate(), null);
-insert into sys_user values(4, '000000', 102, 'test1', '仅本人 密码666666', 'sys_user', '', '', '0', null, '$2a$10$b8yUzN0C71sbz.PhNOCgJe.Tu1yWC3RNrTyjSQ8p1W0.aaUXUJ.Ne', '0', '0', '127.0.0.1', sysdate(), 103, 1, sysdate(), 4, sysdate(), null);
+INSERT INTO sys_user (user_id, tenant_id, dept_id, manage_com, user_name, nick_name, user_type, email, phonenumber, sex, avatar, password, status, del_flag, branch_type, login_ip, login_date, last_pwd_update_time, id_no, bind_ip, access_start_time, access_end_time, acc_type, valid_start_date, valid_end_date, active_time, lock_time, dormancy_time, logout_time, sys_type, real_name, auth_time, create_dept, create_by, create_time, update_by, update_time, remark) VALUES (1, '000000', 86, '86', 'admin', '管理员', 'sys_user', '123@163.com', '15888888888', '1', null, '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '0', '0:0:0:0:0:0:0:1', '2025-04-14 17:32:29', null, null, '127.0.0.1', '00:00:00', '23:59:59', 0, '2025-01-01', '2050-12-31', null, null, null, null, 'Y', null, null, 86, 1, sysdate(), 1, sysdate(), '管理员');
+
+DROP TABLE IF EXISTS sys_user_pwd_expire;
+CREATE TABLE sys_user_pwd_expire
+(
+    user_id      BIGINT(20) NOT NULL COMMENT '用户ID',
+    tenant_id    VARCHAR(20) DEFAULT '000000' COMMENT '租户编号',
+    start_time   DATETIME   NOT NULL COMMENT '密码设置时间',
+    expire_time  DATETIME   NULL COMMENT '密码过期时间',
+    update_times INT(11)     DEFAULT 0 COMMENT '密码修改次数',
+    warning_flag CHAR(1)     DEFAULT '0' COMMENT '是否已发送过期警告(0未发送 1已发送)',
+    warning_time DATETIME   NULL COMMENT '警告发送时间',
+    status       CHAR(1)     DEFAULT '0' COMMENT '状态(0正常 1已过期)',
+    create_dept  bigint(20)  default null comment '创建部门',
+    create_by    bigint(20)  default null comment '创建者',
+    create_time  datetime comment '创建时间',
+    update_by    bigint(20)  default null comment '更新者',
+    update_time  datetime comment '更新时间',
+    PRIMARY KEY (user_id),
+    INDEX idx_expire_time (expire_time),
+    INDEX idx_tenant_status (tenant_id, status)
+) ENGINE = InnoDB COMMENT = '用户密码有效期表';
+
+
+DROP TABLE IF EXISTS sys_user_pwd_history;
+CREATE TABLE sys_user_pwd_history
+(
+    history_id  BIGINT(20)   NOT NULL AUTO_INCREMENT COMMENT '历史记录ID',
+    user_id     BIGINT(20)   NOT NULL COMMENT '用户ID',
+    tenant_id   VARCHAR(20) DEFAULT '000000' COMMENT '租户编号',
+    password    VARCHAR(100) NOT NULL COMMENT '历史密码(加密)',
+    create_time DATETIME     NOT NULL COMMENT '创建时间',
+    create_by   BIGINT(20)   NULL COMMENT '创建者',
+    PRIMARY KEY (history_id),
+    INDEX idx_user_time (user_id, create_time DESC)
+) ENGINE = InnoDB COMMENT = '用户密码历史表';
 
 -- ----------------------------
 -- 3、岗位信息表
@@ -209,60 +255,68 @@ insert into sys_post values(4, '000000', 100, 'user', null, '普通员工',  4, 
 -- 4、角色信息表
 -- ----------------------------
 drop table if exists sys_role;
-create table sys_role (
-    role_id              bigint(20)      not null                   comment '角色ID',
-    tenant_id            varchar(20)     default '000000'           comment '租户编号',
-    role_name            varchar(30)     not null                   comment '角色名称',
-    role_key             varchar(100)    not null                   comment '角色权限字符串',
-    role_sort            int(4)          not null                   comment '显示顺序',
-    data_scope           char(1)         default '1'                comment '数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）',
-    menu_check_strictly  tinyint(1)      default 1                  comment '菜单树选择项是否关联显示',
-    dept_check_strictly  tinyint(1)      default 1                  comment '部门树选择项是否关联显示',
-    status               char(1)         not null                   comment '角色状态（0正常 1停用）',
-    del_flag             char(1)         default '0'                comment '删除标志（0代表存在 2代表删除）',
-    create_dept          bigint(20)      default null               comment '创建部门',
-    create_by            bigint(20)      default null               comment '创建者',
-    create_time          datetime                                   comment '创建时间',
-    update_by            bigint(20)      default null               comment '更新者',
-    update_time          datetime                                   comment '更新时间',
-    remark               varchar(500)    default null               comment '备注',
+create table sys_role
+(
+    role_id             bigint(20)   not null comment '角色ID',
+    tenant_id           varchar(20)  default '000000' comment '租户编号',
+    role_name           varchar(30)  not null comment '角色名称',
+    role_key            varchar(100) not null comment '角色权限字符串',
+    role_sort           int(4)       not null comment '显示顺序',
+    data_scope           char(1)         default '1'                comment '数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限 5：仅本人数据权限 6：部门及以下或本人数据权限）',
+    menu_check_strictly tinyint(1)   default 1 comment '菜单树选择项是否关联显示',
+    dept_check_strictly tinyint(1)   default 1 comment '部门树选择项是否关联显示',
+    status              char(1)      not null comment '角色状态（0正常 1停用）',
+    del_flag            char(1)      default '0' comment '删除标志（0代表存在 2代表删除）',
+    create_dept         bigint(20)   default null comment '创建部门',
+    create_by           bigint(20)   default null comment '创建者',
+    create_time         datetime comment '创建时间',
+    update_by           bigint(20)   default null comment '更新者',
+    update_time         datetime comment '更新时间',
+    remark              varchar(500) default null comment '备注',
+    role_type           VARCHAR(1)   null comment '系统内置',
     primary key (role_id)
-) engine=innodb comment = '角色信息表';
+) engine = innodb comment = '角色信息表';
 
 -- ----------------------------
 -- 初始化-角色信息表数据
 -- ----------------------------
-insert into sys_role values(1, '000000', '超级管理员',  'superadmin',  1, 1, 1, 1, '0', '0', 103, 1, sysdate(), null, null, '超级管理员');
-insert into sys_role values(3, '000000', '本部门及以下', 'test1', 3, 4, 1, 1, '0', '0', 103, 1, sysdate(), null, null, '');
-insert into sys_role values(4, '000000', '仅本人',      'test2', 4, 5, 1, 1, '0', '0', 103, 1, sysdate(), null, null, '');
+insert into sys_role values(1, '000000', '超级管理员',  'superadmin',  1, 1, 1, 1, '0', '0', 103, 1, sysdate(), null, null, '超级管理员','Y');
+insert into sys_role values(3, '000000', '本部门及以下', 'test1', 3, 4, 1, 1, '0', '0', 103, 1, sysdate(), null, null, '','Y');
+insert into sys_role values(4, '000000', '仅本人',      'test2', 4, 5, 1, 1, '0', '0', 103, 1, sysdate(), null, null, '','Y');
 
 -- ----------------------------
 -- 5、菜单权限表
 -- ----------------------------
 drop table if exists sys_menu;
-create table sys_menu (
-    menu_id           bigint(20)      not null                   comment '菜单ID',
-    menu_name         varchar(50)     not null                   comment '菜单名称',
-    parent_id         bigint(20)      default 0                  comment '父菜单ID',
-    order_num         int(4)          default 0                  comment '显示顺序',
-    path              varchar(200)    default ''                 comment '路由地址',
-    component         varchar(255)    default null               comment '组件路径',
-    query_param       varchar(255)    default null               comment '路由参数',
-    is_frame          int(1)          default 1                  comment '是否为外链（0是 1否）',
-    is_cache          int(1)          default 0                  comment '是否缓存（0缓存 1不缓存）',
-    menu_type         char(1)         default ''                 comment '菜单类型（M目录 C菜单 F按钮）',
-    visible           char(1)         default 0                  comment '显示状态（0显示 1隐藏）',
-    status            char(1)         default 0                  comment '菜单状态（0正常 1停用）',
-    perms             varchar(100)    default null               comment '权限标识',
-    icon              varchar(100)    default '#'                comment '菜单图标',
-    create_dept       bigint(20)      default null               comment '创建部门',
-    create_by         bigint(20)      default null               comment '创建者',
-    create_time       datetime                                   comment '创建时间',
-    update_by         bigint(20)      default null               comment '更新者',
-    update_time       datetime                                   comment '更新时间',
-    remark            varchar(500)    default ''                 comment '备注',
-    primary key (menu_id)
-) engine=innodb comment = '菜单权限表';
+create table sys_menu
+(
+    menu_id       bigint(20)  not null comment '菜单ID',
+    menu_name     varchar(50) not null comment '菜单名称',
+    parent_id     bigint(20)    default 0 comment '父菜单ID',
+    order_num     int(4)        default 0 comment '显示顺序',
+    path          varchar(200)  default '' comment '路由地址',
+    component     varchar(255)  default null comment '组件路径',
+    query_param   varchar(255)  default null comment '路由参数',
+    is_frame      int(1)        default 1 comment '是否为外链（0是 1否）',
+    is_cache      int(1)        default 0 comment '是否缓存（0缓存 1不缓存）',
+    menu_type     char(1)       default '' comment '菜单类型（M目录 C菜单 F按钮）',
+    visible       char(1)       default 0 comment '显示状态（0显示 1隐藏）',
+    status        char(1)       default 0 comment '菜单状态（0正常 1停用）',
+    perms         varchar(100)  default null comment '权限标识',
+    icon          varchar(100)  default '#' comment '菜单图标',
+    `branch_type` varchar(2)    DEFAULT '' comment '渠道 0-系统 1-个险 2-团险 3-银行 5-电商 6-经代 9-续期 10-财务',
+    menu_path     varchar(500) default '' comment '菜单路径链',
+    create_dept   bigint(20)    default null comment '创建部门',
+    create_by     bigint(20)    default null comment '创建者',
+    create_time   datetime comment '创建时间',
+    update_by     bigint(20)    default null comment '更新者',
+    update_time   datetime comment '更新时间',
+    remark        varchar(500)  default '' comment '备注',
+    primary key (menu_id),
+    KEY             `idx_sys_menu_branchtype` (`branch_type`),
+    KEY             `idx_sys_menu_menu_path` (`menu_path`),
+    KEY             `idx_sys_menu_parent_id` (`parent_id`)
+) engine = innodb comment = '菜单权限表';
 
 -- ----------------------------
 -- 初始化-菜单信息表数据
@@ -272,7 +326,6 @@ insert into sys_menu values('1', '系统管理', '0', '1', 'system',           n
 insert into sys_menu values('6', '租户管理', '0', '2', 'tenant',           null, '', 1, 0, 'M', '0', '0', '', 'chart',    103, 1, sysdate(), null, null, '租户管理目录');
 insert into sys_menu values('2', '系统监控', '0', '3', 'monitor',          null, '', 1, 0, 'M', '0', '0', '', 'monitor',  103, 1, sysdate(), null, null, '系统监控目录');
 insert into sys_menu values('3', '系统工具', '0', '4', 'tool',             null, '', 1, 0, 'M', '0', '0', '', 'tool',     103, 1, sysdate(), null, null, '系统工具目录');
-insert into sys_menu values('4', 'PLUS官网', '0', '5', 'https://gitee.com/dromara/RuoYi-Vue-Plus', null, '', 0, 0, 'M', '0', '0', '', 'guide',    103, 1, sysdate(), null, null, 'RuoYi-Vue-Plus官网地址');
 -- 二级菜单
 insert into sys_menu values('100',  '用户管理',     '1',   '1', 'user',             'system/user/index',            '', 1, 0, 'C', '0', '0', 'system:user:list',            'user',          103, 1, sysdate(), null, null, '用户管理菜单');
 insert into sys_menu values('101',  '角色管理',     '1',   '2', 'role',             'system/role/index',            '', 1, 0, 'C', '0', '0', 'system:role:list',            'peoples',       103, 1, sysdate(), null, null, '角色管理菜单');
@@ -377,18 +430,6 @@ insert into sys_menu values('1621', '配置添加', '118', '6', '#', '', '', 1, 
 insert into sys_menu values('1622', '配置编辑', '118', '6', '#', '', '', 1, 0, 'F', '0', '0', 'system:ossConfig:edit',        '#', 103, 1, sysdate(), null, null, '');
 insert into sys_menu values('1623', '配置删除', '118', '6', '#', '', '', 1, 0, 'F', '0', '0', 'system:ossConfig:remove',      '#', 103, 1, sysdate(), null, null, '');
 
--- 租户管理相关按钮
-insert into sys_menu values ('1606', '租户查询', '121', '1', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenant:query',   '#', 103, 1, sysdate(), null, null, '');
-insert into sys_menu values ('1607', '租户新增', '121', '2', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenant:add',     '#', 103, 1, sysdate(), null, null, '');
-insert into sys_menu values ('1608', '租户修改', '121', '3', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenant:edit',    '#', 103, 1, sysdate(), null, null, '');
-insert into sys_menu values ('1609', '租户删除', '121', '4', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenant:remove',  '#', 103, 1, sysdate(), null, null, '');
-insert into sys_menu values ('1610', '租户导出', '121', '5', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenant:export',  '#', 103, 1, sysdate(), null, null, '');
--- 租户套餐管理相关按钮
-insert into sys_menu values ('1611', '租户套餐查询', '122', '1', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenantPackage:query',   '#', 103, 1, sysdate(), null, null, '');
-insert into sys_menu values ('1612', '租户套餐新增', '122', '2', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenantPackage:add',     '#', 103, 1, sysdate(), null, null, '');
-insert into sys_menu values ('1613', '租户套餐修改', '122', '3', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenantPackage:edit',    '#', 103, 1, sysdate(), null, null, '');
-insert into sys_menu values ('1614', '租户套餐删除', '122', '4', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenantPackage:remove',  '#', 103, 1, sysdate(), null, null, '');
-insert into sys_menu values ('1615', '租户套餐导出', '122', '5', '#', '', '', 1, 0, 'F', '0', '0', 'system:tenantPackage:export',  '#', 103, 1, sysdate(), null, null, '');
 -- 客户端管理按钮
 insert into sys_menu values('1061', '客户端管理查询', '123', '1',  '#', '', '', 1, 0, 'F', '0', '0', 'system:client:query',        '#', 103, 1, sysdate(), null, null, '');
 insert into sys_menu values('1062', '客户端管理新增', '123', '2',  '#', '', '', 1, 0, 'F', '0', '0', 'system:client:add',          '#', 103, 1, sysdate(), null, null, '');
@@ -540,30 +581,33 @@ insert into sys_user_post values ('1', '1');
 -- 10、操作日志记录
 -- ----------------------------
 drop table if exists sys_oper_log;
-create table sys_oper_log (
-    oper_id           bigint(20)      not null                   comment '日志主键',
-    tenant_id         varchar(20)     default '000000'           comment '租户编号',
-    title             varchar(50)     default ''                 comment '模块标题',
-    business_type     int(2)          default 0                  comment '业务类型（0其它 1新增 2修改 3删除）',
-    method            varchar(100)    default ''                 comment '方法名称',
-    request_method    varchar(10)     default ''                 comment '请求方式',
-    operator_type     int(1)          default 0                  comment '操作类别（0其它 1后台用户 2手机端用户）',
-    oper_name         varchar(50)     default ''                 comment '操作人员',
-    dept_name         varchar(50)     default ''                 comment '部门名称',
-    oper_url          varchar(255)    default ''                 comment '请求URL',
-    oper_ip           varchar(128)    default ''                 comment '主机地址',
-    oper_location     varchar(255)    default ''                 comment '操作地点',
-    oper_param        varchar(4000)   default ''                 comment '请求参数',
-    json_result       varchar(4000)   default ''                 comment '返回参数',
-    status            int(1)          default 0                  comment '操作状态（0正常 1异常）',
-    error_msg         varchar(4000)   default ''                 comment '错误消息',
-    oper_time         datetime                                   comment '操作时间',
-    cost_time         bigint(20)      default 0                  comment '消耗时间',
+create table sys_oper_log
+(
+    oper_id        bigint(20)  not null comment '日志主键',
+    tenant_id      varchar(20)   default '000000' comment '租户编号',
+    title          varchar(50)   default '' comment '模块标题',
+    business_type  int(2)        default 0 comment '业务类型（0其它 1新增 2修改 3删除）',
+    method         varchar(100)  default '' comment '方法名称',
+    request_method varchar(10)   default '' comment '请求方式',
+    operator_type  int(1)        default 0 comment '操作类别（0其它 1后台用户 2手机端用户）',
+    oper_name      varchar(50)   default '' comment '操作人员',
+    dept_name      varchar(50)   default '' comment '部门名称',
+    oper_url       varchar(255)  default '' comment '请求URL',
+    oper_ip        varchar(128)  default '' comment '主机地址',
+    oper_location  varchar(255)  default '' comment '操作地点',
+    oper_param     varchar(4000) default '' comment '请求参数',
+    json_result    varchar(4000) default '' comment '返回参数',
+    status         int(1)        default 0 comment '操作状态（0正常 1异常）',
+    error_msg      varchar(4000) default '' comment '错误消息',
+    oper_time      datetime comment '操作时间',
+    cost_time      bigint(20)    default 0 comment '消耗时间',
+    event_type     int(1)      null comment '事件类型',
+    post_code      varchar(64) null comment '岗位编码',
     primary key (oper_id),
     key idx_sys_oper_log_bt (business_type),
-    key idx_sys_oper_log_s  (status),
+    key idx_sys_oper_log_s (status),
     key idx_sys_oper_log_ot (oper_time)
-) engine=innodb comment = '操作日志记录';
+) engine = innodb comment = '操作日志记录';
 
 
 -- ----------------------------
@@ -678,12 +722,19 @@ create table sys_config (
     primary key (config_id)
 ) engine=innodb comment = '参数配置表';
 
-insert into sys_config values(1, '000000', '主框架页-默认皮肤样式名称',     'sys.index.skinName',            'skin-blue',     'Y', 103, 1, sysdate(), null, null, '蓝色 skin-blue、绿色 skin-green、紫色 skin-purple、红色 skin-red、黄色 skin-yellow' );
-insert into sys_config values(2, '000000', '用户管理-账号初始密码',        'sys.user.initPassword',         '123456',        'Y', 103, 1, sysdate(), null, null, '初始化密码 123456' );
-insert into sys_config values(3, '000000', '主框架页-侧边栏主题',          'sys.index.sideTheme',           'theme-dark',    'Y', 103, 1, sysdate(), null, null, '深色主题theme-dark，浅色主题theme-light' );
-insert into sys_config values(5, '000000', '账号自助-是否开启用户注册功能',  'sys.account.registerUser',      'false',         'Y', 103, 1, sysdate(), null, null, '是否开启注册用户功能（true开启，false关闭）');
-insert into sys_config values(11, '000000', 'OSS预览列表资源开关',         'sys.oss.previewListResource',   'true',          'Y', 103, 1, sysdate(), null, null, 'true:开启, false:关闭');
-
+insert into sys_config values(1, '000000', '主框架页-默认皮肤样式名称',     'sys.index.skinName',            'skin-blue',     'Y', 86, 1, sysdate(), null, null, '蓝色 skin-blue、绿色 skin-green、紫色 skin-purple、红色 skin-red、黄色 skin-yellow' );
+insert into sys_config values(2, '000000', '用户管理-账号初始密码',        'sys.user.initPassword',         '123456',        'Y', 86, 1, sysdate(), null, null, '初始化密码 123456' );
+insert into sys_config values(3, '000000', '主框架页-侧边栏主题',          'sys.index.sideTheme',           'theme-dark',    'Y', 86, 1, sysdate(), null, null, '深色主题theme-dark，浅色主题theme-light' );
+insert into sys_config values(5, '000000', '账号自助-是否开启用户注册功能',  'sys.account.registerUser',      'false',         'Y', 86, 1, sysdate(), null, null, '是否开启注册用户功能（true开启，false关闭）');
+insert into sys_config values(11, '000000', 'OSS预览列表资源开关',         'sys.oss.previewListResource',   'true',          'Y', 86, 1, sysdate(), null, null, 'true:开启, false:关闭');
+-- 密码策略配置
+INSERT INTO sys_config VALUES(100, '000000', '密码最小长度', 'sys.password.min.length', '8', 'Y', 86, 1, sysdate(), null, null, '密码最小长度，不能小于8位');
+INSERT INTO sys_config VALUES(101, '000000', '密码复杂度要求', 'sys.password.min.type.count', '3', 'Y', 86, 1, sysdate(), null, null, '密码必须包含的字符类型数(大写字母、小写字母、数字、特殊字符)');
+INSERT INTO sys_config VALUES(102, '000000', '密码有效期(天)', 'sys.password.validity.days', '90', 'Y', 86, 1, sysdate(), null, null, '密码有效期天数，超过后必须修改');
+INSERT INTO sys_config VALUES(86, '000000', '密码历史记录数', 'sys.password.history.count', '5', 'Y', 86, 1, sysdate(), null, null, '记录密码历史次数，防止重复使用');
+INSERT INTO sys_config VALUES(104, '000000', '密码过期提醒(天)', 'sys.password.warning.days', '7', 'Y', 86, 1, sysdate(), null, null, '密码到期前多少天开始提醒');
+INSERT INTO sys_config VALUES(105, '000000', '密码允许错误次数', 'sys.password.retry.count', '5', 'Y', 86, 1, sysdate(), null, null, '密码连续错误达到此次数账户锁定');
+INSERT INTO sys_config VALUES(106, '000000', '账户锁定时间(分钟)', 'sys.password.lock.duration', '20', 'Y', 86, 1, sysdate(), null, null, '账户锁定持续时间，至少20分钟');
 
 -- ----------------------------
 -- 14、系统访问记录
@@ -801,21 +852,23 @@ create table gen_table_column (
 -- OSS对象存储表
 -- ----------------------------
 drop table if exists sys_oss;
-create table sys_oss (
-    oss_id          bigint(20)   not null                   comment '对象存储主键',
-    tenant_id       varchar(20)           default '000000'  comment '租户编号',
-    file_name       varchar(255) not null default ''        comment '文件名',
-    original_name   varchar(255) not null default ''        comment '原名',
-    file_suffix     varchar(10)  not null default ''        comment '文件后缀名',
-    url             varchar(500) not null                   comment 'URL地址',
-    create_dept     bigint(20)            default null      comment '创建部门',
-    create_time     datetime              default null      comment '创建时间',
-    create_by       bigint(20)            default null      comment '上传人',
-    update_time     datetime              default null      comment '更新时间',
-    update_by       bigint(20)            default null      comment '更新人',
-    service         varchar(20)  not null default 'minio'   comment '服务商',
+create table sys_oss
+(
+    oss_id        bigint(20)   not null comment '对象存储主键',
+    tenant_id     varchar(20)           default '000000' comment '租户编号',
+    file_name     varchar(255) not null default '' comment '文件名',
+    original_name varchar(255) not null default '' comment '原名',
+    file_suffix   varchar(10)  not null default '' comment '文件后缀名',
+    url           varchar(500) not null comment 'URL地址',
+    ext1          text                  default null comment '扩展字段',
+    create_dept   bigint(20)            default null comment '创建部门',
+    create_time   datetime              default null comment '创建时间',
+    create_by     bigint(20)            default null comment '上传人',
+    update_time   datetime              default null comment '更新时间',
+    update_by     bigint(20)            default null comment '更新人',
+    service       varchar(20)  not null default 'minio' comment '服务商',
     primary key (oss_id)
-) engine=innodb comment ='OSS对象存储表';
+) engine = innodb comment ='OSS对象存储表';
 
 -- ----------------------------
 -- OSS对象存储动态配置表
@@ -855,24 +908,27 @@ insert into sys_oss_config values (5, '000000', 'image',  'ruoyi',            'r
 -- 系统授权表
 -- ----------------------------
 drop table if exists sys_client;
-create table sys_client (
-    id                  bigint(20)    not null            comment 'id',
-    client_id           varchar(64)   default null        comment '客户端id',
-    client_key          varchar(32)   default null        comment '客户端key',
-    client_secret       varchar(255)  default null        comment '客户端秘钥',
-    grant_type          varchar(255)  default null        comment '授权类型',
-    device_type         varchar(32)   default null        comment '设备类型',
-    active_timeout      int(11)       default 1800        comment 'token活跃超时时间',
-    timeout             int(11)       default 604800      comment 'token固定超时',
-    status              char(1)       default '0'         comment '状态（0正常 1停用）',
-    del_flag            char(1)       default '0'         comment '删除标志（0代表存在 2代表删除）',
-    create_dept         bigint(20)    default null        comment '创建部门',
-    create_by           bigint(20)    default null        comment '创建者',
-    create_time         datetime      default null        comment '创建时间',
-    update_by           bigint(20)    default null        comment '更新者',
-    update_time         datetime      default null        comment '更新时间',
+create table sys_client
+(
+    id              bigint(20) not null comment 'id',
+    client_id       varchar(64)  default null comment '客户端id',
+    client_key      varchar(32)  default null comment '客户端key',
+    client_secret   varchar(255) default null comment '客户端秘钥',
+    grant_type      varchar(255) default null comment '授权类型',
+    device_type     varchar(32)  default null comment '设备类型',
+    active_timeout  int(11)      default 1800 comment 'token活跃超时时间',
+    timeout         int(11)      default 604800 comment 'token固定超时',
+    config          JSON       null comment '客户端配置参数（JSON扩展信息）',
+    api_permissions JSON       null comment 'API 访问权限列表（JSON 存储）',
+    status          char(1)      default '0' comment '状态（0正常 1停用）',
+    del_flag        char(1)      default '0' comment '删除标志（0代表存在 2代表删除）',
+    create_dept     bigint(20)   default null comment '创建部门',
+    create_by       bigint(20)   default null comment '创建者',
+    create_time     datetime     default null comment '创建时间',
+    update_by       bigint(20)   default null comment '更新者',
+    update_time     datetime     default null comment '更新时间',
     primary key (id)
-) engine=innodb comment='系统授权表';
+) engine = innodb comment ='系统授权表';
 
-insert into sys_client values (1, 'e5cd7e4891bf95d1d19206ce24a7b32e', 'pc', 'pc123', 'password,social', 'pc', 1800, 604800, 0, 0, 103, 1, sysdate(), 1, sysdate());
-insert into sys_client values (2, '428a8310cd442757ae699df5d894f051', 'app', 'app123', 'password,sms,social', 'android', 1800, 604800, 0, 0, 103, 1, sysdate(), 1, sysdate());
+insert into sys_client values (1, 'e5cd7e4891bf95d1d19206ce24a7b32e', 'pc', 'pc123', 'password,social', 'pc', 1800, 604800, null,null,0, 0, 103, 1, sysdate(), 1, sysdate());
+insert into sys_client values (2, '428a8310cd442757ae699df5d894f051', 'app', 'app123', 'password,sms,social', 'android', 1800, 604800, null,null,0, 0, 103, 1, sysdate(), 1, sysdate());

@@ -1,6 +1,8 @@
 package com.sinosoft.system.controller.monitor;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.sinosoft.common.log.enums.EventType;
+import com.sinosoft.system.domain.vo.SysLogininfoStatisticVo;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import com.sinosoft.common.core.constant.CacheConstants;
@@ -45,7 +47,7 @@ public class SysLogininforController extends BaseController {
     /**
      * 导出系统访问记录列表
      */
-    @Log(title = "登录日志", businessType = BusinessType.EXPORT)
+    @Log(title = "系统访问记录", businessType = BusinessType.EXPORT ,eventType = EventType.system)
     @SaCheckPermission("monitor:logininfor:export")
     @PostMapping("/export")
     public void export(SysLogininforBo logininfor, HttpServletResponse response) {
@@ -58,8 +60,8 @@ public class SysLogininforController extends BaseController {
      * @param infoIds 日志ids
      */
     @SaCheckPermission("monitor:logininfor:remove")
-    @Log(title = "登录日志", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{infoIds}")
+    @Log(title = "系统访问记录", businessType = BusinessType.DELETE ,eventType = EventType.system)
+    @PostMapping("/remove/{infoIds}")
     public R<Void> remove(@PathVariable Long[] infoIds) {
         return toAjax(logininforService.deleteLogininforByIds(infoIds));
     }
@@ -68,15 +70,15 @@ public class SysLogininforController extends BaseController {
      * 清理系统访问记录
      */
     @SaCheckPermission("monitor:logininfor:remove")
-    @Log(title = "登录日志", businessType = BusinessType.CLEAN)
-    @DeleteMapping("/clean")
+    @Log(title = "系统访问记录", businessType = BusinessType.CLEAN ,eventType = EventType.system)
+    @PostMapping("/clean")
     public R<Void> clean() {
         logininforService.cleanLogininfor();
         return R.ok();
     }
 
     @SaCheckPermission("monitor:logininfor:unlock")
-    @Log(title = "账户解锁", businessType = BusinessType.OTHER)
+    @Log(title = "系统访问记录", businessType = BusinessType.OTHER ,eventType = EventType.system)
     @GetMapping("/unlock/{userName}")
     public R<Void> unlock(@PathVariable("userName") String userName) {
         String loginName = CacheConstants.PWD_ERR_CNT_KEY + userName;
@@ -84,6 +86,15 @@ public class SysLogininforController extends BaseController {
             RedisUtils.deleteObject(loginName);
         }
         return R.ok();
+    }
+
+    /**
+     * 统计图表
+     */
+    @SaCheckPermission("monitor:logininfor:list")
+    @PostMapping("/statistics")
+    public R<List<SysLogininfoStatisticVo>> statistics(@RequestBody SysLogininforBo logininfor) {
+        return R.ok(logininforService.logininfoStatistic(logininfor));
     }
 
 }

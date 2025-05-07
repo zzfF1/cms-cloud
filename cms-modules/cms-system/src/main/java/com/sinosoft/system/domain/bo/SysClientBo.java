@@ -1,6 +1,9 @@
 package com.sinosoft.system.domain.bo;
 
+import com.sinosoft.system.api.domain.vo.ApiPermissionVo;
+import com.sinosoft.system.api.domain.vo.ClientConfigVo;
 import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMapping;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -76,5 +79,16 @@ public class SysClientBo extends BaseEntity {
      */
     private String status;
 
+    /**
+     * 客户端配置
+     */
+    @AutoMapping(target = "config", ignore = true)
+    private ClientConfigVo config;
+
+    /**
+     * API权限列表
+     */
+    @AutoMapping(target = "apiPermissions", ignore = true)
+    private List<ApiPermissionVo> apiPermissions;
 
 }
