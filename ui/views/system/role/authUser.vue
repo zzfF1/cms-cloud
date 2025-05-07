@@ -66,8 +66,7 @@
 
 <script setup name="AuthUser" lang="ts">
 import { allocatedUserList, authUserCancel, authUserCancelAll } from '@/api/system/role';
-import { UserQuery } from '@/api/system/user/types';
-import { UserVO } from '@/api/system/user/types';
+import { UserQuery, UserVO } from '@/api/system/user/types';
 import SelectUser from './selectUser.vue';
 import { RouteLocationNormalized } from 'vue-router';
 
@@ -156,5 +155,3 @@ onMounted(() => {
   getList();
 });
 </script>
-
-<style lang="scss" scoped></style>

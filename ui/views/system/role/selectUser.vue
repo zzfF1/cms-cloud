@@ -27,7 +27,7 @@
           </el-table-column>
           <el-table-column label="创建时间" align="center" prop="createTime" width="180">
             <template #default="scope">
-              <span>{{ parseTime(scope.row.createTime) }}</span>
+              <span>{{ proxy.parseTime(scope.row.createTime) }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -45,8 +45,7 @@
 
 <script setup name="SelectUser" lang="ts">
 import { authUserSelectAll, unallocatedUserList } from '@/api/system/role';
-import { UserVO } from '@/api/system/user/types';
-import { UserQuery } from '@/api/system/user/types';
+import { UserQuery, UserVO } from '@/api/system/user/types';
 
 const props = defineProps({
   roleId: {
@@ -128,5 +127,3 @@ defineExpose({
   show
 });
 </script>
-
-<style scoped></style>

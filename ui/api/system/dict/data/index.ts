@@ -29,7 +29,7 @@ export function getData(dictCode: string | number): AxiosPromise<DictDataVO> {
 // 新增字典数据
 export function addData(data: DictDataForm) {
   return request({
-    url: '/system/dict/data',
+    url: '/system/dict/data/add',
     method: 'post',
     data: data
   });
@@ -38,8 +38,8 @@ export function addData(data: DictDataForm) {
 // 修改字典数据
 export function updateData(data: DictDataForm) {
   return request({
-    url: '/system/dict/data',
-    method: 'put',
+    url: '/system/dict/data/edit',
+    method: 'post',
     data: data
   });
 }
@@ -47,7 +47,7 @@ export function updateData(data: DictDataForm) {
 // 删除字典数据
 export function delData(dictCode: string | number | Array<string | number>) {
   return request({
-    url: '/system/dict/data/' + dictCode,
-    method: 'delete'
+    url: '/system/dict/data/remove/' + dictCode,
+    method: 'post'
   });
 }

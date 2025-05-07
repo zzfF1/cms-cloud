@@ -22,7 +22,7 @@ export function getType(dictId: number | string): AxiosPromise<DictTypeVO> {
 // 新增字典类型
 export function addType(data: DictTypeForm) {
   return request({
-    url: '/system/dict/type',
+    url: '/system/dict/type/add',
     method: 'post',
     data: data
   });

@@ -10,7 +10,7 @@
             class="mt-2"
             node-key="id"
             :data="deptOptions"
-            :props="{ label: 'label', children: 'children' }"
+            :props="{ label: 'label', children: 'children' } as any"
             :expand-on-click-node="false"
             :filter-node-method="filterNode"
             highlight-current
@@ -43,7 +43,7 @@
                   <el-tree-select
                     v-model="queryParams.deptId"
                     :data="deptOptions"
-                    :props="{ value: 'id', label: 'label', children: 'children' }"
+                    :props="{ value: 'id', label: 'label', children: 'children' } as any"
                     value-key="id"
                     placeholder="请选择部门"
                     check-strictly
@@ -99,7 +99,7 @@
             </el-table-column>
             <el-table-column label="创建时间" align="center" prop="createTime" width="180">
               <template #default="scope">
-                <span>{{ parseTime(scope.row.createTime) }}</span>
+                <span>{{ proxy.parseTime(scope.row.createTime) }}</span>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="180" align="center" class-name="small-padding fixed-width">
@@ -123,60 +123,28 @@
           />
         </el-card>
 
-        <!-- 添加或修改岗位对话框 -->
-        <el-dialog v-model="dialog.visible" :title="dialog.title" width="500px" append-to-body>
-          <el-form ref="postFormRef" :model="form" :rules="rules" label-width="80px">
-            <el-form-item label="岗位名称" prop="postName">
-              <el-input v-model="form.postName" placeholder="请输入岗位名称" />
-            </el-form-item>
-            <el-form-item label="部门" prop="deptId">
-              <el-tree-select
-                v-model="form.deptId"
-                :data="deptOptions"
-                :props="{ value: 'id', label: 'label', children: 'children' }"
-                value-key="id"
-                placeholder="请选择部门"
-                check-strictly
-              />
-            </el-form-item>
-            <el-form-item label="岗位编码" prop="postCode">
-              <el-input v-model="form.postCode" placeholder="请输入编码名称" />
-            </el-form-item>
-            <el-form-item label="类别编码" prop="postCategory">
-              <el-input v-model="form.postCategory" placeholder="请输入类别编码" />
-            </el-form-item>
-            <el-form-item label="岗位顺序" prop="postSort">
-              <el-input-number v-model="form.postSort" controls-position="right" :min="0" />
-            </el-form-item>
-            <el-form-item label="岗位状态" prop="status">
-              <el-radio-group v-model="form.status">
-                <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="备注" prop="remark">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
-          </el-form>
-          <template #footer>
-            <div class="dialog-footer">
-              <el-button type="primary" @click="submitForm">确 定</el-button>
-              <el-button @click="cancel">取 消</el-button>
-            </div>
-          </template>
-        </el-dialog>
+        <!-- 引入岗位表单组件 -->
+        <post-form v-model:visible="formVisible" :edit-type="editType" :row-data="currentRow" :dept-options="deptOptions" @save="handleSave">
+        </post-form>
       </el-col>
     </el-row>
   </div>
 </template>
 
 <script setup name="Post" lang="ts">
-import { listPost, addPost, delPost, getPost, updatePost } from '@/api/system/post';
-import { PostForm, PostQuery, PostVO } from '@/api/system/post/types';
-import { DeptVO } from '@/api/system/dept/types';
+import { delPost, listPost } from '@/api/system/post';
+import { PostQuery, PostVO } from '@/api/system/post/types';
+import { DeptTreeVO, DeptVO } from '@/api/system/dept/types';
 import api from '@/api/system/user';
+import PostForm from './postForm.vue';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { sys_normal_disable } = toRefs<any>(proxy?.useDict('sys_normal_disable'));
+
+// 表单控制状态
+const formVisible = ref(false);
+const editType = ref('');
+const currentRow = ref<PostVO | null>(null);
 
 const postList = ref<PostVO[]>([]);
 const loading = ref(true);
@@ -186,46 +154,21 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const deptName = ref('');
-const deptOptions = ref<DeptVO[]>([]);
+const deptOptions = ref<DeptTreeVO[]>([]);
 const deptTreeRef = ref<ElTreeInstance>();
-const postFormRef = ref<ElFormInstance>();
 const queryFormRef = ref<ElFormInstance>();
 
-const dialog = reactive<DialogOption>({
-  visible: false,
-  title: ''
-});
-
-const initFormData: PostForm = {
-  postId: undefined,
-  deptId: undefined,
+// 查询参数
+const queryParams = reactive<PostQuery>({
+  pageNum: 1,
+  pageSize: 10,
   postCode: '',
   postName: '',
   postCategory: '',
-  postSort: 0,
-  status: '0',
-  remark: ''
-};
-
-const data = reactive<PageData<PostForm, PostQuery>>({
-  form: { ...initFormData },
-  queryParams: {
-    pageNum: 1,
-    pageSize: 10,
-    postCode: '',
-    postName: '',
-    postCategory: '',
-    status: ''
-  },
-  rules: {
-    postName: [{ required: true, message: '岗位名称不能为空', trigger: 'blur' }],
-    postCode: [{ required: true, message: '岗位编码不能为空', trigger: 'blur' }],
-    deptId: [{ required: true, message: '部门不能为空', trigger: 'blur' }],
-    postSort: [{ required: true, message: '岗位顺序不能为空', trigger: 'blur' }]
-  }
+  status: '',
+  deptId: undefined,
+  belongDeptId: undefined
 });
-
-const { queryParams, form, rules } = toRefs<PageData<PostForm, PostQuery>>(data);
 
 /** 通过条件过滤节点  */
 const filterNode = (value: string, data: any) => {
@@ -251,37 +194,28 @@ const getTreeSelect = async () => {
 
 /** 节点单击事件 */
 const handleNodeClick = (data: DeptVO) => {
-  queryParams.value.belongDeptId = data.id;
-  queryParams.value.deptId = undefined;
+  queryParams.belongDeptId = data.id;
+  queryParams.deptId = undefined;
   handleQuery();
 };
 
 /** 查询岗位列表 */
 const getList = async () => {
   loading.value = true;
-  const res = await listPost(queryParams.value);
-  postList.value = res.rows;
-  total.value = res.total;
-  loading.value = false;
-};
-
-/** 取消按钮 */
-const cancel = () => {
-  reset();
-  dialog.visible = false;
-};
-
-/** 表单重置 */
-const reset = () => {
-  form.value = { ...initFormData };
-  postFormRef.value?.resetFields();
+  try {
+    const res = await listPost(queryParams);
+    postList.value = res.rows;
+    total.value = res.total;
+  } finally {
+    loading.value = false;
+  }
 };
 
 /** 搜索按钮操作 */
 const handleQuery = () => {
-  queryParams.value.pageNum = 1;
-  if (queryParams.value.deptId) {
-    queryParams.value.belongDeptId = undefined;
+  queryParams.pageNum = 1;
+  if (queryParams.deptId) {
+    queryParams.belongDeptId = undefined;
   }
   getList();
 };
@@ -289,11 +223,11 @@ const handleQuery = () => {
 /** 重置按钮操作 */
 const resetQuery = () => {
   queryFormRef.value?.resetFields();
-  queryParams.value.pageNum = 1;
-  queryParams.value.deptId = undefined;
+  queryParams.pageNum = 1;
+  queryParams.deptId = undefined;
   deptTreeRef.value?.setCurrentKey(undefined);
   /** 清空左边部门树选中值 */
-  queryParams.value.belongDeptId = undefined;
+  queryParams.belongDeptId = undefined;
   handleQuery();
 };
 
@@ -306,31 +240,26 @@ const handleSelectionChange = (selection: PostVO[]) => {
 
 /** 新增按钮操作 */
 const handleAdd = () => {
-  reset();
-  dialog.visible = true;
-  dialog.title = '添加岗位';
+  currentRow.value = null;
+  editType.value = 'add';
+  formVisible.value = true;
 };
 
 /** 修改按钮操作 */
-const handleUpdate = async (row?: PostVO) => {
-  reset();
-  const postId = row?.postId || ids.value[0];
-  const res = await getPost(postId);
-  Object.assign(form.value, res.data);
-  dialog.visible = true;
-  dialog.title = '修改岗位';
+const handleUpdate = (row?: PostVO) => {
+  if (row) {
+    currentRow.value = row;
+  } else {
+    const selectedPost = postList.value.find((item) => item.postId === ids.value[0]);
+    currentRow.value = selectedPost || null;
+  }
+  editType.value = 'edit';
+  formVisible.value = true;
 };
 
-/** 提交按钮 */
-const submitForm = () => {
-  postFormRef.value?.validate(async (valid: boolean) => {
-    if (valid) {
-      form.value.postId ? await updatePost(form.value) : await addPost(form.value);
-      proxy?.$modal.msgSuccess('操作成功');
-      dialog.visible = false;
-      await getList();
-    }
-  });
+/** 保存成功后的处理 */
+const handleSave = () => {
+  getList();
 };
 
 /** 删除按钮操作 */
@@ -347,7 +276,7 @@ const handleExport = () => {
   proxy?.download(
     'system/post/export',
     {
-      ...queryParams.value
+      ...queryParams
     },
     `post_${new Date().getTime()}.xlsx`
   );

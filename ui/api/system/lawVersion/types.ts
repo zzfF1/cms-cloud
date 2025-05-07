@@ -95,7 +95,7 @@ export interface LawVersionQuery extends PageQuery {
 }
 
 /**
- * 工资计算定义
+ * 佣金计算定义
  */
 export interface WageCalDefineVo {
   /**
@@ -107,7 +107,7 @@ export interface WageCalDefineVo {
    */
   calCode?: string;
   /**
-   *工资项名称
+   *佣金项名称
    */
   calName?: string;
   /**
@@ -143,11 +143,11 @@ export interface WageCalDefineVo {
    */
   calOrder?: string;
   /**
-   *输出工资单
+   *输出佣金单
    */
   outExcel?: string;
   /**
-   *工资单排序
+   *佣金单排序
    */
   outOrder?: string;
   /**
@@ -193,15 +193,15 @@ export interface WageCalDefinitionVo {
    */
   calCode: string;
   /**
-   * 工资项说明
+   * 佣金项说明
    */
   calName: string;
   /**
-   * 工资结果列
+   * 佣金结果列
    */
   tableColname: string;
   /**
-   * 计算分组名称 多个佣金项 保存一个过程id 工资单使用该名称展示title
+   * 计算分组名称 多个佣金项 保存一个过程id 佣金单使用该名称展示title
    */
   calGroupName: string;
   /**
@@ -229,11 +229,11 @@ export interface WageCalDefinitionVo {
    */
   calOrder: string | number;
   /**
-   * 是否输出excel 工资单展示
+   * 是否输出excel 佣金单展示
    */
   outExcel: number;
   /**
-   * 工资单排序字段
+   * 佣金单排序字段
    */
   outOrder: number;
   /**

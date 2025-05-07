@@ -1,6 +1,6 @@
 import request from '@/utils/request';
 import { AxiosPromise } from 'axios';
-import { ClientVO, ClientForm, ClientQuery } from '@/api/system/client/types';
+import { ClientVO, ClientForm, ClientQuery, KeyPair } from '@/api/system/client/types';
 
 /**
  * 查询客户端管理列表
@@ -76,5 +76,35 @@ export function changeStatus(clientId: string, status: string) {
     url: '/system/client/changeStatus',
     method: 'put',
     data: data
+  });
+}
+
+/**
+ * 生成访问密钥(AK)
+ */
+export function generateAccessKey() {
+  return request({
+    url: '/client/generateAccessKey',
+    method: 'get'
+  });
+}
+
+/**
+ * 生成安全密钥(SK)
+ */
+export function generateSecretKey() {
+  return request({
+    url: '/client/generateSecretKey',
+    method: 'get'
+  });
+}
+
+/**
+ * 生成SM2密钥对 (使用Hutool工具)
+ */
+export function generateSm2KeyPair() {
+  return request<KeyPair>({
+    url: '/client/generateSm2KeyPair',
+    method: 'get'
   });
 }

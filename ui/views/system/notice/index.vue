@@ -61,7 +61,7 @@
         <el-table-column label="创建者" align="center" prop="createByName" width="100" />
         <el-table-column label="创建时间" align="center" prop="createTime" width="100">
           <template #default="scope">
-            <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
+            <span>{{ proxy.parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
@@ -78,52 +78,24 @@
 
       <pagination v-show="total > 0" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" :total="total" @pagination="getList" />
     </el-card>
-    <!-- 添加或修改公告对话框 -->
-    <el-dialog v-model="dialog.visible" :title="dialog.title" width="780px" append-to-body>
-      <el-form ref="noticeFormRef" :model="form" :rules="rules" label-width="80px">
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="公告标题" prop="noticeTitle">
-              <el-input v-model="form.noticeTitle" placeholder="请输入公告标题" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="公告类型" prop="noticeType">
-              <el-select v-model="form.noticeType" placeholder="请选择">
-                <el-option v-for="dict in sys_notice_type" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="状态">
-              <el-radio-group v-model="form.status">
-                <el-radio v-for="dict in sys_notice_status" :key="dict.value" :value="dict.value">{{ dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="内容">
-              <editor v-model="form.noticeContent" :min-height="192" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
-        </div>
-      </template>
-    </el-dialog>
+
+    <!-- 引入公告表单组件 -->
+    <notice-form v-model:visible="formVisible" :edit-type="editType" :row-data="currentRow" @save="handleSave"></notice-form>
   </div>
 </template>
 
 <script setup name="Notice" lang="ts">
-import { listNotice, getNotice, delNotice, addNotice, updateNotice } from '@/api/system/notice';
-import { NoticeForm, NoticeQuery, NoticeVO } from '@/api/system/notice/types';
+import { delNotice, listNotice } from '@/api/system/notice';
+import { NoticeQuery, NoticeVO } from '@/api/system/notice/types';
+import NoticeForm from './noticeForm.vue';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { sys_notice_status, sys_notice_type } = toRefs<any>(proxy?.useDict('sys_notice_status', 'sys_notice_type'));
+
+// 表单控制状态
+const formVisible = ref(false);
+const editType = ref('');
+const currentRow = ref<NoticeVO | null>(null);
 
 const noticeList = ref<NoticeVO[]>([]);
 const loading = ref(true);
@@ -134,100 +106,72 @@ const multiple = ref(true);
 const total = ref(0);
 
 const queryFormRef = ref<ElFormInstance>();
-const noticeFormRef = ref<ElFormInstance>();
 
-const dialog = reactive<DialogOption>({
-  visible: false,
-  title: ''
-});
-
-const initFormData: NoticeForm = {
-  noticeId: undefined,
+// 查询参数
+const queryParams = reactive<NoticeQuery>({
+  pageNum: 1,
+  pageSize: 10,
   noticeTitle: '',
-  noticeType: '',
-  noticeContent: '',
-  status: '0',
-  remark: '',
-  createByName: ''
-};
-const data = reactive<PageData<NoticeForm, NoticeQuery>>({
-  form: { ...initFormData },
-  queryParams: {
-    pageNum: 1,
-    pageSize: 10,
-    noticeTitle: '',
-    createByName: '',
-    status: '',
-    noticeType: ''
-  },
-  rules: {
-    noticeTitle: [{ required: true, message: '公告标题不能为空', trigger: 'blur' }],
-    noticeType: [{ required: true, message: '公告类型不能为空', trigger: 'change' }]
-  }
+  createByName: '',
+  status: '',
+  noticeType: ''
 });
-
-const { queryParams, form, rules } = toRefs(data);
 
 /** 查询公告列表 */
 const getList = async () => {
   loading.value = true;
-  const res = await listNotice(queryParams.value);
-  noticeList.value = res.rows;
-  total.value = res.total;
-  loading.value = false;
+  try {
+    const res = await listNotice(queryParams);
+    noticeList.value = res.rows;
+    total.value = res.total;
+  } finally {
+    loading.value = false;
+  }
 };
-/** 取消按钮 */
-const cancel = () => {
-  reset();
-  dialog.visible = false;
-};
-/** 表单重置 */
-const reset = () => {
-  form.value = { ...initFormData };
-  noticeFormRef.value?.resetFields();
-};
+
 /** 搜索按钮操作 */
 const handleQuery = () => {
-  queryParams.value.pageNum = 1;
+  queryParams.pageNum = 1;
   getList();
 };
+
 /** 重置按钮操作 */
 const resetQuery = () => {
   queryFormRef.value?.resetFields();
   handleQuery();
 };
+
 /** 多选框选中数据 */
 const handleSelectionChange = (selection: NoticeVO[]) => {
   ids.value = selection.map((item) => item.noticeId);
   single.value = selection.length != 1;
   multiple.value = !selection.length;
 };
+
 /** 新增按钮操作 */
 const handleAdd = () => {
-  reset();
-  dialog.visible = true;
-  dialog.title = '添加公告';
+  currentRow.value = null;
+  editType.value = 'add';
+  formVisible.value = true;
 };
-/**修改按钮操作 */
-const handleUpdate = async (row?: NoticeVO) => {
-  reset();
-  const noticeId = row?.noticeId || ids.value[0];
-  const { data } = await getNotice(noticeId);
-  Object.assign(form.value, data);
-  dialog.visible = true;
-  dialog.title = '修改公告';
+
+/** 修改按钮操作 */
+const handleUpdate = (row?: NoticeVO) => {
+  if (row) {
+    currentRow.value = row;
+  } else {
+    const selectedNotice = noticeList.value.find((item) => item.noticeId === ids.value[0]);
+    currentRow.value = selectedNotice || null;
+  }
+  editType.value = 'edit';
+  formVisible.value = true;
 };
-/** 提交按钮 */
-const submitForm = () => {
-  noticeFormRef.value?.validate(async (valid: boolean) => {
-    if (valid) {
-      form.value.noticeId ? await updateNotice(form.value) : await addNotice(form.value);
-      proxy?.$modal.msgSuccess('操作成功');
-      dialog.visible = false;
-      await getList();
-    }
-  });
+
+/** 保存成功后的处理 */
+const handleSave = () => {
+  getList();
 };
+
 /** 删除按钮操作 */
 const handleDelete = async (row?: NoticeVO) => {
   const noticeIds = row?.noticeId || ids.value;
